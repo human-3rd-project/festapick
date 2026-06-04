@@ -1,0 +1,91 @@
+/* =========================
+   Reset
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* =========================
+   Base
+========================= */
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+body {
+  font-family:
+    "Pretendard",
+    "Noto Sans KR",
+    sans-serif;
+
+  color: #222;
+  background-color: #fff;
+
+  line-height: 1.5;
+}
+
+/* =========================
+   Link
+========================= */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =========================
+   List
+========================= */
+ul,
+ol {
+  list-style: none;
+}
+
+/* =========================
+   Button
+========================= */
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* =========================
+   Input
+========================= */
+input,
+textarea,
+select {
+  font: inherit;
+  outline: none;
+}
+
+/* =========================
+   Image
+========================= */
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* =========================
+   Utility
+========================= */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hidden {
+  display: none;
+}
