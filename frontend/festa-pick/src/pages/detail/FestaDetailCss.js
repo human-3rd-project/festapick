@@ -75,7 +75,7 @@ export const HeroContent = styled.div`
   right: 0;
   bottom: 0;
   left: 0;
-  width: min(1024px, calc(100% - 32px));
+  width: min(920px, calc(100% - 32px));
   margin: 0 auto;
   padding: 0 0 28px;
 `;
@@ -213,22 +213,23 @@ export const AiMarqueeContent = styled.div`
 `;
 
 export const BodyGrid = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 8fr) minmax(280px, 4fr);
-  width: min(1024px, calc(100% - 32px));
-  gap: 24px;
-  margin: 24px auto 0;
+  display: block;
+  width: min(920px, calc(100% - 32px));
+  margin: 32px auto 0;
 
   @media (max-width: 860px) {
-    grid-template-columns: 1fr;
+    width: min(100% - 32px, 760px);
+    margin-top: 24px;
   }
 `;
 
 export const MainColumn = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  width: 100%;
+  gap: 52px;
   min-width: 0;
+  margin: 0 auto;
 `;
 
 export const Sidebar = styled.aside`
@@ -247,7 +248,7 @@ export const InfoGrid = styled.section`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
-  padding: 24px;
+  padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   background: rgba(23, 31, 51, 0.7);
@@ -313,8 +314,8 @@ export const DetailText = styled.div`
   flex-direction: column;
   gap: 14px;
   color: #cfc2d6;
-  font-size: 16px;
-  line-height: 26px;
+  font-size: 17px;
+  line-height: 28px;
 
   p {
     margin: 0;
@@ -323,7 +324,7 @@ export const DetailText = styled.div`
 
 export const MapCanvas = styled.div`
   position: relative;
-  min-height: ${({ $disabled }) => ($disabled ? "300px" : "360px")};
+  min-height: ${({ $disabled }) => ($disabled ? "320px" : "400px")};
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -515,6 +516,11 @@ export const ReviewList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 14px;
+
+  > ${TextButton}:last-child {
+    align-self: center;
+    margin-top: 6px;
+  }
 `;
 
 export const ReviewCard = styled.article`

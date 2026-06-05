@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
-  Bell,
-  CalendarPlus,
   ChevronDown,
   ChevronUp,
   Heart,
@@ -15,19 +13,16 @@ import {
   Share2,
   Star,
   ThumbsUp,
-  Ticket,
 } from "lucide-react";
 
 import RealTimeTalkModal from "./LiveTalkModal";
 import ReviewModal from "./ReviewModal";
 import {
   ActionButton,
-  ActionRow,
   AiMarquee,
   AiMarqueeContent,
   Badge,
   BodyGrid,
-  Card,
   CtaButton,
   DetailText,
   DisabledOverlay,
@@ -61,11 +56,7 @@ import {
   ReviewList,
   Section,
   SectionTitle,
-  Sidebar,
-  SidebarSticky,
   SmallIconButton,
-  StatusCard,
-  StatusIcon,
   TagRow,
   TalkComposer,
   TalkControlGroup,
@@ -116,7 +107,37 @@ const DEFAULT_REVIEWS = [
     rating: 4,
     text: "사람이 좀 많긴 한데 그만큼 분위기가 뜨겁습니다. 화장실 줄이 긴 건 조금 아쉽네요.",
   },
+  {
+    id: "review-3",
+    author: "Festival_Mate",
+    time: "1시간 전",
+    rating: 5,
+    text: "입장 동선이 생각보다 잘 정리되어 있고, 스태프 안내가 친절해서 처음 방문해도 편했습니다.",
+  },
+  {
+    id: "review-4",
+    author: "NeonWalk",
+    time: "2시간 전",
+    rating: 4,
+    text: "푸드존 메뉴가 다양해서 좋았어요. 인기 부스는 대기 시간이 조금 있으니 공연 사이에 다녀오는 걸 추천합니다.",
+  },
+  {
+    id: "review-5",
+    author: "SoundTrip",
+    time: "3시간 전",
+    rating: 5,
+    text: "음향 밸런스가 정말 좋았습니다. 뒤쪽에서도 보컬과 베이스가 또렷하게 들려서 만족스러웠어요.",
+  },
+  {
+    id: "review-6",
+    author: "MoonStage",
+    time: "어제",
+    rating: 4,
+    text: "야간 조명 연출이 예뻐서 사진 찍기 좋습니다. 다만 늦은 시간에는 택시 잡기가 조금 어렵습니다.",
+  },
 ];
+
+const REVIEW_PAGE_SIZE = 3;
 
 const LIVE_MESSAGES = [
   {
@@ -148,6 +169,7 @@ function FestaDetail({
   const [talkMessage, setTalkMessage] = useState("");
   const [isFavorite, setIsFavorite] = useState(Boolean(festivalProp?.favorite));
   const [isLiked, setIsLiked] = useState(Boolean(festivalProp?.liked));
+  const [visibleReviewCount, setVisibleReviewCount] = useState(REVIEW_PAGE_SIZE);
 
   const routedFestival = location.state?.festival;
   const festival = useMemo(() => {
@@ -185,6 +207,7 @@ function FestaDetail({
 
   useEffect(() => {
     setLocalReviews(reviews);
+    setVisibleReviewCount(REVIEW_PAGE_SIZE);
   }, [reviews]);
 
   const myReview = useMemo(
@@ -193,9 +216,10 @@ function FestaDetail({
   );
   const hasReviews = localReviews.length > 0;
   const visibleReviews = useMemo(
-    () => localReviews.slice(0, 3),
-    [localReviews],
+    () => localReviews.slice(0, visibleReviewCount),
+    [localReviews, visibleReviewCount],
   );
+  const hasMoreReviews = visibleReviewCount < localReviews.length;
 
   const handleTalkSubmit = (event) => {
     event.preventDefault();
@@ -225,6 +249,12 @@ function FestaDetail({
   const handleDeleteMyReview = () => {
     setLocalReviews((currentReviews) =>
       currentReviews.filter((review) => !review.isMine),
+    );
+  };
+
+  const handleLoadMoreReviews = () => {
+    setVisibleReviewCount((currentCount) =>
+      Math.min(currentCount + REVIEW_PAGE_SIZE, localReviews.length),
     );
   };
 
@@ -446,7 +476,11 @@ function FestaDetail({
                     )}
                   </ReviewCard>
                 ))}
-                <TextButton type="button">리뷰 더보기</TextButton>
+                {hasMoreReviews && (
+                  <TextButton onClick={handleLoadMoreReviews} type="button">
+                    리뷰 더보기
+                  </TextButton>
+                )}
               </ReviewList>
             ) : (
               <EmptyState>
@@ -460,55 +494,6 @@ function FestaDetail({
           </Section>
         </MainColumn>
 
-        <Sidebar>
-          <SidebarSticky>
-            <StatusCard $disabled={!resolvedIsFestivalActive}>
-              <div>
-                <InfoLabel>Ticket Status</InfoLabel>
-                <InfoValue>
-                  {resolvedIsFestivalActive
-                    ? "예매 가능"
-                    : "진행 기간이 아닙니다"}
-                </InfoValue>
-              </div>
-              <StatusIcon $disabled={!resolvedIsFestivalActive}>
-                <Ticket size={30} />
-              </StatusIcon>
-              <Card>
-                <span>입장료</span>
-                <strong>
-                  {resolvedIsFestivalActive ? festival.price : "-"}
-                </strong>
-              </Card>
-              <Card>
-                <span>
-                  {resolvedIsFestivalActive ? "잔여 티켓" : "잔여 인원"}
-                </span>
-                <strong>
-                  {resolvedIsFestivalActive
-                    ? `${festival.remainCount}매 남음`
-                    : "종료됨"}
-                </strong>
-              </Card>
-              <CtaButton disabled={!resolvedIsFestivalActive} type="button">
-                {resolvedIsFestivalActive ? "지금 예매하기" : "신청 불가"}
-              </CtaButton>
-            </StatusCard>
-
-            <ActionRow>
-              <ActionButton type="button">
-                <CalendarPlus size={20} />
-                일정 추가
-              </ActionButton>
-              {resolvedIsFestivalActive && (
-                <ActionButton type="button">
-                  <Bell size={20} />
-                  알림 받기
-                </ActionButton>
-              )}
-            </ActionRow>
-          </SidebarSticky>
-        </Sidebar>
       </BodyGrid>
 
       {resolvedIsFestivalActive && (
