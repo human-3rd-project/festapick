@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PartyPopper, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import {
@@ -28,6 +28,10 @@ const hiddenPathPrefixes = [
 function Advertise({ onDetailClick }) {
   const [isVisible, setIsVisible] = useState(true);
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, [pathname]);
 
   const isAuthPage = hiddenPathPrefixes.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
