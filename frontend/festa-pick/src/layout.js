@@ -1,25 +1,30 @@
-// TODO : 레이아웃 컴포넌트 작성
 import React from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import styled from "styled-components";
 
-const Layout = () => {
+const LayoutWrapper = styled.div`
+  min-height: 100vh;
+`;
+
+const MainContent = styled.main`
+  padding-top: 64px;
+`;
+
+const Layout = ({ children }) => {
   return (
     <div>
-      {/* 헤더 */}
       <header>
         <Header />
       </header>
 
-      {/* 메인 콘텐츠 */}
-      <main>
-        <outlet />
-      </main>
+      <main>{children}</main>
 
-      {/* 푸터 */}
       <footer>
         <Footer />
       </footer>
     </div>
   );
 };
+
+export default Layout;
