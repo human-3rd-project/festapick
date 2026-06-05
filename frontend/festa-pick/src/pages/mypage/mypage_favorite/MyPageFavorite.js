@@ -95,6 +95,22 @@ function MyPageFavorite() {
     setPage(Math.min(Math.max(nextPage, 1), pageCount));
   };
 
+  const getFestivalLink = (item) => ({
+    to: `/festivals/${item.id}`,
+    state: {
+      festival: {
+        id: item.id,
+        title: item.title,
+        name: item.title,
+        date: item.date,
+        location: item.place,
+        venue: item.place,
+        category: item.category,
+        favorite: true,
+      },
+    },
+  });
+
   return (
     <S.Page>
       <S.Container>
@@ -116,7 +132,11 @@ function MyPageFavorite() {
             <>
               <S.FavoriteGrid>
                 {visibleFavorites.map((item) => (
-                  <S.FestivalCard key={item.id} to={`/festivals/${item.id}`}>
+                  <S.FestivalCard
+                    key={item.id}
+                    to={getFestivalLink(item).to}
+                    state={getFestivalLink(item).state}
+                  >
                     <S.FestivalPoster $color={item.color}>
                       <S.PosterCategory>{item.category}</S.PosterCategory>
                       <S.PosterHeart aria-hidden="true">

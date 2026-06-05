@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Eye, EyeOff, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Styles from './ResetPasswordPageCss';
 
 const initialStatus = {
@@ -78,7 +79,7 @@ const ResetPasswordPage = () => {
 									새 비밀번호로 로그인하여 Festa Pick을 계속 이용해 주세요.
 								</Styles.ResultDescription>
 							</Styles.ResultBox>
-							<Styles.GlassLink href="/login">로그인으로 돌아가기</Styles.GlassLink>
+							<Styles.GlassLink as={Link} to="/login">로그인으로 돌아가기</Styles.GlassLink>
 						</Styles.ResultArea>
 					) : (
 						<Styles.Form onSubmit={handleSubmit} noValidate>

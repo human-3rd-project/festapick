@@ -3,13 +3,13 @@ import { NavLink } from "react-router-dom";
 
 export const AdminSidebar = styled.aside`
   position: fixed;
-  top: 0;
+  top: var(--app-header-height, 64px);
   left: 0;
-  z-index: 50;
+  z-index: 40;
   display: flex;
   flex-direction: column;
   width: 256px;
-  height: 100vh;
+  height: calc(100vh - var(--app-header-height, 64px));
   padding: 24px 16px;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   background: #060e20;
@@ -27,6 +27,7 @@ export const AdminSidebar = styled.aside`
 
   @media (max-width: 768px) {
     position: sticky;
+    top: var(--app-header-height, 64px);
     width: 100%;
     height: auto;
     min-height: auto;

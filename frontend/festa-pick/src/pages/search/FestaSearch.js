@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bookmark,
   CalendarDays,
@@ -241,10 +241,15 @@ const DEFAULT_FILTER_VALUES = {
 };
 
 function Search() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [keyword, setKeyword] = useState("");
-  const [submittedKeyword, setSubmittedKeyword] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
+  const initialKeyword =
+    location.state?.keyword ||
+    new URLSearchParams(location.search).get("keyword") ||
+    "";
+  const [keyword, setKeyword] = useState(initialKeyword);
+  const [submittedKeyword, setSubmittedKeyword] = useState(initialKeyword);
+  const [hasSearched, setHasSearched] = useState(Boolean(initialKeyword));
   const [filters, setFilters] = useState([]);
   const [draftFilterValues, setDraftFilterValues] = useState(
     DEFAULT_FILTER_VALUES,
@@ -285,6 +290,18 @@ function Search() {
     [results, visibleResultCount],
   );
   const hasMoreResults = visibleResultCount < results.length;
+
+  useEffect(() => {
+    const nextKeyword =
+      location.state?.keyword ||
+      new URLSearchParams(location.search).get("keyword") ||
+      "";
+
+    setKeyword(nextKeyword);
+    setSubmittedKeyword(nextKeyword);
+    setHasSearched(Boolean(nextKeyword));
+    setVisibleResultCount(INITIAL_RESULT_COUNT);
+  }, [location.search, location.state]);
 
   const handleSubmit = (event) => {
     event.preventDefault();

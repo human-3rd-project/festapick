@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Link,
+  NavLink as RouterNavLink,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import {
   Bell,
   CalendarDays,
   ChevronDown,
@@ -24,7 +30,6 @@ import {
   HeaderBar,
   HeaderInner,
   LoginButton,
-  LogoMark,
   MenuDivider,
   Nav,
   NavLink,
@@ -43,7 +48,7 @@ import {
   UnreadDot,
 } from "./HeaderCss";
 
-const TEST_USER_TYPE = "user"; // "guest" | "user" | "admin"
+const TEST_USER_TYPE = "admin"; // "guest" | "user" | "admin"
 const TEST_USER_NAME = TEST_USER_TYPE === "admin" ? "관리자님" : "사용자님";
 
 const notifications = [
@@ -85,12 +90,15 @@ const notifications = [
 ];
 
 function Header() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const profileButtonRef = useRef(null);
   const dropdownRef = useRef(null);
   const notificationButtonRef = useRef(null);
   const notificationPanelRef = useRef(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   const isLoggedIn = TEST_USER_TYPE === "user" || TEST_USER_TYPE === "admin";
   const isAdmin = TEST_USER_TYPE === "admin";
@@ -107,6 +115,39 @@ function Header() {
   const handleNotificationClick = () => {
     setIsNotificationOpen((prev) => !prev);
     setIsUserMenuOpen(false);
+  };
+
+  const closeMenus = () => {
+    setIsUserMenuOpen(false);
+    setIsNotificationOpen(false);
+  };
+
+  const handleLoginClick = () => {
+    closeMenus();
+    navigate("/login");
+  };
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    const trimmedKeyword = searchKeyword.trim();
+
+    navigate(
+      trimmedKeyword
+        ? `/search?keyword=${encodeURIComponent(trimmedKeyword)}`
+        : "/search",
+      { state: { keyword: trimmedKeyword } },
+    );
+    closeMenus();
+  };
+
+  const isActivePath = (path) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+
+    return (
+      location.pathname === path || location.pathname.startsWith(`${path}/`)
+    );
   };
 
   useEffect(() => {
@@ -147,24 +188,43 @@ function Header() {
   return (
     <HeaderBar>
       <HeaderInner>
-        <BrandLink href="/">
-          <LogoMark>F</LogoMark>
+        <BrandLink as={Link} to="/" onClick={closeMenus}>
           FestaPick
         </BrandLink>
 
         <Nav aria-label="주요 메뉴">
-          <NavLink href="/" $active>
+          <NavLink
+            as={RouterNavLink}
+            to="/search"
+            $active={isActivePath("/search")}
+          >
             축제 탐색
           </NavLink>
-          <NavLink href="/">내 주변</NavLink>
-          <NavLink href="/">캘린더</NavLink>
-          <NavLink href="/">AI 추천</NavLink>
+          <NavLink
+            as={RouterNavLink}
+            to="/donation"
+            $active={isActivePath("/donation")}
+          >
+            후원
+          </NavLink>
+          <NavLink
+            as={RouterNavLink}
+            to="/calendar"
+            $active={isActivePath("/calendar")}
+          >
+            캘린더
+          </NavLink>
+          <NavLink as={RouterNavLink} to="/ai" $active={isActivePath("/ai")}>
+            AI 추천
+          </NavLink>
         </Nav>
 
         <ActionArea>
-          <SearchBox>
+          <SearchBox as="form" onSubmit={handleSearchSubmit}>
             <Search size={17} aria-hidden="true" />
             <SearchInput
+              value={searchKeyword}
+              onChange={(event) => setSearchKeyword(event.target.value)}
               type="search"
               placeholder="어떤 축제를 찾으세요?"
               aria-label="축제 검색"
@@ -172,7 +232,7 @@ function Header() {
           </SearchBox>
 
           {!isLoggedIn && (
-            <LoginButton type="button">
+            <LoginButton type="button" onClick={handleLoginClick}>
               <LogIn size={16} aria-hidden="true" />
               Login
             </LoginButton>
@@ -213,18 +273,34 @@ function Header() {
                     <DropdownMeta>사용자 설정</DropdownMeta>
                     <strong>{TEST_USER_NAME}</strong>
                   </DropdownHeader>
-                  <DropdownLink href="/" role="menuitem">
+                  <DropdownLink
+                    as={Link}
+                    to="/mypage/profile"
+                    role="menuitem"
+                    onClick={closeMenus}
+                  >
                     <User size={16} aria-hidden="true" />
                     마이페이지
                   </DropdownLink>
                   {isAdmin && (
-                    <AdminMenuLink href="/" role="menuitem">
+                    <AdminMenuLink
+                      as={Link}
+                      to="/admin/members"
+                      role="menuitem"
+                      onClick={closeMenus}
+                    >
                       <ShieldCheck size={16} aria-hidden="true" />
                       관리자 페이지
                     </AdminMenuLink>
                   )}
                   <MenuDivider />
-                  <DropdownLink href="/" role="menuitem" $danger>
+                  <DropdownLink
+                    as={Link}
+                    to="/login"
+                    role="menuitem"
+                    $danger
+                    onClick={closeMenus}
+                  >
                     <LogOut size={16} aria-hidden="true" />
                     로그아웃
                   </DropdownLink>

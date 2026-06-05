@@ -444,6 +444,19 @@ function Calendar() {
     );
   };
 
+  const getFestivalLink = (festival) => ({
+    to: `/festivals/${festival.id}`,
+    state: {
+      festival: {
+        ...festival,
+        name: festival.title,
+        location: `${festival.city} ${festival.district}`,
+        venue: `${festival.city} ${festival.district}`,
+        favorite: festival.isFavorite,
+      },
+    },
+  });
+
   const draftFilterCount = draftThemes.length;
 
   return (
@@ -511,7 +524,8 @@ function Calendar() {
                     {dayFestivals.slice(0, 3).map((festival) => (
                       <S.EventPill
                         key={festival.id}
-                        to={`/festivals/${festival.id}`}
+                        to={getFestivalLink(festival).to}
+                        state={getFestivalLink(festival).state}
                         aria-label={`${festival.title} 상세 보기`}
                       >
                         <span>{festival.title}</span>

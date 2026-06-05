@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Styles from './FindPasswordPageCss';
 
 const initialStatus = {
@@ -98,11 +99,14 @@ const FindPasswordPage = () => {
 								</Styles.ResultNote>
 							</Styles.ResultBox>
 
-							<Styles.LoginLink className="result-link" href="/login">
+							<Styles.LoginLink as={Link} to="/login" className="result-link">
 								로그인으로 돌아가기
 							</Styles.LoginLink>
 							<Styles.TextButton type="button" onClick={handleResend}>
 								이메일 메시지 다시 보내기
+							</Styles.TextButton>
+							<Styles.TextButton type="button" onClick={handleRetry}>
+								다시 입력하기
 							</Styles.TextButton>
 						</Styles.ResultArea>
 					) : (
@@ -172,7 +176,7 @@ const FindPasswordPage = () => {
 							<Styles.NeonButton id="submitBtn" type="submit">
 								비밀번호 재설정 링크 받기
 							</Styles.NeonButton>
-							<Styles.LoginLink href="/login">로그인으로 돌아가기</Styles.LoginLink>
+							<Styles.LoginLink as={Link} to="/login">로그인으로 돌아가기</Styles.LoginLink>
 						</Styles.Form>
 					)}
 				</Styles.GlassContainer>

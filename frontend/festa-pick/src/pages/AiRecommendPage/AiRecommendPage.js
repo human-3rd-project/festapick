@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Baby,
   CalendarDays,
@@ -111,6 +112,17 @@ function AiRecommendPage() {
     () => "예: 이번 주말 서울에서 갈만한 축제 추천해줘",
     [],
   );
+
+  const getFestivalLink = (festival) => ({
+    to: `/festivals/${festival.id}`,
+    state: {
+      festival: {
+        ...festival,
+        title: festival.name,
+        venue: festival.location,
+      },
+    },
+  });
 
   const addRecommendation = (prompt) => {
     const trimmedPrompt = prompt.trim();
@@ -257,7 +269,12 @@ function AiRecommendPage() {
                             </strong>
                             <p>{festival.reason}</p>
                           </FestivalReason>
-                          <a href="/">상세보기</a>
+                          <Link
+                            to={getFestivalLink(festival).to}
+                            state={getFestivalLink(festival).state}
+                          >
+                            상세보기
+                          </Link>
                         </FestivalInfo>
                       </FestivalCard>
                     ))}

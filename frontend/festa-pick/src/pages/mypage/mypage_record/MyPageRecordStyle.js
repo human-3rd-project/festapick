@@ -8,7 +8,11 @@ export const Page = styled.section`
       rgba(255, 45, 117, 0.22),
       transparent 30%
     ),
-    radial-gradient(circle at 84% 12%, rgba(0, 212, 255, 0.18), transparent 32%),
+    radial-gradient(
+      circle at 84% 12%,
+      rgba(0, 212, 255, 0.18),
+      transparent 32%
+    ),
     linear-gradient(180deg, #080914 0%, #0d1020 48%, #05060d 100%);
   color: #f8fbff;
 `;
@@ -68,7 +72,11 @@ export const CalendarPanel = styled.div`
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(17, 21, 42, 0.94), rgba(13, 16, 32, 0.9)),
-    radial-gradient(circle at 100% 0%, rgba(155, 92, 255, 0.16), transparent 34%);
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(155, 92, 255, 0.16),
+      transparent 34%
+    );
   box-shadow:
     0 18px 48px rgba(0, 0, 0, 0.34),
     0 0 36px rgba(0, 212, 255, 0.08);
@@ -331,20 +339,27 @@ export const ModalOverlay = styled.div`
   padding: 24px;
   background: rgba(5, 6, 13, 0.72);
   backdrop-filter: blur(4px);
+  justify-items: center;
+  align-items: center;
 `;
 
 export const ModalPanel = styled.div`
   width: min(100%, 560px);
-  max-height: calc(100vh - 48px);
+  max-height: calc(95vh - 48px);
   border: 1px solid rgba(143, 157, 255, 0.26);
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(25, 30, 52, 0.98), rgba(17, 21, 42, 0.98)),
-    radial-gradient(circle at 100% 0%, rgba(155, 92, 255, 0.16), transparent 34%);
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(155, 92, 255, 0.16),
+      transparent 34%
+    );
   box-shadow:
     0 26px 70px rgba(0, 0, 0, 0.48),
     0 0 38px rgba(155, 92, 255, 0.18);
   overflow: auto;
+  margin-top: 60px;
 `;
 
 export const ModalHeader = styled.div`
