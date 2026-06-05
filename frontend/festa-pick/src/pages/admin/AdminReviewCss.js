@@ -12,15 +12,13 @@ const fadeUp = keyframes`
   }
 `;
 
-const pulse = keyframes`
+const float = keyframes`
   0%, 100% {
-    opacity: 0.55;
-    transform: scale(0.95);
+    transform: translateY(0);
   }
 
   50% {
-    opacity: 0.9;
-    transform: scale(1.05);
+    transform: translateY(-10px);
   }
 `;
 
@@ -55,21 +53,21 @@ export const MainCanvas = styled.main`
   }
 
   &::before {
-    top: -11%;
-    right: -5%;
-    width: 600px;
-    height: 600px;
+    top: -160px;
+    right: -160px;
+    width: 384px;
+    height: 384px;
     background: rgba(221, 183, 255, 0.1);
     filter: blur(120px);
   }
 
   &::after {
-    bottom: -10%;
-    left: -5%;
-    width: 400px;
-    height: 400px;
+    bottom: -160px;
+    left: -160px;
+    width: 384px;
+    height: 384px;
     background: rgba(255, 176, 205, 0.1);
-    filter: blur(100px);
+    filter: blur(120px);
   }
 
   @media (max-width: 768px) {
@@ -77,16 +75,25 @@ export const MainCanvas = styled.main`
   }
 `;
 
-export const ContentArea = styled.div`
+export const ContentArea = styled.section`
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  flex: 1;
   gap: 24px;
+  width: 100%;
+  max-width: 1280px;
   min-height: 100vh;
-  padding: 48px;
+  margin: 0 auto;
+  padding: 48px 24px 24px;
   animation: ${fadeUp} 650ms ease both;
+
+  ${({ $isEmpty }) =>
+    $isEmpty &&
+    `
+      max-width: none;
+      padding: 40px;
+    `}
 
   @media (max-width: 1024px) {
     padding: 32px 24px;
@@ -103,8 +110,6 @@ export const PageHeader = styled.div`
   justify-content: space-between;
   gap: 24px;
   width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
 
   @media (max-width: 860px) {
     align-items: stretch;
@@ -151,91 +156,9 @@ export const HeaderActions = styled.div`
   }
 
   @media (max-width: 560px) {
-    align-items: stretch;
     flex-direction: column;
+    align-items: stretch;
     justify-content: flex-start;
-  }
-`;
-
-export const PreviewControls = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 42px;
-  padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: rgba(19, 27, 46, 0.82);
-  backdrop-filter: blur(12px);
-
-  @media (max-width: 560px) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-`;
-
-export const PreviewButton = styled.button`
-  min-height: 32px;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 6px;
-  color: ${({ $active }) => ($active ? "#490080" : "#cfc2d6")};
-  background: ${({ $active }) => ($active ? "#ddb7ff" : "transparent")};
-  box-shadow: ${({ $active }) =>
-    $active ? "0 0 12px rgba(183, 109, 255, 0.35)" : "none"};
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 16px;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
-
-  &:hover {
-    background: ${({ $active }) => ($active ? "#ddb7ff" : "rgba(255, 255, 255, 0.08)")};
-  }
-`;
-
-export const TableCard = styled.section`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 1280px;
-  min-height: calc(100vh - 160px);
-  margin: 0 auto;
-  overflow: visible;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  background: rgba(45, 52, 73, 0.4);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
-  backdrop-filter: blur(16px);
-`;
-
-export const HeaderBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-
-  h2 {
-    margin: 0;
-    color: #dae2fd;
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 32px;
-    letter-spacing: 0;
-  }
-
-  @media (max-width: 640px) {
-    align-items: stretch;
-    flex-direction: column;
   }
 `;
 
@@ -245,7 +168,7 @@ export const SearchBox = styled.label`
   flex: 0 0 256px;
   width: 256px;
 
-  @media (max-width: 640px) {
+  @media (max-width: 560px) {
     flex-basis: auto;
     width: 100%;
   }
@@ -314,6 +237,49 @@ export const StatPill = styled.div`
   }
 `;
 
+export const TextButton = styled.button`
+  min-height: 42px;
+  padding: 8px 16px;
+  border: 1px solid rgba(221, 183, 255, 0.25);
+  border-radius: 8px;
+  color: #ddb7ff;
+  background: rgba(221, 183, 255, 0.08);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+
+  &:hover {
+    border-color: rgba(221, 183, 255, 0.45);
+    background: rgba(221, 183, 255, 0.14);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+export const TableCard = styled.section`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-height: calc(100vh - 172px);
+  overflow: visible;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  background: rgba(23, 31, 51, 0.7);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(16px);
+`;
+
 export const TableScroll = styled.div`
   flex: 1;
   overflow-x: auto;
@@ -322,25 +288,28 @@ export const TableScroll = styled.div`
 
 export const Table = styled.table`
   width: 100%;
-  min-width: 920px;
+  min-width: 960px;
   border-collapse: collapse;
   text-align: left;
 
   th,
   td {
-    padding: 16px 24px;
+    padding: 20px 32px;
+    vertical-align: middle;
   }
 
   thead tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   th {
-    color: #cfc2d6;
+    color: #ddb7ff;
     font-size: 14px;
     font-weight: 600;
     line-height: 20px;
     letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
 
   td {
@@ -349,16 +318,6 @@ export const Table = styled.table`
     font-weight: 600;
     line-height: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  th:nth-child(2),
-  td:nth-child(2) {
-    text-align: right;
-  }
-
-  th:last-child,
-  td:last-child {
-    text-align: center;
   }
 
   tbody tr {
@@ -371,21 +330,32 @@ export const Table = styled.table`
   tbody tr:hover {
     background: rgba(255, 255, 255, 0.02);
   }
+
+  th:nth-child(3),
+  td:nth-child(3),
+  th:nth-child(5),
+  td:nth-child(5),
+  th:last-child,
+  td:last-child {
+    text-align: center;
+  }
 `;
 
-export const DonationIdentity = styled.div`
+export const ReviewerIdentity = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 `;
 
-export const DonationAvatar = styled.div`
+export const ReviewerAvatar = styled.div`
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   color: ${({ $tone }) => {
     if ($tone === 1) return "#ffb0cd";
@@ -399,39 +369,65 @@ export const DonationAvatar = styled.div`
     if ($tone === 3) return "rgba(255, 255, 255, 0.1)";
     return "rgba(183, 109, 255, 0.3)";
   }};
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 `;
 
-export const DonationName = styled.p`
+export const ReviewerName = styled.p`
   margin: 0;
   color: #dae2fd;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 20px;
 `;
 
-export const DonationMeta = styled.p`
-  margin: 0;
-  color: #cfc2d6;
-  font-size: 10px;
+export const ReviewerMeta = styled.p`
+  margin: 2px 0 0;
+  color: rgba(207, 194, 214, 0.7);
+  font-size: 13px;
   font-weight: 500;
-  line-height: 14px;
+  line-height: 18px;
 `;
 
-export const AmountText = styled.span`
-  color: #ddb7ff;
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 32px;
+export const RatingStars = styled.div`
+  display: inline-flex;
+  justify-content: center;
+  gap: 2px;
+  color: #ffb0cd;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.8;
+  }
+
+  svg[data-filled="true"] {
+    fill: currentColor;
+  }
+
+  svg[data-filled="false"] {
+    opacity: 0.45;
+  }
 `;
 
-export const TransactionText = styled.span`
-  font-family:
-    "SFMono-Regular",
-    Consolas,
-    "Liberation Mono",
-    monospace;
+export const ReviewContent = styled.p`
+  display: -webkit-box;
+  max-width: 320px;
+  margin: 0;
+  overflow: hidden;
+  color: #cfc2d6;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 `;
 
 export const ActionCell = styled.div`
@@ -479,7 +475,7 @@ export const ConfirmDelete = styled.button`
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #ffb4ab;
-  background: #171f33;
+  background: #2d3449;
   box-shadow: 0 18px 32px rgba(0, 0, 0, 0.35);
   font-size: 12px;
   font-weight: 700;
@@ -488,68 +484,83 @@ export const ConfirmDelete = styled.button`
   cursor: pointer;
 
   &:hover {
-    background: #222a3d;
+    background: rgba(255, 180, 171, 0.12);
   }
 `;
 
 export const EmptyState = styled.section`
-  width: min(100%, 576px);
-  margin: auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
   text-align: center;
+
+  @media (max-width: 560px) {
+    padding: 32px 0;
+  }
 `;
 
-export const EmptyImageFrame = styled.div`
+export const EmptyIconCard = styled.div`
   position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
   margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  background: #222a3d;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
+  animation: ${float} 4s ease-in-out infinite;
+
+  > svg {
+    position: relative;
+    z-index: 1;
+    width: 64px;
+    height: 64px;
+    color: rgba(221, 183, 255, 0.4);
+    stroke-width: 1.3;
+  }
 `;
 
 export const EmptyGlow = styled.div`
   position: absolute;
-  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  width: 192px;
+  height: 192px;
   border-radius: 999px;
-  animation: ${pulse} 3s ease-in-out infinite;
-
-  ${({ $position }) =>
-    $position === "top"
-      ? `
-        top: -48px;
-        left: -48px;
-        width: 128px;
-        height: 128px;
-        background: rgba(221, 183, 255, 0.2);
-        filter: blur(32px);
-      `
-      : `
-        right: -32px;
-        bottom: -32px;
-        width: 160px;
-        height: 160px;
-        background: rgba(255, 176, 205, 0.2);
-        filter: blur(48px);
-        animation-delay: 1s;
-      `}
+  background: linear-gradient(
+    135deg,
+    rgba(221, 183, 255, 0.2),
+    rgba(255, 176, 205, 0.2)
+  );
+  filter: blur(32px);
+  transform: translate(-50%, -50%);
 `;
 
-export const EmptyImage = styled.img`
-  position: relative;
-  display: block;
-  width: 256px;
-  height: 256px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 40px;
-  object-fit: cover;
-  opacity: 0.8;
-  mix-blend-mode: lighten;
-  background: rgba(23, 31, 51, 0.6);
-  box-shadow: 0 0 20px rgba(183, 109, 255, 0.2);
-  backdrop-filter: blur(16px);
+export const EmptyBadge = styled.div`
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid #0b1326;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #aa0266;
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.24);
 
-  @media (max-width: 560px) {
-    width: 208px;
-    height: 208px;
-    border-radius: 32px;
+  svg {
+    width: 22px;
+    height: 22px;
   }
 `;
 
@@ -558,25 +569,20 @@ export const EmptyCopy = styled.div`
   z-index: 1;
 
   p {
-    max-width: 448px;
-    margin: 16px auto 0;
+    max-width: 384px;
+    margin: 8px auto 0;
     color: #cfc2d6;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 400;
-    line-height: 28px;
+    line-height: 24px;
   }
 `;
 
-export const EmptyTitle = styled.h3`
+export const EmptyTitle = styled.h2`
   margin: 0;
   color: #dae2fd;
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 40px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
   letter-spacing: 0;
-
-  @media (max-width: 560px) {
-    font-size: 24px;
-    line-height: 32px;
-  }
 `;

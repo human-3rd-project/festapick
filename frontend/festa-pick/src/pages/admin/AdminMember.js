@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Pencil,
   Search,
@@ -56,6 +57,19 @@ const emptyImageUrl =
 
 const PAGE_SIZE = 10;
 
+function getDeletePopoverPosition(target) {
+  const rect = target.getBoundingClientRect();
+  const width = 128;
+  const height = 44;
+  const gap = 8;
+  const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+  const bottomTop = rect.bottom + gap;
+  const top =
+    bottomTop + height > window.innerHeight - 12 ? rect.top - height - gap : bottomTop;
+
+  return { left, top };
+}
+
 function getInitials(name = "") {
   return name
     .split(" ")
@@ -76,7 +90,7 @@ function AdminMember({
   const [searchTerm, setSearchTerm] = useState("");
   const [editingMember, setEditingMember] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("active");
-  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [showSampleMembers, setShowSampleMembers] = useState(false);
 
   const sampleMembers = useMemo(
@@ -174,7 +188,20 @@ function AdminMember({
       onDeleteMember(member);
     }
 
-    setDeleteTargetId(null);
+    setDeleteTarget(null);
+  };
+
+  const toggleDeleteTarget = (id, target) => {
+    setDeleteTarget((prev) => {
+      if (prev?.id === id) {
+        return null;
+      }
+
+      return {
+        id,
+        ...getDeletePopoverPosition(target),
+      };
+    });
   };
 
   return (
@@ -235,8 +262,11 @@ function AdminMember({
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredMembers.map((member, index) => (
-                      <tr key={member.id || member.email || index}>
+                    {filteredMembers.map((member, index) => {
+                      const key = member.id || member.email || index;
+
+                      return (
+                      <tr key={key}>
                         <td>{member.id || index + 1}</td>
                         <td>
                           <MemberIdentity>
@@ -277,22 +307,27 @@ function AdminMember({
                               type="button"
                               aria-label="회원 삭제"
                               $danger
-                              onClick={() => setDeleteTargetId(member.id)}
+                              onClick={(event) => toggleDeleteTarget(key, event.currentTarget)}
                             >
                               <Trash2 />
                             </ActionButton>
-                            {deleteTargetId === member.id && (
+                            {deleteTarget?.id === key &&
+                              createPortal(
                               <ConfirmDelete
                                 type="button"
+                                $left={deleteTarget.left}
+                                $top={deleteTarget.top}
                                 onClick={() => confirmDelete(member)}
                               >
                                 삭제 확인
-                              </ConfirmDelete>
+                              </ConfirmDelete>,
+                              document.body,
                             )}
                           </ActionGroup>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </Table>
               </TableScroll>

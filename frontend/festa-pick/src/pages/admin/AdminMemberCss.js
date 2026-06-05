@@ -333,10 +333,12 @@ export const EmptyDescription = styled.p`
 `;
 
 export const TableCard = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   flex: 1;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   background: rgba(23, 31, 51, 0.7);
@@ -347,6 +349,7 @@ export const TableCard = styled.div`
 export const TableScroll = styled.div`
   flex: 1;
   overflow-x: auto;
+  overflow-y: visible;
 `;
 
 export const Table = styled.table`
@@ -529,10 +532,10 @@ export const ActionButton = styled.button`
 `;
 
 export const ConfirmDelete = styled.button`
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 4;
+  position: fixed;
+  top: ${({ $top }) => `${$top}px`};
+  left: ${({ $left }) => `${$left}px`};
+  z-index: 1000;
   width: 128px;
   padding: 10px 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);

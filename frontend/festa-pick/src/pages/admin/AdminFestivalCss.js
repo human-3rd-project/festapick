@@ -12,15 +12,13 @@ const fadeUp = keyframes`
   }
 `;
 
-const pulse = keyframes`
+const float = keyframes`
   0%, 100% {
-    opacity: 0.55;
-    transform: scale(0.95);
+    transform: translateY(0);
   }
 
   50% {
-    opacity: 0.9;
-    transform: scale(1.05);
+    transform: translateY(-10px);
   }
 `;
 
@@ -55,21 +53,21 @@ export const MainCanvas = styled.main`
   }
 
   &::before {
-    top: -11%;
-    right: -5%;
-    width: 600px;
-    height: 600px;
+    top: -160px;
+    right: -160px;
+    width: 384px;
+    height: 384px;
     background: rgba(221, 183, 255, 0.1);
     filter: blur(120px);
   }
 
   &::after {
-    bottom: -10%;
-    left: -5%;
-    width: 400px;
-    height: 400px;
+    bottom: -160px;
+    left: -160px;
+    width: 384px;
+    height: 384px;
     background: rgba(255, 176, 205, 0.1);
-    filter: blur(100px);
+    filter: blur(120px);
   }
 
   @media (max-width: 768px) {
@@ -77,16 +75,25 @@ export const MainCanvas = styled.main`
   }
 `;
 
-export const ContentArea = styled.div`
+export const ContentArea = styled.section`
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  flex: 1;
   gap: 24px;
+  width: 100%;
+  max-width: 1280px;
   min-height: 100vh;
-  padding: 48px;
+  margin: 0 auto;
+  padding: 48px 24px 24px;
   animation: ${fadeUp} 650ms ease both;
+
+  ${({ $isEmpty }) =>
+    $isEmpty &&
+    `
+      max-width: none;
+      padding: 40px;
+    `}
 
   @media (max-width: 1024px) {
     padding: 32px 24px;
@@ -103,10 +110,8 @@ export const PageHeader = styled.div`
   justify-content: space-between;
   gap: 24px;
   width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
 
-  @media (max-width: 860px) {
+  @media (max-width: 980px) {
     align-items: stretch;
     flex-direction: column;
   }
@@ -151,91 +156,9 @@ export const HeaderActions = styled.div`
   }
 
   @media (max-width: 560px) {
-    align-items: stretch;
     flex-direction: column;
+    align-items: stretch;
     justify-content: flex-start;
-  }
-`;
-
-export const PreviewControls = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 42px;
-  padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: rgba(19, 27, 46, 0.82);
-  backdrop-filter: blur(12px);
-
-  @media (max-width: 560px) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-`;
-
-export const PreviewButton = styled.button`
-  min-height: 32px;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 6px;
-  color: ${({ $active }) => ($active ? "#490080" : "#cfc2d6")};
-  background: ${({ $active }) => ($active ? "#ddb7ff" : "transparent")};
-  box-shadow: ${({ $active }) =>
-    $active ? "0 0 12px rgba(183, 109, 255, 0.35)" : "none"};
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 16px;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
-
-  &:hover {
-    background: ${({ $active }) => ($active ? "#ddb7ff" : "rgba(255, 255, 255, 0.08)")};
-  }
-`;
-
-export const TableCard = styled.section`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 1280px;
-  min-height: calc(100vh - 160px);
-  margin: 0 auto;
-  overflow: visible;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  background: rgba(45, 52, 73, 0.4);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
-  backdrop-filter: blur(16px);
-`;
-
-export const HeaderBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-
-  h2 {
-    margin: 0;
-    color: #dae2fd;
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 32px;
-    letter-spacing: 0;
-  }
-
-  @media (max-width: 640px) {
-    align-items: stretch;
-    flex-direction: column;
   }
 `;
 
@@ -245,7 +168,7 @@ export const SearchBox = styled.label`
   flex: 0 0 256px;
   width: 256px;
 
-  @media (max-width: 640px) {
+  @media (max-width: 560px) {
     flex-basis: auto;
     width: 100%;
   }
@@ -314,6 +237,49 @@ export const StatPill = styled.div`
   }
 `;
 
+export const PreviewButton = styled.button`
+  min-height: 42px;
+  padding: 8px 16px;
+  border: 1px solid rgba(221, 183, 255, 0.25);
+  border-radius: 8px;
+  color: #ddb7ff;
+  background: rgba(221, 183, 255, 0.08);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+
+  &:hover {
+    border-color: rgba(221, 183, 255, 0.45);
+    background: rgba(221, 183, 255, 0.14);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+export const TableCard = styled.section`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-height: calc(100vh - 172px);
+  overflow: visible;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  background: rgba(23, 31, 51, 0.7);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(16px);
+`;
+
 export const TableScroll = styled.div`
   flex: 1;
   overflow-x: auto;
@@ -328,19 +294,22 @@ export const Table = styled.table`
 
   th,
   td {
-    padding: 16px 24px;
+    padding: 20px 24px;
+    vertical-align: middle;
   }
 
   thead tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   th {
-    color: #cfc2d6;
+    color: #ddb7ff;
     font-size: 14px;
     font-weight: 600;
     line-height: 20px;
     letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
 
   td {
@@ -349,16 +318,6 @@ export const Table = styled.table`
     font-weight: 600;
     line-height: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  th:nth-child(2),
-  td:nth-child(2) {
-    text-align: right;
-  }
-
-  th:last-child,
-  td:last-child {
-    text-align: center;
   }
 
   tbody tr {
@@ -371,67 +330,87 @@ export const Table = styled.table`
   tbody tr:hover {
     background: rgba(255, 255, 255, 0.02);
   }
+
+  th:last-child,
+  td:last-child {
+    text-align: right;
+  }
 `;
 
-export const DonationIdentity = styled.div`
+export const FestivalInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 `;
 
-export const DonationAvatar = styled.div`
+export const FestivalImage = styled.div`
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  color: ${({ $tone }) => {
-    if ($tone === 1) return "#ffb0cd";
-    if ($tone === 2) return "#ffb690";
-    if ($tone === 3) return "#cfc2d6";
-    return "#ddb7ff";
-  }};
-  background: ${({ $tone }) => {
-    if ($tone === 1) return "rgba(170, 2, 102, 0.3)";
-    if ($tone === 2) return "rgba(236, 106, 6, 0.3)";
-    if ($tone === 3) return "rgba(255, 255, 255, 0.1)";
-    return "rgba(183, 109, 255, 0.3)";
-  }};
-  font-size: 12px;
-  font-weight: 700;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ddb7ff;
+  background: rgba(183, 109, 255, 0.18);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  svg {
+    width: 22px;
+    height: 22px;
+  }
 `;
 
-export const DonationName = styled.p`
+export const FestivalName = styled.p`
   margin: 0;
   color: #dae2fd;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 20px;
+  transition: color 160ms ease;
+
+  tr:hover & {
+    color: #ddb7ff;
+  }
 `;
 
-export const DonationMeta = styled.p`
-  margin: 0;
-  color: #cfc2d6;
-  font-size: 10px;
+export const FestivalMeta = styled.p`
+  margin: 2px 0 0;
+  color: rgba(207, 194, 214, 0.72);
+  font-size: 12px;
   font-weight: 500;
-  line-height: 14px;
+  line-height: 16px;
 `;
 
-export const AmountText = styled.span`
-  color: #ddb7ff;
-  font-size: 24px;
+export const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: ${({ $active }) => ($active ? "#ffb0cd" : "#cfc2d6")};
+  background: ${({ $active }) =>
+    $active ? "rgba(255, 176, 205, 0.1)" : "rgba(255, 255, 255, 0.05)"};
+  font-size: 12px;
   font-weight: 600;
-  line-height: 32px;
-`;
+  line-height: 16px;
 
-export const TransactionText = styled.span`
-  font-family:
-    "SFMono-Regular",
-    Consolas,
-    "Liberation Mono",
-    monospace;
+  span {
+    display: ${({ $active }) => ($active ? "block" : "none")};
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #ffb0cd;
+  }
 `;
 
 export const ActionCell = styled.div`
@@ -479,7 +458,7 @@ export const ConfirmDelete = styled.button`
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #ffb4ab;
-  background: #171f33;
+  background: #2d3449;
   box-shadow: 0 18px 32px rgba(0, 0, 0, 0.35);
   font-size: 12px;
   font-weight: 700;
@@ -488,68 +467,86 @@ export const ConfirmDelete = styled.button`
   cursor: pointer;
 
   &:hover {
-    background: #222a3d;
+    background: rgba(255, 180, 171, 0.12);
   }
 `;
 
 export const EmptyState = styled.section`
-  width: min(100%, 576px);
-  margin: auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
   text-align: center;
+
+  @media (max-width: 560px) {
+    padding: 32px 0;
+  }
 `;
 
-export const EmptyImageFrame = styled.div`
+export const EmptyIconCard = styled.div`
   position: relative;
-  display: inline-block;
-  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 192px;
+  height: 192px;
+  margin-bottom: 48px;
+  border: 2px dashed rgba(221, 183, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(23, 31, 51, 0.7);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
+  animation: ${float} 4s ease-in-out infinite;
+  backdrop-filter: blur(16px);
+
+  > svg {
+    position: relative;
+    z-index: 1;
+    width: 72px;
+    height: 72px;
+    color: rgba(221, 183, 255, 0.5);
+    stroke-width: 1.3;
+  }
+
+  @media (max-width: 560px) {
+    width: 152px;
+    height: 152px;
+    margin-bottom: 32px;
+  }
 `;
 
 export const EmptyGlow = styled.div`
   position: absolute;
-  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
   border-radius: 999px;
-  animation: ${pulse} 3s ease-in-out infinite;
-
-  ${({ $position }) =>
-    $position === "top"
-      ? `
-        top: -48px;
-        left: -48px;
-        width: 128px;
-        height: 128px;
-        background: rgba(221, 183, 255, 0.2);
-        filter: blur(32px);
-      `
-      : `
-        right: -32px;
-        bottom: -32px;
-        width: 160px;
-        height: 160px;
-        background: rgba(255, 176, 205, 0.2);
-        filter: blur(48px);
-        animation-delay: 1s;
-      `}
+  background: rgba(221, 183, 255, 0.1);
+  filter: blur(120px);
+  transform: translate(-50%, -50%);
 `;
 
-export const EmptyImage = styled.img`
-  position: relative;
-  display: block;
-  width: 256px;
-  height: 256px;
-  overflow: hidden;
+export const EmptyBadge = styled.div`
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 40px;
-  object-fit: cover;
-  opacity: 0.8;
-  mix-blend-mode: lighten;
-  background: rgba(23, 31, 51, 0.6);
-  box-shadow: 0 0 20px rgba(183, 109, 255, 0.2);
-  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  color: #ffffff;
+  background: #aa0266;
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.24);
 
-  @media (max-width: 560px) {
-    width: 208px;
-    height: 208px;
-    border-radius: 32px;
+  svg {
+    width: 22px;
+    height: 22px;
   }
 `;
 
@@ -558,7 +555,7 @@ export const EmptyCopy = styled.div`
   z-index: 1;
 
   p {
-    max-width: 448px;
+    max-width: 480px;
     margin: 16px auto 0;
     color: #cfc2d6;
     font-size: 18px;
@@ -567,7 +564,7 @@ export const EmptyCopy = styled.div`
   }
 `;
 
-export const EmptyTitle = styled.h3`
+export const EmptyTitle = styled.h2`
   margin: 0;
   color: #dae2fd;
   font-size: 32px;

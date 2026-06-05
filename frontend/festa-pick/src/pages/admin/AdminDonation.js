@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Search, Trash2 } from "lucide-react";
 import AdminNav from "./AdminNav";
 import AdminPageNation from "./AdminPageNation";
@@ -30,6 +31,7 @@ import {
   SearchBox,
   SearchIcon,
   SearchInput,
+  StatPill,
   Table,
   TableCard,
   TableScroll,
@@ -124,6 +126,19 @@ const sampleDonations = [
 
 const PAGE_SIZE = 10;
 
+function getDeletePopoverPosition(target) {
+  const rect = target.getBoundingClientRect();
+  const width = 128;
+  const height = 44;
+  const gap = 8;
+  const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+  const bottomTop = rect.bottom + gap;
+  const top =
+    bottomTop + height > window.innerHeight - 12 ? rect.top - height - gap : bottomTop;
+
+  return { left, top };
+}
+
 function getDonationKey(donation, index) {
   return donation.id || donation.transactionId || donation.orderId || index;
 }
@@ -193,7 +208,7 @@ function AdminDonation({
   totalItems,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletedIds, setDeletedIds] = useState([]);
   const [previewMode, setPreviewMode] = useState("list");
 
@@ -266,7 +281,20 @@ function AdminDonation({
       setDeletedIds((prev) => [...prev, getDonationKey(donation, index)]);
     }
 
-    setDeleteTargetId(null);
+    setDeleteTarget(null);
+  };
+
+  const toggleDeleteTarget = (id, target) => {
+    setDeleteTarget((prev) => {
+      if (prev?.id === id) {
+        return null;
+      }
+
+      return {
+        id,
+        ...getDeletePopoverPosition(target),
+      };
+    });
   };
 
   return (
@@ -285,6 +313,23 @@ function AdminDonation({
             </HeaderCopy>
 
             <HeaderActions>
+              <SearchBox>
+                <SearchIcon aria-hidden="true">
+                  <Search />
+                </SearchIcon>
+                <SearchInput
+                  type="search"
+                  placeholder="검색..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+              </SearchBox>
+
+              <StatPill>
+                <strong>{totalCount.toLocaleString("ko-KR")}</strong>
+                <span>총 후원 수</span>
+              </StatPill>
+
               {/* 임시 확인 버튼: 후원 데이터 있음/없음 디자인 확인용, 실제 기능 연결 시 제거 */}
               <PreviewControls aria-label="후원 데이터 화면 상태 전환">
                 <PreviewButton
@@ -310,18 +355,6 @@ function AdminDonation({
             <TableCard>
               <HeaderBar>
                 <h2>후원 기록</h2>
-
-                <SearchBox>
-                  <SearchIcon aria-hidden="true">
-                    <Search />
-                  </SearchIcon>
-                  <SearchInput
-                    type="search"
-                    placeholder="검색..."
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                  />
-                </SearchBox>
               </HeaderBar>
 
               <TableScroll>
@@ -369,19 +402,22 @@ function AdminDonation({
                               <button
                                 type="button"
                                 aria-label={`${donorName} 후원 내역 삭제`}
-                                onClick={() => setDeleteTargetId(key)}
+                                onClick={(event) => toggleDeleteTarget(key, event.currentTarget)}
                               >
                                 <Trash2 aria-hidden="true" />
-                                <span>삭제</span>
                               </button>
 
-                              {deleteTargetId === key && (
+                              {deleteTarget?.id === key &&
+                                createPortal(
                                 <ConfirmDelete
                                   type="button"
+                                  $left={deleteTarget.left}
+                                  $top={deleteTarget.top}
                                   onClick={() => confirmDelete(donation, index)}
                                 >
                                   삭제 확인
-                                </ConfirmDelete>
+                                </ConfirmDelete>,
+                                document.body,
                               )}
                             </ActionCell>
                           </td>
