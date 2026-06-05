@@ -37,7 +37,7 @@ export const HeaderInner = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 50px;
 
   @media (max-width: 768px) {
     padding: 0 16px;
@@ -68,7 +68,11 @@ export const LogoMark = styled.span`
   border-radius: 9px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
+  background: linear-gradient(
+    135deg,
+    ${colors.primary} 0%,
+    ${colors.secondary} 100%
+  );
   color: ${colors.onPrimary};
   font-size: 17px;
   font-weight: 900;
@@ -89,7 +93,8 @@ export const Nav = styled.nav`
 export const NavLink = styled.a`
   position: relative;
   padding: 4px 0;
-  color: ${({ $active }) => ($active ? colors.primary : colors.onSurfaceVariant)};
+  color: ${({ $active }) =>
+    $active ? colors.primary : colors.onSurfaceVariant};
   font-size: 16px;
   line-height: 24px;
   font-weight: ${({ $active }) => ($active ? 800 : 600)};
@@ -171,7 +176,11 @@ export const LoginButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
+  background: linear-gradient(
+    135deg,
+    ${colors.primary} 0%,
+    ${colors.secondary} 100%
+  );
   color: ${colors.onPrimary};
   font-size: 14px;
   line-height: 20px;
@@ -271,7 +280,11 @@ export const Avatar = styled.span`
   border: 1px solid rgba(221, 183, 255, 0.36);
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, rgba(221, 183, 255, 0.18), rgba(255, 176, 205, 0.12));
+  background: linear-gradient(
+    135deg,
+    rgba(221, 183, 255, 0.18),
+    rgba(255, 176, 205, 0.12)
+  );
   color: ${colors.primary};
   overflow: hidden;
   transition: border-color 180ms ease;
@@ -479,7 +492,8 @@ export const NotificationIconBox = styled.span`
     return colors.primary;
   }};
   background: ${({ $type }) => {
-    if ($type === "calendar") return "linear-gradient(135deg, #b76dff 0%, #aa0266 100%)";
+    if ($type === "calendar")
+      return "linear-gradient(135deg, #b76dff 0%, #aa0266 100%)";
     if ($type === "food") return "rgba(236, 106, 6, 0.18)";
     if ($type === "festival") return "rgba(255, 176, 205, 0.14)";
     return "rgba(221, 183, 255, 0.12)";
@@ -489,7 +503,8 @@ export const NotificationIconBox = styled.span`
     $type === "calendar" ? "0 0 12px rgba(183, 109, 255, 0.34)" : "none"};
 
   svg {
-    color: ${({ $type }) => ($type === "calendar" ? "#ffffff" : "currentColor")};
+    color: ${({ $type }) =>
+      $type === "calendar" ? "#ffffff" : "currentColor"};
   }
 `;
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CircleAlert, CircleCheck, Mail, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Styles from './FindIdPageCss';
 
 const initialResult = {
@@ -99,7 +100,7 @@ const FindIdPage = () => {
 							<Styles.GlassButton type="button" onClick={handleRetry}>
 								다시 찾기
 							</Styles.GlassButton>
-							<Styles.LoginLink href="/login">로그인으로 돌아가기</Styles.LoginLink>
+							<Styles.LoginLink as={Link} to="/login">로그인으로 돌아가기</Styles.LoginLink>
 						</Styles.ResultArea>
 					) : (
 						<Styles.Form id="findIdForm" onSubmit={handleSubmit} noValidate>
@@ -133,7 +134,7 @@ const FindIdPage = () => {
 							</Styles.Field>
 
 							<Styles.NeonButton type="submit">아이디 찾기</Styles.NeonButton>
-							<Styles.LoginLink href="/login">로그인으로 돌아가기</Styles.LoginLink>
+							<Styles.LoginLink as={Link} to="/login">로그인으로 돌아가기</Styles.LoginLink>
 						</Styles.Form>
 					)}
 				</Styles.GlassContainer>

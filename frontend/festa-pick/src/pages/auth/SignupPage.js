@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Styles from './SignupPageCss';
 
 const SignupPage = () => {
@@ -327,7 +327,7 @@ const SignupPage = () => {
 						<Styles.Terms>
 							<input id="terms" name="terms" type="checkbox" />
 							<label htmlFor="terms">
-								<a href="/terms">이용약관</a>과 <a href="/privacy">개인정보 처리방침</a>에 동의합니다.
+								<Link to="/">이용약관</Link>과 <Link to="/">개인정보 처리방침</Link>에 동의합니다.
 							</label>
 						</Styles.Terms>
 						{messages.terms && <Styles.FieldMessage className={messages.terms.type}>{messages.terms.text}</Styles.FieldMessage>}
@@ -337,7 +337,7 @@ const SignupPage = () => {
 
 					<Styles.LoginPrompt>
 						<p>
-							이미 계정이 있으신가요? <a href="/login">로그인하기</a>
+							이미 계정이 있으신가요? <Link to="/login">로그인하기</Link>
 						</p>
 					</Styles.LoginPrompt>
 				</Styles.GlassContainer>

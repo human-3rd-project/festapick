@@ -1,5 +1,6 @@
 import React from "react";
 import { CheckCircle2, Gem } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   ActionButton,
   BackgroundLayer,
@@ -33,8 +34,10 @@ const confettiPieces = [
 ];
 
 function DonationSuccess() {
+  const navigate = useNavigate();
+
   const goHome = () => {
-    window.location.href = "/";
+    navigate("/");
   };
 
   return (

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   CalendarDays,
   ChevronRight,
@@ -185,7 +186,7 @@ function MainPage() {
   const selectedPopularFestival =
     popularFestivals.find((festival) => festival.rank === selectedPopularRank) ||
     popularFestivals[0];
-  const rankingItems = popularFestivals.filter((festival) => festival.rank !== 1);
+  const rankingItems = popularFestivals;
 
   useEffect(() => {
     if (!isHeroPlaying) {
@@ -207,6 +208,24 @@ function MainPage() {
 
   const showNextSlide = () => {
     setCurrentSlide((prevSlide) => (prevSlide + 1) % heroSlides.length);
+  };
+
+  const getFestivalLink = (festival) => {
+    const festivalId = festival.id || festival.rank || festival.title || festival.name;
+
+    return {
+      to: `/festivals/${encodeURIComponent(festivalId)}`,
+      state: {
+        festival: {
+          ...festival,
+          id: festivalId,
+          title: festival.title || festival.name,
+          name: festival.name || festival.title,
+          location: festival.location || festival.region,
+          venue: festival.location || festival.region,
+        },
+      },
+    };
   };
 
   return (
@@ -250,11 +269,11 @@ function MainPage() {
               </p>
             </div>
             <HeroActions>
-              <PrimaryButton type="button">
+              <PrimaryButton as={Link} to="/search">
                 축제 둘러보기
                 <Compass size={18} />
               </PrimaryButton>
-              <SecondaryButton type="button">
+              <SecondaryButton as={Link} to="/ai">
                 AI 추천 받기
                 <Sparkles size={18} />
               </SecondaryButton>
@@ -284,7 +303,7 @@ function MainPage() {
               <MapPin size={28} />
               내 주변 추천 축제
             </SectionTitle>
-            <SectionLink href="/">
+            <SectionLink as={Link} to="/search">
               전체보기
               <ChevronRight size={18} />
             </SectionLink>
@@ -311,7 +330,12 @@ function MainPage() {
                     </span>
                   </NearbyMeta>
                   <p>{festival.description}</p>
-                  <a href="/">상세보기</a>
+                  <Link
+                    to={getFestivalLink(festival).to}
+                    state={getFestivalLink(festival).state}
+                  >
+                    상세보기
+                  </Link>
                 </NearbyInfo>
               </NearbyCard>
             ))}
@@ -327,7 +351,12 @@ function MainPage() {
           </MonthlyHeader>
           <FestivalGrid>
             {monthlyFestivals.map((festival) => (
-              <FestivalCard key={festival.title} type="button">
+              <FestivalCard
+                key={festival.title}
+                as={Link}
+                to={getFestivalLink(festival).to}
+                state={getFestivalLink(festival).state}
+              >
                 <CardImage src={festival.image} alt="" />
                 <span>{festival.region}</span>
                 <h3>{festival.title}</h3>
@@ -346,7 +375,12 @@ function MainPage() {
             </LiveBadge>
           </SectionHeader>
           <RankingGrid>
-            <RankingFeatured key={selectedPopularFestival.rank} type="button">
+            <RankingFeatured
+              key={selectedPopularFestival.rank}
+              as={Link}
+              to={getFestivalLink(selectedPopularFestival).to}
+              state={getFestivalLink(selectedPopularFestival).state}
+            >
               <img src={selectedPopularFestival.image} alt="" />
               <strong>{selectedPopularFestival.rank}</strong>
               <div>

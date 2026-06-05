@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, Check, ChevronRight, Loader2 } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Styles from './SocialLoginPageCss';
 
 const SocialLoginPage = () => {
@@ -160,7 +160,7 @@ const SocialLoginPage = () => {
 										<Styles.SmallCheckbox id="terms" name="terms" type="checkbox" checked={agreements.terms} onChange={(e) => handleAgreementChange('terms', e)} />
 										<label htmlFor="terms">[필수] 이용 약관</label>
 									</span>
-									<Styles.TermLink href="/terms" aria-label="이용 약관 보기">
+									<Styles.TermLink as={Link} to="/" aria-label="이용 약관 보기">
 										<ChevronRight size={18} />
 									</Styles.TermLink>
 								</Styles.TermItem>
@@ -170,7 +170,7 @@ const SocialLoginPage = () => {
 										<Styles.SmallCheckbox id="privacy" name="privacy" type="checkbox" checked={agreements.privacy} onChange={(e) => handleAgreementChange('privacy', e)} />
 										<label htmlFor="privacy">[필수] 개인 정보 수집 및 이용 동의</label>
 									</span>
-									<Styles.TermLink href="/privacy" aria-label="개인 정보 수집 및 이용 동의 보기">
+									<Styles.TermLink as={Link} to="/" aria-label="개인 정보 수집 및 이용 동의 보기">
 										<ChevronRight size={18} />
 									</Styles.TermLink>
 								</Styles.TermItem>

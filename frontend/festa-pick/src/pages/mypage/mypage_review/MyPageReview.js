@@ -103,6 +103,29 @@ function MyPageReview() {
     setPage(Math.min(Math.max(nextPage, 1), pageCount));
   };
 
+  const getReviewFestivalLink = (review) => ({
+    to: `/festivals/${review.id}`,
+    state: {
+      festival: {
+        id: review.id,
+        title: review.title,
+        name: review.title,
+        category: review.category,
+        image: review.image,
+        rating: review.rating,
+        reviews: [
+          {
+            id: review.reviewId,
+            author: "나",
+            rating: review.rating,
+            date: review.date,
+            content: review.content,
+          },
+        ],
+      },
+    },
+  });
+
   return (
     <S.Page>
       <S.Container>
@@ -155,7 +178,10 @@ function MyPageReview() {
                       <S.CardText>{review.content}</S.CardText>
 
                       <S.CardActions>
-                        <S.ReviewLink to={`/reviews/${review.reviewId}`}>
+                        <S.ReviewLink
+                          to={getReviewFestivalLink(review).to}
+                          state={getReviewFestivalLink(review).state}
+                        >
                           <ExternalLink size={13} aria-hidden="true" />내 리뷰
                           보러가기
                         </S.ReviewLink>

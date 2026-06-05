@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Lock, MessageCircle, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Styles from "./LoginPageCss";
 
 const MOCK_LOGIN_ACCOUNT = {
@@ -109,10 +109,10 @@ const LoginPage = () => {
 
             <Styles.LinksRow>
               <Styles.RecoveryLinks>
-                <a href="/find-id">아이디 찾기</a>
-                <a href="/find-password">비밀번호 찾기</a>
+                <Link to="/find-id">아이디 찾기</Link>
+                <Link to="/find-password">비밀번호 찾기</Link>
               </Styles.RecoveryLinks>
-              <Styles.SignupLink href="/signup">회원가입</Styles.SignupLink>
+              <Styles.SignupLink as={Link} to="/signup">회원가입</Styles.SignupLink>
             </Styles.LinksRow>
           </Styles.Form>
 
