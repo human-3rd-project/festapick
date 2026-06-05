@@ -613,6 +613,75 @@ export const EmptyIcon = styled.div`
   color: rgba(207, 194, 214, 0.5);
 `;
 
+export const ConfirmBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(6, 14, 32, 0.76);
+  backdrop-filter: blur(6px);
+`;
+
+export const ConfirmDialog = styled.div`
+  width: min(360px, 100%);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(23, 31, 51, 0.92);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  color: #dae2fd;
+  text-align: center;
+
+  strong {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 28px;
+  }
+
+  p {
+    margin: 8px 0 0;
+    color: rgba(207, 194, 214, 0.72);
+    font-size: 14px;
+    line-height: 22px;
+  }
+`;
+
+export const ConfirmActions = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+`;
+
+export const ConfirmButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid
+    ${({ $danger }) => ($danger ? "rgba(255, 180, 171, 0.38)" : "rgba(255, 255, 255, 0.1)")};
+  border-radius: 999px;
+  background: ${({ $danger }) => ($danger ? "rgba(147, 0, 10, 0.5)" : "#2d3449")};
+  color: ${({ $danger }) => ($danger ? "#ffb4ab" : "#dae2fd")};
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  transition: filter 160ms ease, transform 160ms ease;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+`;
+
 export const StatusCard = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;

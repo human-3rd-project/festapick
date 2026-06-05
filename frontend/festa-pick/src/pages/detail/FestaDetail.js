@@ -23,6 +23,10 @@ import {
   AiMarqueeContent,
   Badge,
   BodyGrid,
+  ConfirmActions,
+  ConfirmBackdrop,
+  ConfirmButton,
+  ConfirmDialog,
   CtaButton,
   DetailText,
   DisabledOverlay,
@@ -156,16 +160,17 @@ const LIVE_MESSAGES = [
 
 function FestaDetail({
   festival: festivalProp,
-  reviews = DEFAULT_REVIEWS,
+  reviews: reviewsProp,
   isFestivalActive,
-  hasMap = true,
+  hasMap: hasMapProp,
 }) {
   const location = useLocation();
   const [isTalkExpanded, setIsTalkExpanded] = useState(false);
   const [isTalkModalOpen, setIsTalkModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
-  const [localReviews, setLocalReviews] = useState(reviews);
+  const [localReviews, setLocalReviews] = useState(DEFAULT_REVIEWS);
   const [talkMessage, setTalkMessage] = useState("");
   const [isFavorite, setIsFavorite] = useState(Boolean(festivalProp?.favorite));
   const [isLiked, setIsLiked] = useState(Boolean(festivalProp?.liked));
@@ -199,6 +204,19 @@ function FestaDetail({
   const resolvedIsFestivalActive =
     isFestivalActive ??
     (typeof festival.live === "boolean" ? festival.live : true);
+  const resolvedHasMap =
+    hasMapProp ?? (typeof festival.hasMap === "boolean" ? festival.hasMap : true);
+  const resolvedReviews = useMemo(() => {
+    if (reviewsProp) {
+      return reviewsProp;
+    }
+
+    if (Array.isArray(festival.reviews)) {
+      return festival.reviews;
+    }
+
+    return DEFAULT_REVIEWS;
+  }, [festival.reviews, reviewsProp]);
 
   useEffect(() => {
     setIsFavorite(Boolean(festival.favorite));
@@ -206,9 +224,9 @@ function FestaDetail({
   }, [festival.favorite, festival.liked]);
 
   useEffect(() => {
-    setLocalReviews(reviews);
+    setLocalReviews(resolvedReviews);
     setVisibleReviewCount(REVIEW_PAGE_SIZE);
-  }, [reviews]);
+  }, [resolvedReviews]);
 
   const myReview = useMemo(
     () => localReviews.find((review) => review.isMine),
@@ -246,10 +264,19 @@ function FestaDetail({
     setEditingReview(null);
   };
 
-  const handleDeleteMyReview = () => {
+  const openDeleteConfirm = () => {
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const closeDeleteConfirm = () => {
+    setIsDeleteConfirmOpen(false);
+  };
+
+  const confirmDeleteMyReview = () => {
     setLocalReviews((currentReviews) =>
       currentReviews.filter((review) => !review.isMine),
     );
+    closeDeleteConfirm();
   };
 
   const handleLoadMoreReviews = () => {
@@ -290,10 +317,12 @@ function FestaDetail({
         <HeroContent>
           <TagRow>
             <Badge>{festival.category}</Badge>
-            <Badge $variant={resolvedIsFestivalActive ? "live" : "muted"}>
-              {resolvedIsFestivalActive && <LiveDot />}
-              {resolvedIsFestivalActive ? "LIVE" : "SCHEDULED"}
-            </Badge>
+            {resolvedIsFestivalActive && (
+              <Badge $variant="live">
+                <LiveDot />
+                LIVE
+              </Badge>
+            )}
           </TagRow>
 
           <Title>{festival.title}</Title>
@@ -323,17 +352,15 @@ function FestaDetail({
             </ActionButton>
           </HeroActions>
 
-          <AiMarquee $disabled={!resolvedIsFestivalActive}>
-            {resolvedIsFestivalActive ? (
+          {resolvedIsFestivalActive && (
+            <AiMarquee>
               <AiMarqueeContent>
                 AI Live 요약: 현재 메인 스테이지 공연이 절정에 달하고 있습니다.
                 인파가 몰리고 있으니 서브 스테이지 구역을 권장합니다. 셔틀버스는
                 15분 간격으로 운행 중입니다.
               </AiMarqueeContent>
-            ) : (
-              <span>현재 축제 기간이 아닙니다.</span>
-            )}
-          </AiMarquee>
+            </AiMarquee>
+          )}
         </HeroContent>
       </Hero>
 
@@ -367,8 +394,8 @@ function FestaDetail({
 
           <Section>
             <SectionTitle $tone="secondary">찾아오시는 길</SectionTitle>
-            <MapCanvas $disabled={!hasMap}>
-              {hasMap ? (
+            <MapCanvas $disabled={!resolvedHasMap}>
+              {resolvedHasMap ? (
                 <>
                   <MapPinBadge>
                     <MapPin size={42} />
@@ -467,7 +494,7 @@ function FestaDetail({
                         </TextButton>
                         <TextButton
                           $danger
-                          onClick={handleDeleteMyReview}
+                          onClick={openDeleteConfirm}
                           type="button"
                         >
                           삭제
@@ -493,7 +520,6 @@ function FestaDetail({
             )}
           </Section>
         </MainColumn>
-
       </BodyGrid>
 
       {resolvedIsFestivalActive && (
@@ -573,6 +599,27 @@ function FestaDetail({
         onSubmit={handleSubmitReview}
         review={editingReview}
       />
+      {isDeleteConfirmOpen && (
+        <ConfirmBackdrop onClick={closeDeleteConfirm}>
+          <ConfirmDialog
+            aria-label="리뷰 삭제 확인"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <strong>리뷰를 삭제할까요?</strong>
+            <p>삭제한 관람평은 다시 복구할 수 없습니다.</p>
+            <ConfirmActions>
+              <ConfirmButton onClick={closeDeleteConfirm} type="button">
+                취소
+              </ConfirmButton>
+              <ConfirmButton $danger onClick={confirmDeleteMyReview} type="button">
+                삭제
+              </ConfirmButton>
+            </ConfirmActions>
+          </ConfirmDialog>
+        </ConfirmBackdrop>
+      )}
     </Page>
   );
 }
