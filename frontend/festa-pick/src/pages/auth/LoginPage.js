@@ -112,7 +112,9 @@ const LoginPage = () => {
                 <Link to="/find-id">아이디 찾기</Link>
                 <Link to="/find-password">비밀번호 찾기</Link>
               </Styles.RecoveryLinks>
-              <Styles.SignupLink as={Link} to="/signup">회원가입</Styles.SignupLink>
+              <Styles.SignupLink as={Link} to="/signup">
+                회원가입
+              </Styles.SignupLink>
             </Styles.LinksRow>
           </Styles.Form>
 
@@ -126,7 +128,9 @@ const LoginPage = () => {
               onClick={() => handleSocialLogin("kakao")}
             >
               <Styles.FilledIcon aria-hidden="true">
-                <MessageCircle size={20} strokeWidth={2.4} />
+                <svg className="w-5 h-5" fill="#3C1E1E" viewBox="0 0 24 24">
+                  <path d="M12 3c-4.97 0-9 3.18-9 7.11 0 2.55 1.7 4.79 4.26 6.06l-.82 3.01c-.05.18.06.37.24.42.06.02.12.01.18-.01l3.52-2.34c.54.06 1.1.09 1.62.09 4.97 0 9-3.18 9-7.11 0-3.93-4.03-7.22-9-7.22z"></path>
+                </svg>
               </Styles.FilledIcon>
               <span>카카오톡으로 로그인</span>
             </Styles.KakaoButton>
