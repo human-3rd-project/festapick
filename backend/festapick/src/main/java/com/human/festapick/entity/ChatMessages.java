@@ -27,7 +27,7 @@ public class ChatMessages {
   @JoinColumn(name = "user_id", nullable = false)
   private Users user;
 
-  @Column(columnDefinition = "TEXT", nullable = false)
+  @Column(columnDefinition = "TEXT")
   private String message;
 
   @Column(length = 500)
