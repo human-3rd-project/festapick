@@ -373,10 +373,17 @@ export const FilledIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  min-width: 24px;
+  width: 28px;
+  flex: 0 0 28px;
   height: 24px;
   color: #3c1e1e;
+
+  svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+    transform: translateY(1px);
+  }
 `;
 
 export const NaverMark = styled.span`
@@ -384,12 +391,13 @@ export const NaverMark = styled.span`
   align-items: center;
   justify-content: center;
   width: 24px;
-  min-width: 24px;
+  flex: 0 0 24px;
   height: 24px;
   color: #fff;
   font-size: 18px;
-  line-height: 24px;
+  line-height: 1;
   font-weight: 700;
+  font-family: Arial, sans-serif;
 `;
 
 const Styles = {

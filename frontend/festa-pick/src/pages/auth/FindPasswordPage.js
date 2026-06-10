@@ -61,11 +61,6 @@ const FindPasswordPage = () => {
 		setResult({ visible: false, type: '' });
 	};
 
-	const handleResend = () => {
-		// TODO: 백엔드 인증번호 재발송 API 연결 후 성공 응답 시 alert를 호출합니다.
-		window.alert('인증번호가 발송되었습니다.');
-	};
-
 	return (
 		<Styles.Page>
 			<Styles.BackgroundGradient />
@@ -77,7 +72,7 @@ const FindPasswordPage = () => {
 			</Styles.BackgroundPhoto>
 
 			<Styles.Main>
-				<Styles.GlassContainer>
+				<Styles.GlassContainer className={result.visible ? 'result-visible' : ''}>
 					<Styles.Header>
 						<h2>비밀번호 찾기</h2>
 						<p>이메일로 비밀번호 재설정 링크를 받아보세요.</p>
@@ -99,15 +94,14 @@ const FindPasswordPage = () => {
 								</Styles.ResultNote>
 							</Styles.ResultBox>
 
-							<Styles.LoginLink as={Link} to="/login" className="result-link">
-								로그인으로 돌아가기
-							</Styles.LoginLink>
-							<Styles.TextButton type="button" onClick={handleResend}>
-								이메일 메시지 다시 보내기
-							</Styles.TextButton>
-							<Styles.TextButton type="button" onClick={handleRetry}>
-								다시 입력하기
-							</Styles.TextButton>
+							<Styles.ResultActions>
+								<Styles.LoginLink as={Link} to="/login" className="result-link">
+									로그인으로 돌아가기
+								</Styles.LoginLink>
+								<Styles.TextButton type="button" onClick={handleRetry}>
+									다시 입력하기
+								</Styles.TextButton>
+							</Styles.ResultActions>
 						</Styles.ResultArea>
 					) : (
 						<Styles.Form id="findPasswordForm" onSubmit={handleSubmit} noValidate>
