@@ -41,7 +41,7 @@ public class LiveChatResDto {
       .nickname(chatMessage.getUser().getNickname())
       .message(chatMessage.getMessage())
       .imageUrl(chatMessage.getImageUrl())
-      .ChatMessageType(chatMessage.getMessageType())
+      .messageType(chatMessage.getMessageType())
       .createdAt(chatMessage.getCreatedAt())
       .build();
   }
