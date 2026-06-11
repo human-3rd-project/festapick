@@ -1,5 +1,6 @@
 package com.human.festapick.security;
 
+import com.human.festapick.dto.response.LoginResponseDto;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -11,9 +12,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.stereotype.Component;
-
 import java.security.Key;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -36,7 +35,7 @@ public class TokenProvider {
   }
 
   // 토큰 생성
-  public TokenDto generateTokenDto(Authentication authentication) {
+  public LoginResponseDto generateTokenDto(Authentication authentication) {
     String authorities = authentication.getAuthorities().stream()
       .map(GrantedAuthority::getAuthority)
       .collect(Collectors.joining(",")
@@ -45,18 +44,18 @@ public class TokenProvider {
     long now = (new Date().getTime());
 
     String accessToken = Jwts.builder()
-      .setSubject(authentication.getName())
-      .claim(AUTHORITIES_KEY, authorities)
-      .setExpiration(new Date(now + ACCESS_TOKEN_EXPIRE_TIME))
-      .signWith(key, SignatureAlgorithm.HS512)
-      .compact();
+            .setSubject(authentication.getName())
+            .claim(AUTHORITIES_KEY, authorities)
+            .setExpiration(new Date(now + ACCESS_TOKEN_EXPIRE_TIME))
+            .signWith(key, SignatureAlgorithm.HS512)
+            .compact();
 
     String refreshToken = Jwts.builder()
-      .setExpiration(new Date(now + REFRESH_TOKEN_EXPIRE_TIME))
-      .signWith(key, SignatureAlgorithm.HS512)
-      .compact();
+            .setExpiration(new Date(now + REFRESH_TOKEN_EXPIRE_TIME))
+            .signWith(key, SignatureAlgorithm.HS512)
+            .compact();
 
-    return TokenDto.builder()
+    return LoginResponseDto.builder()
       .grantType("Bearer")
       .accessToken(accessToken)
       .refreshToken(refreshToken)
@@ -84,16 +83,16 @@ public class TokenProvider {
   // 토큰 유효성 검증
   public boolean validateToken(String token) {
     try {
-        Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
-        return true;
+      Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+      return true;
     } catch (SecurityException | MalformedJwtException e) {
-        log.info("잘못된 JWT 서명입니다.");
+      log.info("잘못된 JWT 서명입니다.");
     } catch (ExpiredJwtException e) {
-        log.info("만료된 JWT 토큰입니다.");
+      log.info("만료된 JWT 토큰입니다.");
     } catch (UnsupportedJwtException e) {
-        log.info("지원되지 않는 JWT 토큰입니다.");
+      log.info("지원되지 않는 JWT 토큰입니다.");
     } catch (IllegalArgumentException e) {
-        log.info("JWT 토큰이 잘못되었습니다.");
+      log.info("JWT 토큰이 잘못되었습니다.");
     }
     return false;
   }
@@ -112,7 +111,7 @@ public class TokenProvider {
   private Claims parseClaims(String accessToken) {
     try {
       return Jwts.parserBuilder().setSigningKey(key).build()
-        .parseClaimsJws(accessToken).getBody();
+              .parseClaimsJws(accessToken).getBody();
     } catch (ExpiredJwtException e) {
       return e.getClaims(); // 만료 토큰도 Claims 추출은 가능
     }
