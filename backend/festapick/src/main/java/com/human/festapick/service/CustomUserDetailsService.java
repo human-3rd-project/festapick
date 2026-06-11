@@ -2,6 +2,10 @@ package com.human.festapick.service;
 
 import java.util.Collections;
 
+import com.human.festapick.entity.Users;
+import com.human.festapick.exception.CustomException;
+import com.human.festapick.security.CustomUserDetail;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -15,23 +19,23 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
-  private final MemberRepository memberRepository;
+
+  private final UserRepository userRepository;
 
   @Override
-  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    // 확인 필요 1
-    return memberRepository.findByEmail(username)
-        .map(this::createuserDetails)
-        .orElseThrow(() -> new UsernameNotFoundException(username + " 을 찾을 수 없습니다."));
+  public UserDetails loadUserByUsername(String loginId) throws UsernameNotFoundException {
+    Users user = userRepository.findByLoginId(loginId)
+            .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "사용자를 찾을수 없습니다"));
+    return createUserDetails(user);
   }
 
   // 확인 필요 2
-  private UserDetails createUserDetails(Members member) {
-    GrantedAuthority authority = new SimpleGrantedAuthority(member.getRole().toString());
+  private UserDetails createUserDetails(Users user) {
+    GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
-    return new User(String.valueOf(member.getId()),
-        member.getPassword(),
-        Collections.singleton(authority)
+    return new CustomUserDetail(
+            user,
+            Collections.singleton(authority)
     );
   }
 

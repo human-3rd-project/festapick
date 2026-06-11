@@ -81,5 +81,3 @@ public class Notification {
         this.readAt = LocalDateTime.now();
     }
 }
-
-}
