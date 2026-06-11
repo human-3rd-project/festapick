@@ -20,7 +20,7 @@ public class Donations {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private Users Users;
+    private Users users;
 
     @Column(name = "amount")
     private Integer amount;
