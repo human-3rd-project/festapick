@@ -18,8 +18,8 @@ public class EmailVerifications {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "email_verifications")
-    private Long emailVerifications;
+    @Column(name = "email_verifications_id")
+    private Long emailVerificationId;
 
     @Column(name = "email", length = 100, nullable = false)
     private String email;
