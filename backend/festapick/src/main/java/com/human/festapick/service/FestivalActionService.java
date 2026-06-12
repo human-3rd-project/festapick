@@ -60,7 +60,6 @@ public class FestivalActionService {
             .users(user)
             .festivals(festival)
             .build());
-    festival.increaseFavoriteCount();
   }
 
   // 찜 취소: 회원의 특정 축제 찜 데이터가 있을 때만 삭제합니다.
@@ -69,7 +68,6 @@ public class FestivalActionService {
     Favorites favorite = favoriteRepository.findByUsers_UserIdAndFestivals_FestivalId(userId, festivalId)
             .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "찜한 축제가 아닙니다."));
 
-    favorite.getFestivals().decreaseFavoriteCount();
     favoriteRepository.delete(favorite);
   }
 
@@ -131,7 +129,6 @@ public class FestivalActionService {
             .users(user)
             .festivals(festival)
             .build());
-    festival.increaseLikeCount();
   }
 
   // 좋아요 취소: 회원의 특정 축제 좋아요 데이터가 있을 때만 삭제합니다.
@@ -140,7 +137,6 @@ public class FestivalActionService {
     FestivalLikes like = festivalLikeRepository.findByUsers_UserIdAndFestivals_FestivalId(userId, festivalId)
             .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "좋아요한 축제가 아닙니다."));
 
-    like.getFestivals().decreaseLikeCount();
     festivalLikeRepository.delete(like);
   }
 
