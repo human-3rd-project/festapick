@@ -1,5 +1,6 @@
 package com.human.festapick.dto.request;
 
+import com.human.festapick.constant.UserStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
