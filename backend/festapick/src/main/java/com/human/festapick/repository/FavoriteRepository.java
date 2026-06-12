@@ -1,5 +1,6 @@
 package com.human.festapick.repository;
 
+import com.human.festapick.constant.FestivalStatus;
 import com.human.festapick.dto.response.FavoriteListResDto;
 import com.human.festapick.entity.Favorites;
 import org.springframework.data.domain.Page;
@@ -8,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,5 +75,35 @@ public interface FavoriteRepository extends JpaRepository<Favorites, Long> {
     List<Long> findFavoriteFestivalIdsByUserIdAndFestivalIds(
             @Param("userId") Long userId,
             @Param("festivalIds") List<Long> festivalIds
+    );
+
+    /*
+     * 날짜 알림용 조회
+     *
+     * 특정 날짜에 시작하는 ACTIVE 축제를 찜한 목록을 가져옴.
+     *
+     * 예:
+     * targetDate = 오늘
+     * → 오늘 시작하는 축제를 찜한 사용자들 조회
+     *
+     * targetDate = 오늘 + 2일
+     * → 2일 뒤 시작하는 축제를 찜한 사용자들 조회
+     *
+     * JOIN FETCH를 쓰는 이유:
+     * - 알림 생성할 때 favorite.getUsers()
+     * - favorite.getFestivals()
+     * 를 바로 사용해야 하기 때문.
+     */
+    @Query("""
+            SELECT fav
+            FROM Favorites fav
+            JOIN FETCH fav.users user
+            JOIN FETCH fav.festivals festival
+            WHERE festival.eventStartDate = :targetDate
+              AND festival.status = :status
+            """)
+    List<Favorites> findFavoritesForFestivalStartNotification(
+            @Param("targetDate") LocalDate targetDate,
+            @Param("status") FestivalStatus status
     );
 }
