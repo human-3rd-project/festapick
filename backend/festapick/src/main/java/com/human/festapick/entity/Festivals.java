@@ -159,4 +159,10 @@ public class Festivals {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    // 리뷰 개수 / 평균 별점 갱신
+    public void updateReviewStats(Long reviewCount, BigDecimal averageRating) {
+        this.reviewCount = reviewCount;
+        this.averageRating = averageRating;
+    }
 }

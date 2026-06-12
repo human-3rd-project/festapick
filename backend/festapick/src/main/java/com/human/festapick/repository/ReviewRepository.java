@@ -18,7 +18,7 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
     @Query(
             value = """
                     SELECT new com.human.festapick.dto.response.ReviewResDto(
-                        review.id,
+                        review.reviewId,
                         festival.festivalId,
                         writer.userId,
                         writer.nickname,
@@ -51,7 +51,7 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
     @Query(
             value = """
                     SELECT new com.human.festapick.dto.response.MyReviewResDto(
-                        review.id,
+                        review.reviewId,
                         festival.festivalId,
                         festival.title,
                         festival.firstImage2,
@@ -80,9 +80,16 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
     );
 
     // 리뷰 수정 / 삭제 권한 확인용 조회
-    Optional<Reviews> findByIdAndUser_UserIdAndStatus(
+    Optional<Reviews> findByReviewIdAndUser_UserIdAndStatus(
             Long reviewId,
             Long userId,
+            ReviewStatus status
+    );
+
+    // 한 회원이 같은 축제에 이미 활성 리뷰를 작성했는지 확인
+    boolean existsByUser_UserIdAndFestival_FestivalIdAndStatus(
+            Long userId,
+            Long festivalId,
             ReviewStatus status
     );
 
@@ -90,5 +97,17 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
     long countByFestival_FestivalIdAndStatus(
             Long festivalId,
             ReviewStatus status
+    );
+
+    // 특정 축제의 활성 리뷰 평균 별점 조회
+    @Query("""
+            SELECT COALESCE(AVG(review.rating), 0.0)
+            FROM Reviews review
+            WHERE review.festival.festivalId = :festivalId
+              AND review.status = :status
+            """)
+    Double findAverageRatingByFestivalIdAndStatus(
+            @Param("festivalId") Long festivalId,
+            @Param("status") ReviewStatus status
     );
 }
