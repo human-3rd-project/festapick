@@ -38,7 +38,7 @@ public class RefreshTokens {
     )
     private Users users;
 
-    @Column(name = "token", length = 100, nullable = false)
+    @Column(name = "token", length = 500, nullable = false)
     private String token;
 
     @Column(name = "expired_at", nullable = false)
