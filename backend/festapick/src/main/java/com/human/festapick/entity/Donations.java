@@ -62,5 +62,3 @@ public class Donations {
         this.donationStatus = DonationStatus.CANCELED;
     }
 }
-
-}
