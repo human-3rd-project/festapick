@@ -56,4 +56,13 @@ public class Reviews {
   public void perUpdate() {
     updatedAt = LocalDateTime.now();
   }
+
+  @Builder
+  public Reviews(Users user, Festivals festival, String content, Integer rating) {
+    this.user = user;
+    this.festival = festival;
+    this.content = content;
+    this.rating = rating;
+    this.status = ReviewStatus.ACTIVE;
+  }
 }
