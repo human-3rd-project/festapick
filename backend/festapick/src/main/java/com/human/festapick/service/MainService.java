@@ -11,6 +11,7 @@ import com.human.festapick.repository.FestivalCategoryCodeRepository;
 import com.human.festapick.repository.FestivalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -31,6 +32,8 @@ import java.util.Optional;
 public class MainService {
   private static final int DEFAULT_BANNER_LIMIT = 5;
   private static final int DEFAULT_SECTION_LIMIT = 10;
+  private static final int TOUR_API_SYNC_PAGE_SIZE = 100;
+  private static final int TOUR_API_SYNC_MAX_PAGE = 12;
   private static final DateTimeFormatter TOUR_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
   private final FestivalRepository festivalRepository;
@@ -158,6 +161,17 @@ public class MainService {
 
     festivalRepository.saveAll(newFestivals);
     return newFestivals.size();
+  }
+
+  // TourAPI 축제 동기화: 매일 오전 9시에 오늘 이후 축제 데이터를 가져와 DB에 없는 항목만 저장합니다.
+  @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
+  @Transactional
+  public void scheduledSyncTourApiFestivals() {
+    LocalDate today = LocalDate.now();
+
+    for (int page = 1; page <= TOUR_API_SYNC_MAX_PAGE; page++) {
+      syncTourApiFestivals(today, page, TOUR_API_SYNC_PAGE_SIZE);
+    }
   }
 
   // 화면 응답 DTO 변환: Festivals 엔티티를 메인/목록 카드에서 쓰는 공통 형태로 바꿉니다.
