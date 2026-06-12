@@ -1,5 +1,7 @@
 package com.human.festapick.dto.response;
 
+import com.human.festapick.constant.UserRole;
+import com.human.festapick.constant.UserStatus;
 import lombok.Builder;
 import lombok.Getter;
 
