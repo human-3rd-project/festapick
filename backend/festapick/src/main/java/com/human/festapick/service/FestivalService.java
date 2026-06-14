@@ -9,6 +9,7 @@ import com.human.festapick.entity.FestivalImages;
 import com.human.festapick.entity.Festivals;
 import com.human.festapick.entity.LegalDongCodes;
 import com.human.festapick.exception.CustomException;
+import com.human.festapick.repository.ChatRoomRepository;
 import com.human.festapick.repository.FestivalCategoryCodeRepository;
 import com.human.festapick.repository.FestivalImageRepository;
 import com.human.festapick.repository.FestivalRepository;
@@ -43,6 +44,7 @@ public class FestivalService {
   private final FestivalImageRepository festivalImageRepository;
   private final FestivalCategoryCodeRepository festivalCategoryCodeRepository;
   private final LegalDongCodeRepository legalDongCodeRepository;
+  private final ChatRoomRepository chatRoomRepository;
 
   // 키워드 검색: 축제 제목에 keyword가 포함된 활성 축제를 조회합니다.
   public Page<FestivalInfoResponseDto> searchByKeyword(String keyword, Pageable pageable) {
@@ -105,6 +107,7 @@ public class FestivalService {
 
     return FestivalDetailResponseDto.builder()
             .festivalId(festival.getFestivalId())
+            .chatRoomId(resolveChatRoomId(festival.getFestivalId()))
             .contentId(festival.getContentId())
             .title(festival.getTitle())
             .categoryName(resolveCategoryName(festival))
@@ -192,6 +195,12 @@ public class FestivalService {
   private Festivals getFestivalOrThrow(Long festivalId) {
     return festivalRepository.findById(festivalId)
             .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "축제를 찾을 수 없습니다."));
+  }
+
+  private Long resolveChatRoomId(Long festivalId) {
+    return chatRoomRepository.findByFestival_FestivalIdAndActiveTrue(festivalId)
+            .map(chatRoom -> chatRoom.getChatRoomId())
+            .orElse(null);
   }
 
   // 목록 카드 DTO 변환: 축제 엔티티를 프론트에서 반복 렌더링하기 쉬운 형태로 바꿉니다.

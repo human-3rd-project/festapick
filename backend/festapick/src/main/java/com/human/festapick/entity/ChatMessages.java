@@ -44,4 +44,20 @@ public class ChatMessages {
   public void prePersist() {
     createdAt = LocalDateTime.now();
   }
+
+  public static ChatMessages create(
+      ChatRooms chatRoom,
+      Users user,
+      String message,
+      String imageUrl,
+      ChatMessageType messageType
+  ) {
+    ChatMessages chatMessage = new ChatMessages();
+    chatMessage.chatRoom = chatRoom;
+    chatMessage.user = user;
+    chatMessage.message = message;
+    chatMessage.imageUrl = imageUrl;
+    chatMessage.messageType = messageType == null ? ChatMessageType.CHAT : messageType;
+    return chatMessage;
+  }
 }

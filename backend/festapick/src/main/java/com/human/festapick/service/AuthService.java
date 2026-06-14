@@ -19,6 +19,7 @@ import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,26 +39,27 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
+    private final AuthenticationManagerBuilder managerBuilder;
 
     public void signup(SignupRequestDto request) {
 
         if (userRepository.existsByLoginId(request.getLoginId())) {
-            throw new CustomException(HttpStatus.CONFLICT, "Already used login id.");
+            throw new CustomException(HttpStatus.CONFLICT, "이미 사용중인 아이디 입니다.");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new CustomException(HttpStatus.CONFLICT, "Already used email.");
+            throw new CustomException(HttpStatus.CONFLICT, "이미 사용중인 이메일 입니다.");
         }
 
         if (userRepository.existsByNickname(request.getNickname())) {
-            throw new CustomException(HttpStatus.CONFLICT, "Already used nickname.");
+            throw new CustomException(HttpStatus.CONFLICT, "이미 사용중인 닉네임 입니다.");
         }
 
         boolean emailVerified =
                 emailVerificationsRepository.existsByEmailAndVerifiedTrue(request.getEmail());
 
         if (!emailVerified) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Email verification is required.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "이메일 인증이 필요합니다.");
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
@@ -76,31 +78,33 @@ public class AuthService {
         emailVerificationsRepository.deleteByEmail(request.getEmail());
     }
 
-        @Transactional
-    public TokenDto login(LoginReqDto dto) {
+    @Transactional
+    public LoginResponseDto login(LoginRequestDto dto) {
         UsernamePasswordAuthenticationToken authToken = dto.toAuthenticationToken();
         Authentication authentication = managerBuilder.getObject().authenticate(authToken);
-        TokenDto tokenDto = tokenProvider.generateTokenDto(authentication);
+        LoginResponseDto tokenDto = tokenProvider.generateTokenDto(authentication);
 
-        // Refresh Token DB 저장
-        Long memberId = Long.parseLong(authentication.getName());
+        CustomUserDetail userDetail = (CustomUserDetail) authentication.getPrincipal();
+        Long userId = userDetail.getUserId();
         LocalDateTime expiry = tokenProvider.getRefreshTokenExpiry();
+        Users user = userRepository.findById(userId)
+                        .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,"존재하지 않는 유저 입니다."));
 
-        refreshTokenRepository.findByMemberId(memberId)
+        refreshTokenRepository.findByUsers(user)
                 .ifPresentOrElse(
                         rt -> rt.updateToken(tokenDto.getRefreshToken(), expiry),
                         () -> refreshTokenRepository.save(
-                                RefreshToken.builder()
-                                        .memberId(memberId)
-                                        .tokenValue(tokenDto.getRefreshToken())
-                                        .expiresAt(expiry)
+                                RefreshTokens.builder()
+                                        .users(user)
+                                        .token(tokenDto.getRefreshToken())
+                                        .expiredAt(expiry)
                                         .build())
                 );
         // 회원 이름을 조회해서 TokenDto에 포함
-        String memberName = memberRepository.findById(memberId)
-                .map(Member::getName)
-                .orElse("");
-        tokenDto.setName(memberName);
+        String userNickName = user.getNickname();
+        String profileImgUrl = user.getProfileImageUrl();
+        tokenDto.setNickname(userNickName);
+        tokenDto.setProfileImageUrl(profileImgUrl);
 
         return tokenDto;
     }
@@ -109,7 +113,7 @@ public class AuthService {
 
         Users user = userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new CustomException(HttpStatus.NOT_FOUND, "User not found.")
+                        new CustomException(HttpStatus.NOT_FOUND, "사용자를 찾을수 없습니다.")
                 );
 
         refreshTokenRepository.deleteByUsers(user);

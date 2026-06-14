@@ -5,8 +5,10 @@ import com.human.festapick.dto.response.FestivalInfoResponseDto;
 import com.human.festapick.dto.response.MainPageResponseDto;
 import com.human.festapick.dto.response.TourApiResDto;
 import com.human.festapick.dto.response.TourFestivalItemDto;
+import com.human.festapick.entity.ChatRooms;
 import com.human.festapick.entity.FestivalCategoryCodes;
 import com.human.festapick.entity.Festivals;
+import com.human.festapick.repository.ChatRoomRepository;
 import com.human.festapick.repository.FestivalCategoryCodeRepository;
 import com.human.festapick.repository.FestivalRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class MainService {
 
   private final FestivalRepository festivalRepository;
   private final FestivalCategoryCodeRepository festivalCategoryCodeRepository;
+  private final ChatRoomRepository chatRoomRepository;
   private final WebClient.Builder webClientBuilder;
 
   @Value("${tourapi.base-url}")
@@ -159,7 +162,12 @@ public class MainService {
             .map(this::toFestivalEntity)
             .toList();
 
-    festivalRepository.saveAll(newFestivals);
+    List<Festivals> savedFestivals = festivalRepository.saveAll(newFestivals);
+    List<ChatRooms> chatRooms = savedFestivals.stream()
+            .map(ChatRooms::create)
+            .toList();
+
+    chatRoomRepository.saveAll(chatRooms);
     return newFestivals.size();
   }
 

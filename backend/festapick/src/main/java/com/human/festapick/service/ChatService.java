@@ -1,9 +1,14 @@
 package com.human.festapick.service;
 
+import com.human.festapick.constant.ChatMessageType;
+import com.human.festapick.dto.request.LiveChatReqDto;
+import com.human.festapick.dto.response.LiveChatResDto;
 import com.human.festapick.entity.ChatMessages;
 import com.human.festapick.entity.ChatRooms;
+import com.human.festapick.entity.Users;
 import com.human.festapick.repository.ChatMessageRepository;
 import com.human.festapick.repository.ChatRoomRepository;
+import com.human.festapick.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -32,6 +37,8 @@ public class ChatService {
      * - findTopByChatRoom_ChatRoomIdOrderByCreatedAtDesc(...)
      */
     private final ChatMessageRepository chatMessageRepository;
+
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public boolean isLiveTalkAvailable(Long festivalId) {
@@ -88,18 +95,45 @@ public class ChatService {
         // 채팅 참여자 테이블이 생기면 여기서 퇴장 처리
     }
 
-    /**
-     * 실시간 메시지 송신
-     *
-     * 사용자가 LIVE TALK 입력창에 메시지를 입력하고 전송할 때 사용.
-     *
-     * 주의:
-     * 현재 ChatMessages 엔티티는 생성자가 protected라서
-     * Service에서 바로 new ChatMessages()로 생성할 수 없음.
-     *
-     * 그래서 실제 저장은 ChatMessages 엔티티에
-     * create 메서드나 @Builder가 추가된 뒤 구현해야 함.
-     */
+    @Transactional(readOnly = true)
+    public void validateActiveChatRoom(Long chatRoomId) {
+
+        ChatRooms chatRoom = getChatRoom(chatRoomId);
+
+        if (!chatRoom.isActive()) {
+            throw new IllegalArgumentException("활성화된 채팅방이 아닙니다.");
+        }
+    }
+
+    public LiveChatResDto saveLiveMessage(Long chatRoomId, Long userId, LiveChatReqDto reqDto) {
+
+        if (reqDto == null) {
+            throw new IllegalArgumentException("채팅 메시지 요청이 필요합니다.");
+        }
+
+        if (reqDto.getChatRoomId() != null && !reqDto.getChatRoomId().equals(chatRoomId)) {
+            throw new IllegalArgumentException("연결된 채팅방과 메시지 채팅방이 다릅니다.");
+        }
+
+        ChatMessageType messageType = resolveMessageType(reqDto);
+        validateMessageContent(messageType, reqDto);
+
+        // 이미지 파일 업로드는 별도 REST API/Firebase Storage 연동에서 처리하고,
+        // WebSocket 메시지에는 업로드 후 발급된 imageUrl만 담아 보낸다.
+        ChatRooms chatRoom = getChatRoom(chatRoomId);
+        Users user = getUser(userId);
+
+        ChatMessages chatMessage = ChatMessages.create(
+                chatRoom,
+                user,
+                trimToNull(reqDto.getMessage()),
+                trimToNull(reqDto.getImageUrl()),
+                messageType
+        );
+
+        return LiveChatResDto.of(chatMessageRepository.save(chatMessage));
+    }
+
     public ChatMessages sendMessage(Long chatRoomId, Long userId, String message) {
 
         if (chatRoomId == null) {
@@ -114,14 +148,15 @@ public class ChatService {
             throw new IllegalArgumentException("메시지를 입력해 주세요.");
         }
 
-        // TODO:
-        // 1. ChatRooms chatRoom = chatRoomRepository.findById(chatRoomId)...
-        // 2. Users user = userRepository.findById(userId)...
-        // 3. ChatMessages chatMessage = ChatMessages.create(...)
-        // 4. chatMessageRepository.save(chatMessage)
-        // 5. WebSocket으로 같은 채팅방 사용자에게 전송
+        ChatMessages chatMessage = ChatMessages.create(
+                getChatRoom(chatRoomId),
+                getUser(userId),
+                message.trim(),
+                null,
+                ChatMessageType.CHAT
+        );
 
-        throw new UnsupportedOperationException("ChatMessages 생성 메서드 추가 후 구현 필요");
+        return chatMessageRepository.save(chatMessage);
     }
 
     /**
@@ -171,5 +206,58 @@ public class ChatService {
 
         return chatMessageRepository.findTopByChatRoom_ChatRoomIdOrderByCreatedAtDesc(chatRoomId)
                 .orElse(null);
+    }
+
+    private ChatRooms getChatRoom(Long chatRoomId) {
+
+        if (chatRoomId == null) {
+            throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
+        }
+
+        return chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+    }
+
+    private Users getUser(Long userId) {
+
+        if (userId == null) {
+            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+        }
+
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    }
+
+    private ChatMessageType resolveMessageType(LiveChatReqDto reqDto) {
+
+        if (reqDto.getMessageType() != null) {
+            return reqDto.getMessageType();
+        }
+
+        return trimToNull(reqDto.getImageUrl()) == null ? ChatMessageType.CHAT : ChatMessageType.IMAGE;
+    }
+
+    private void validateMessageContent(ChatMessageType messageType, LiveChatReqDto reqDto) {
+
+        if (messageType != ChatMessageType.CHAT && messageType != ChatMessageType.IMAGE) {
+            throw new IllegalArgumentException("전송할 수 없는 채팅 메시지 타입입니다.");
+        }
+
+        if (messageType == ChatMessageType.CHAT && trimToNull(reqDto.getMessage()) == null) {
+            throw new IllegalArgumentException("메시지를 입력해 주세요.");
+        }
+
+        if (messageType == ChatMessageType.IMAGE && trimToNull(reqDto.getImageUrl()) == null) {
+            throw new IllegalArgumentException("이미지 URL이 필요합니다.");
+        }
+    }
+
+    private String trimToNull(String value) {
+
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim();
     }
 }

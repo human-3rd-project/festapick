@@ -51,4 +51,9 @@ public class RefreshTokens {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public void updateToken(String token, LocalDateTime expiredAt) {
+        this.token = token;
+        this.expiredAt = expiredAt;
+    }
 }

@@ -1,10 +1,15 @@
 package com.human.festapick.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
 import com.google.genai.types.GenerateContentResponse;
 import com.human.festapick.constant.ChatMessageType;
 import com.human.festapick.constant.FestivalStatus;
 import com.human.festapick.dto.response.AiAnswerResDto;
+import com.human.festapick.dto.response.AiRecommendationResDto;
+import com.human.festapick.dto.response.FestivalInfoResponseDto;
 import com.human.festapick.entity.ChatMessages;
 import com.human.festapick.entity.Festivals;
 import com.human.festapick.repository.ChatMessageRepository;
@@ -18,7 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +55,8 @@ public class AiService {
      */
     private final FestivalRepository festivalRepository;
 
+    private final ObjectMapper objectMapper;
+
     /*
      * application.properties에 있는 gemini.model 값을 가져옴.
      *
@@ -70,13 +80,16 @@ public class AiService {
      * 2. DB에서 축제 목록을 가져옴
      * 3. 축제 목록을 Gemini가 읽을 수 있는 문자열로 변환
      * 4. Gemini에게 사용자 질문 + 축제정보 + 응답 JSON 형태를 전달
-     * 5. Gemini 응답 문자열을 반환
+     * 5. Gemini가 고른 축제 ID로 DB 축제 정보를 다시 조회해서 반환
      */
     @Transactional(readOnly = true)
-    public String sendQuestion(String question) {
+    public AiRecommendationResDto sendQuestion(String question) {
 
         if (question == null || question.isBlank()) {
-            return "질문을 입력해 주세요.";
+            return AiRecommendationResDto.builder()
+                    .message("질문을 입력해 주세요.")
+                    .festivals(List.of())
+                    .build();
         }
 
         /*
@@ -163,7 +176,93 @@ public class AiService {
                 5. JSON 형태만 응답해.
                 """.formatted(question, festivalInfo);
 
-        return askGemini(prompt);
+        String aiResponse = askGemini(prompt);
+        return toRecommendationResponse(aiResponse);
+    }
+
+    private AiRecommendationResDto toRecommendationResponse(String aiResponse) {
+        try {
+            JsonNode root = objectMapper.readTree(extractJson(aiResponse));
+            String message = root.path("message").asText("");
+            List<Long> festivalIds = extractFestivalIds(root.path("festivalIds"));
+
+            Map<Long, Festivals> festivalMap = new LinkedHashMap<>();
+            festivalRepository.findAllById(festivalIds).stream()
+                    .filter(festival -> festival.getStatus() == FestivalStatus.ACTIVE)
+                    .forEach(festival -> festivalMap.put(festival.getFestivalId(), festival));
+
+            List<FestivalInfoResponseDto> recommendedFestivals = festivalIds.stream()
+                    .map(festivalMap::get)
+                    .filter(Objects::nonNull)
+                    .map(this::toFestivalInfoResponseDto)
+                    .toList();
+
+            return AiRecommendationResDto.builder()
+                    .message(message)
+                    .festivals(recommendedFestivals)
+                    .build();
+        } catch (JsonProcessingException e) {
+            return AiRecommendationResDto.builder()
+                    .message(aiResponse)
+                    .festivals(List.of())
+                    .build();
+        }
+    }
+
+    private String extractJson(String response) {
+        String safeResponse = response == null ? "" : response.trim();
+        int start = safeResponse.indexOf('{');
+        int end = safeResponse.lastIndexOf('}');
+
+        if (start >= 0 && end > start) {
+            return safeResponse.substring(start, end + 1);
+        }
+        return safeResponse;
+    }
+
+    private List<Long> extractFestivalIds(JsonNode festivalIdsNode) {
+        if (!festivalIdsNode.isArray()) {
+            return List.of();
+        }
+
+        List<Long> festivalIds = new java.util.ArrayList<>();
+        festivalIdsNode.forEach(node -> {
+            if (node.canConvertToLong()) {
+                festivalIds.add(node.asLong());
+            }
+        });
+        return festivalIds;
+    }
+
+    private FestivalInfoResponseDto toFestivalInfoResponseDto(Festivals festival) {
+        return FestivalInfoResponseDto.builder()
+                .festivalId(festival.getFestivalId())
+                .contentId(festival.getContentId())
+                .title(festival.getTitle())
+                .categoryName(resolveCategoryName(festival))
+                .firstImage(festival.getFirstImage())
+                .addr1(festival.getAddr1())
+                .addr2(festival.getAddr2())
+                .eventStartDate(festival.getEventStartDate())
+                .eventEndDate(festival.getEventEndDate())
+                .averageRating(festival.getAverageRating())
+                .liveCount(0L)
+                .favoriteCount(defaultLong(festival.getFavoriteCount()))
+                .likeCount(defaultLong(festival.getLikeCount()))
+                .reviewCount(defaultLong(festival.getReviewCount()))
+                .status(festival.getStatus() == null ? null : festival.getStatus().name())
+                .build();
+    }
+
+    private String resolveCategoryName(Festivals festival) {
+        if (festival.getFestivalType() != null && !festival.getFestivalType().isBlank()) {
+            return festival.getFestivalType();
+        }
+        return festival.getLclsSystm3();
+    }
+
+    private Long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 
     /**

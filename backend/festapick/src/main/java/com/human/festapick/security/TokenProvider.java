@@ -1,6 +1,9 @@
 package com.human.festapick.security;
 
+import com.human.festapick.constant.UserStatus;
 import com.human.festapick.dto.response.LoginResponseDto;
+import com.human.festapick.entity.Users;
+import com.human.festapick.repository.UserRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -17,6 +20,7 @@ import java.security.Key;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.stream.Collectors;
 
@@ -26,10 +30,12 @@ public class TokenProvider {
   private static final String AUTHORITIES_KEY = "auth";
   private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000L * 60 * 60;
   private static final long REFRESH_TOKEN_EXPIRE_TIME = 1000L * 60 * 60 * 24 * 7;
+  private final UserRepository userRepository;
   private final Key key;
 
   // application.properties jwt.secret 자동 주입
-  public TokenProvider(@Value("${jwt.secret}") String secretKey) {
+  public TokenProvider(@Value("${jwt.secret}") String secretKey, UserRepository userRepository) {
+    this.userRepository = userRepository;
     byte[] keyBytes = Decoders.BASE64.decode(secretKey);
     this.key = Keys.hmacShaKeyFor(keyBytes);
   }
@@ -38,13 +44,14 @@ public class TokenProvider {
   public LoginResponseDto generateTokenDto(Authentication authentication) {
     String authorities = authentication.getAuthorities().stream()
       .map(GrantedAuthority::getAuthority)
-      .collect(Collectors.joining(",")
-    );
+      .collect(Collectors.joining(","));
 
     long now = (new Date().getTime());
 
+    CustomUserDetail userDetail = (CustomUserDetail) authentication.getPrincipal();
+
     String accessToken = Jwts.builder()
-            .setSubject(authentication.getName())
+            .setSubject(String.valueOf(userDetail.getUserId()))
             .claim(AUTHORITIES_KEY, authorities)
             .setExpiration(new Date(now + ACCESS_TOKEN_EXPIRE_TIME))
             .signWith(key, SignatureAlgorithm.HS512)
@@ -76,8 +83,22 @@ public class TokenProvider {
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
-    UserDetails principal = new User(claims.getSubject(), "", authorities);
-    return new UsernamePasswordAuthenticationToken(principal, accessToken, authorities);
+    Long userId = Long.parseLong(claims.getSubject());
+
+    Users user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+    if (user.getStatus() != UserStatus.ACTIVE) {
+      throw new RuntimeException("활성 회원이 아닙니다.");
+    }
+
+    GrantedAuthority authority =
+            new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+
+    CustomUserDetail principal =
+            new CustomUserDetail(user, Collections.singleton(authority));
+
+    return new UsernamePasswordAuthenticationToken(principal, accessToken, principal.getAuthorities());
   }
 
   // 토큰 유효성 검증
