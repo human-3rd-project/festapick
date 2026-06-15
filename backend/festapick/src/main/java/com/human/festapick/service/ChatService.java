@@ -41,61 +41,6 @@ public class ChatService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public boolean isLiveTalkAvailable(Long festivalId) {
-
-        if (festivalId == null) {
-            throw new IllegalArgumentException("축제 ID가 필요합니다.");
-        }
-
-        return chatRoomRepository.findByFestival_FestivalIdAndActiveTrue(festivalId)
-                .isPresent();
-    }
-    /**
-     * 채팅방 입장
-     *
-     * 축제 상세 페이지에서 LIVE TALK 창을 열 때 사용.
-     *
-     * 현재 구조:
-     * - 축제마다 채팅방 1개
-     * - 활성화된 채팅방만 입장 가능
-     */
-    @Transactional(readOnly = true)
-    public ChatRooms enterChatRoom(Long festivalId) {
-
-        if (festivalId == null) {
-            throw new IllegalArgumentException("축제 ID가 필요합니다.");
-        }
-
-        return chatRoomRepository.findByFestival_FestivalIdAndActiveTrue(festivalId)
-                .orElseThrow(() -> new IllegalArgumentException("활성화된 채팅방이 없습니다."));
-    }
-
-    /**
-     * 채팅방 나가기
-     *
-     * 현재 엔티티 구조에는 채팅방 참여자 테이블이 없음.
-     * 그래서 지금은 실제 DB 처리 없이 메서드 틀만 둠.
-     *
-     * 추후 ChatParticipant 같은 테이블이 생기면:
-     * - userId 기준 참여 상태 변경
-     * - 퇴장 시간 저장
-     * 등을 여기서 처리하면 됨.
-     */
-    public void leaveChatRoom(Long chatRoomId, Long userId) {
-
-        if (chatRoomId == null) {
-            throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
-        }
-
-        if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
-        }
-
-        // TODO:
-        // 채팅 참여자 테이블이 생기면 여기서 퇴장 처리
-    }
-
-    @Transactional(readOnly = true)
     public void validateActiveChatRoom(Long chatRoomId) {
 
         ChatRooms chatRoom = getChatRoom(chatRoomId);
@@ -178,7 +123,7 @@ public class ChatService {
      * - 전체 채팅 모달 열었을 때 이전 메시지 조회
      */
     @Transactional(readOnly = true)
-    public Slice<ChatMessages> getPreviousMessages(Long chatRoomId, int size) {
+    public Slice<LiveChatResDto> getPreviousMessages(Long chatRoomId, int size) {
 
         if (chatRoomId == null) {
             throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
@@ -189,23 +134,7 @@ public class ChatService {
         return chatMessageRepository.findByChatRoom_ChatRoomIdOrderByCreatedAtDesc(
                 chatRoomId,
                 PageRequest.of(0, pageSize)
-        );
-    }
-
-    /**
-     * 최근 메시지 1건 조회
-     *
-     * 축제 상세 페이지 오른쪽 작은 LIVE TALK 미리보기에서 사용 가능.
-     */
-    @Transactional(readOnly = true)
-    public ChatMessages getLatestMessage(Long chatRoomId) {
-
-        if (chatRoomId == null) {
-            throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
-        }
-
-        return chatMessageRepository.findTopByChatRoom_ChatRoomIdOrderByCreatedAtDesc(chatRoomId)
-                .orElse(null);
+        ).map(LiveChatResDto::of);
     }
 
     private ChatRooms getChatRoom(Long chatRoomId) {

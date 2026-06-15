@@ -167,19 +167,14 @@ public class NotificationService {
 
     /**
      * 날짜 알림 자동 실행 메서드
-     *
      * 새 Scheduler 파일을 만들지 않고,
      * NotificationService 안에서 직접 매일 오전 9시에 실행되게 하는 방식.
-     *
-     * cron = "0 0 9 * * *"
-     *
      * 순서:
      * 초 분 시 일 월 요일
-     *
      * 뜻:
      * 매일 오전 9시 0분 0초에 실행.
      */
-    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 */30 * * * *", zone = "Asia/Seoul")
     public void runFestivalStartNotificationScheduler() {
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));

@@ -31,6 +31,29 @@ public class AccountService {
     @Value("${frontend.url}")
     private String frontendUrl;
 
+    // 아이디 찾기
+    @Transactional(readOnly = true)
+    public String findLoginIdByEmail(String email) {
+
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("해당 이메일로 가입된 회원이 없습니다."));
+
+        return maskLoginId(user.getLoginId());
+    }
+
+    private String maskLoginId(String loginId) {
+
+        if (loginId == null || loginId.isBlank()) {
+            throw new RuntimeException("일반 로그인 아이디가 없는 계정입니다.");
+        }
+
+        if (loginId.length() <= 2) {
+            return loginId.charAt(0) + "*";
+        }
+
+        return loginId.substring(0, 2) + "*".repeat(loginId.length() - 2);
+    }
+
     /**
      * 비밀번호 재설정 이메일 발송
      */

@@ -50,6 +50,7 @@ public class FestivalActionService {
 
         // DB에 저장
         favoriteRepository.save(favorite);
+        festival.increaseFavoriteCount();
     }
 
     // 찜 취소
@@ -57,7 +58,10 @@ public class FestivalActionService {
     @Transactional
     public void cancelFavorite(Long userId, Long festivalId) {
         favoriteRepository.findByUsers_UserIdAndFestivals_FestivalId(userId, festivalId)
-                .ifPresent(favoriteRepository::delete);
+                .ifPresent(favorite -> {
+                    favoriteRepository.delete(favorite);
+                    favorite.getFestivals().decreaseFavoriteCount();
+                });
     }
 
     // 찜 여부 조회
@@ -114,13 +118,17 @@ public class FestivalActionService {
 
         // DB에 저장
         festivalLikeRepository.save(festivalLike);
+        festival.increaseLikeCount();
     }
 
     // 좋아요 취소
     @Transactional
     public void cancelLike(Long userId, Long festivalId) {
         festivalLikeRepository.findByUsers_UserIdAndFestivals_FestivalId(userId, festivalId)
-                .ifPresent(festivalLikeRepository::delete);
+                .ifPresent(festivalLike -> {
+                    festivalLikeRepository.delete(festivalLike);
+                    festivalLike.getFestivals().decreaseLikeCount();
+                });
     }
 
     // 좋아요 여부 조회
