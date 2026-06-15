@@ -6,11 +6,13 @@ import com.human.festapick.entity.Favorites;
 import com.human.festapick.entity.Festivals;
 import com.human.festapick.entity.Notification;
 import com.human.festapick.entity.Users;
+import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.FavoriteRepository;
 import com.human.festapick.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,7 +72,7 @@ public class NotificationService {
     public Slice<Notification> getNotificationList(Long userId, int size) {
 
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
         }
 
         int pageSize = size <= 0 ? 10 : size;
@@ -90,7 +92,7 @@ public class NotificationService {
     public long getUnreadCount(Long userId) {
 
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
         }
 
         return notificationRepository.countByUsers_UserIdAndReadStatusFalse(userId);
@@ -104,18 +106,18 @@ public class NotificationService {
     public void markAsRead(Long notificationId, Long userId) {
 
         if (notificationId == null) {
-            throw new IllegalArgumentException("알림 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "알림 ID가 필요합니다.");
         }
 
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
         }
 
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("알림을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."));
 
         if (!notification.getUsers().getUserId().equals(userId)) {
-            throw new IllegalArgumentException("본인의 알림만 읽음 처리할 수 있습니다.");
+            throw new CustomException(HttpStatus.FORBIDDEN, "본인의 알림만 읽음 처리할 수 있습니다.");
         }
 
         notification.markAsRead();
@@ -131,7 +133,7 @@ public class NotificationService {
     public Slice<Notification> getFestivalStartNotifications(Long userId, int size) {
 
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
         }
 
         int pageSize = size <= 0 ? 10 : size;
@@ -153,7 +155,7 @@ public class NotificationService {
     public Slice<Notification> getSystemNotifications(Long userId, int size) {
 
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
         }
 
         int pageSize = size <= 0 ? 10 : size;
@@ -204,7 +206,7 @@ public class NotificationService {
     public List<Notification> createFestivalStartNotifications(LocalDate today) {
 
         if (today == null) {
-            throw new IllegalArgumentException("기준 날짜가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "기준 날짜가 필요합니다.");
         }
 
         List<Notification> createdNotifications = new ArrayList<>();

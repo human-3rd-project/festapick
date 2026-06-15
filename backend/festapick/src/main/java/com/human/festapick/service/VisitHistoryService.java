@@ -5,10 +5,12 @@ import com.human.festapick.dto.response.VisitHistoryResDto;
 import com.human.festapick.entity.Users;
 import com.human.festapick.entity.VisitHistories;
 import com.human.festapick.entity.VisitHistoryImages;
+import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.UserRepository;
 import com.human.festapick.repository.VisitHistoryImageRepository;
 import com.human.festapick.repository.VisitHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -205,7 +207,7 @@ public class VisitHistoryService {
     // 회원 조회 공통 메서드
     private Users getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
     }
 
     // 방문 기록 조회 공통 메서드
@@ -214,6 +216,6 @@ public class VisitHistoryService {
                         visitHistoryId,
                         userId
                 )
-                .orElseThrow(() -> new RuntimeException("방문 기록을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "방문 기록을 찾을 수 없습니다."));
     }
 }

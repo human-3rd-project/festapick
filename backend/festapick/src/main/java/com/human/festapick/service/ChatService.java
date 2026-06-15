@@ -6,12 +6,14 @@ import com.human.festapick.dto.response.LiveChatResDto;
 import com.human.festapick.entity.ChatMessages;
 import com.human.festapick.entity.ChatRooms;
 import com.human.festapick.entity.Users;
+import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.ChatMessageRepository;
 import com.human.festapick.repository.ChatRoomRepository;
 import com.human.festapick.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,18 +48,18 @@ public class ChatService {
         ChatRooms chatRoom = getChatRoom(chatRoomId);
 
         if (!chatRoom.isActive()) {
-            throw new IllegalArgumentException("활성화된 채팅방이 아닙니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "활성화된 채팅방이 아닙니다.");
         }
     }
 
     public LiveChatResDto saveLiveMessage(Long chatRoomId, Long userId, LiveChatReqDto reqDto) {
 
         if (reqDto == null) {
-            throw new IllegalArgumentException("채팅 메시지 요청이 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "채팅 메시지 요청이 필요합니다.");
         }
 
         if (reqDto.getChatRoomId() != null && !reqDto.getChatRoomId().equals(chatRoomId)) {
-            throw new IllegalArgumentException("연결된 채팅방과 메시지 채팅방이 다릅니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "연결된 채팅방과 메시지 채팅방이 다릅니다.");
         }
 
         ChatMessageType messageType = resolveMessageType(reqDto);
@@ -82,15 +84,15 @@ public class ChatService {
     public ChatMessages sendMessage(Long chatRoomId, Long userId, String message) {
 
         if (chatRoomId == null) {
-            throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "채팅방 ID가 필요합니다.");
         }
 
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
         }
 
         if (message == null || message.isBlank()) {
-            throw new IllegalArgumentException("메시지를 입력해 주세요.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "메시지를 입력해 주세요.");
         }
 
         ChatMessages chatMessage = ChatMessages.create(
@@ -126,7 +128,7 @@ public class ChatService {
     public Slice<LiveChatResDto> getPreviousMessages(Long chatRoomId, int size) {
 
         if (chatRoomId == null) {
-            throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "채팅방 ID가 필요합니다.");
         }
 
         int pageSize = size <= 0 ? 30 : size;
@@ -140,21 +142,21 @@ public class ChatService {
     private ChatRooms getChatRoom(Long chatRoomId) {
 
         if (chatRoomId == null) {
-            throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "채팅방 ID가 필요합니다.");
         }
 
         return chatRoomRepository.findById(chatRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."));
     }
 
     private Users getUser(Long userId) {
 
         if (userId == null) {
-            throw new IllegalArgumentException("사용자 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
         }
 
         return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
     }
 
     private ChatMessageType resolveMessageType(LiveChatReqDto reqDto) {
@@ -169,15 +171,15 @@ public class ChatService {
     private void validateMessageContent(ChatMessageType messageType, LiveChatReqDto reqDto) {
 
         if (messageType != ChatMessageType.CHAT && messageType != ChatMessageType.IMAGE) {
-            throw new IllegalArgumentException("전송할 수 없는 채팅 메시지 타입입니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "전송할 수 없는 채팅 메시지 타입입니다.");
         }
 
         if (messageType == ChatMessageType.CHAT && trimToNull(reqDto.getMessage()) == null) {
-            throw new IllegalArgumentException("메시지를 입력해 주세요.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "메시지를 입력해 주세요.");
         }
 
         if (messageType == ChatMessageType.IMAGE && trimToNull(reqDto.getImageUrl()) == null) {
-            throw new IllegalArgumentException("이미지 URL이 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "이미지 URL이 필요합니다.");
         }
     }
 

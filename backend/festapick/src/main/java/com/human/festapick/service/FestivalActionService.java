@@ -5,6 +5,7 @@ import com.human.festapick.entity.Favorites;
 import com.human.festapick.entity.FestivalLikes;
 import com.human.festapick.entity.Festivals;
 import com.human.festapick.entity.Users;
+import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.FavoriteRepository;
 import com.human.festapick.repository.FestivalLikeRepository;
 import com.human.festapick.repository.FestivalRepository;
@@ -12,6 +13,7 @@ import com.human.festapick.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -145,12 +147,12 @@ public class FestivalActionService {
     // 회원 조회 공통 메서드 - Entity 생성용
     private Users getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
     }
 
     // 축제 조회 공통 메서드 - Entity 생성용
     private Festivals getFestival(Long festivalId) {
         return festivalRepository.findById(festivalId)
-                .orElseThrow(() -> new RuntimeException("축제를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "축제를 찾을 수 없습니다."));
     }
 }
