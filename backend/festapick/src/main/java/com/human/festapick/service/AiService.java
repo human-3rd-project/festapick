@@ -12,6 +12,7 @@ import com.human.festapick.dto.response.AiRecommendationResDto;
 import com.human.festapick.dto.response.FestivalInfoResponseDto;
 import com.human.festapick.entity.ChatMessages;
 import com.human.festapick.entity.Festivals;
+import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.ChatMessageRepository;
 import com.human.festapick.repository.FestivalRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -286,7 +288,7 @@ public class AiService {
     public AiAnswerResDto getAiFieldSummary(Long chatRoomId) {
 
         if (chatRoomId == null) {
-            throw new IllegalArgumentException("채팅방 ID가 필요합니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "채팅방 ID가 필요합니다.");
         }
 
         /*
@@ -363,7 +365,7 @@ public class AiService {
         Client client = geminiClientProvider.getIfAvailable();
 
         if (client == null) {
-            return "Gemini 설정이 아직 연결되지 않았습니다.";
+            throw new CustomException(HttpStatus.SERVICE_UNAVAILABLE, "Gemini 설정이 아직 연결되지 않았습니다.");
         }
 
         GenerateContentResponse response =

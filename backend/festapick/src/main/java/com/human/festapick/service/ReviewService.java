@@ -7,12 +7,14 @@ import com.human.festapick.dto.response.ReviewResDto;
 import com.human.festapick.entity.Festivals;
 import com.human.festapick.entity.Reviews;
 import com.human.festapick.entity.Users;
+import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.FestivalRepository;
 import com.human.festapick.repository.ReviewRepository;
 import com.human.festapick.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +48,7 @@ public class ReviewService {
                 reqDto.getFestivalId(),
                 ReviewStatus.ACTIVE
         )) {
-            throw new RuntimeException("이미 해당 축제에 리뷰를 작성했습니다.");
+            throw new CustomException(HttpStatus.CONFLICT, "이미 해당 축제에 리뷰를 작성했습니다.");
         }
 
         // 회원 조회
@@ -83,7 +85,7 @@ public class ReviewService {
                         userId,
                         ReviewStatus.ACTIVE
                 )
-                .orElseThrow(() -> new RuntimeException("수정할 리뷰를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "수정할 리뷰를 찾을 수 없습니다."));
 
         // 리뷰 내용 / 별점 수정
         review.setContent(reqDto.getContent());
@@ -106,7 +108,7 @@ public class ReviewService {
                         userId,
                         ReviewStatus.ACTIVE
                 )
-                .orElseThrow(() -> new RuntimeException("삭제할 리뷰를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "삭제할 리뷰를 찾을 수 없습니다."));
 
         Long festivalId = review.getFestival().getFestivalId();
 
@@ -167,12 +169,12 @@ public class ReviewService {
     // 회원 조회 공통 메서드
     private Users getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
     }
 
     // 축제 조회 공통 메서드
     private Festivals getFestival(Long festivalId) {
         return festivalRepository.findById(festivalId)
-                .orElseThrow(() -> new RuntimeException("축제를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "축제를 찾을 수 없습니다."));
     }
 }

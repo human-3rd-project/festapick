@@ -4,11 +4,13 @@ import com.human.festapick.dto.request.PasswordResetLinkRequestDto;
 import com.human.festapick.dto.request.PasswordResetRequestDto;
 import com.human.festapick.entity.PasswordResetTokens;
 import com.human.festapick.entity.Users;
+import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.PasswordResetTokenRepository;
 import com.human.festapick.repository.UserRepository;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,7 +38,7 @@ public class AccountService {
     public String findLoginIdByEmail(String email) {
 
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("해당 이메일로 가입된 회원이 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,"해당 이메일로 가입된 회원이 없습니다."));
 
         return maskLoginId(user.getLoginId());
     }
@@ -44,7 +46,7 @@ public class AccountService {
     private String maskLoginId(String loginId) {
 
         if (loginId == null || loginId.isBlank()) {
-            throw new RuntimeException("일반 로그인 아이디가 없는 계정입니다.");
+            throw new CustomException(HttpStatus.NOT_FOUND,"일반 로그인 아이디가 없는 계정입니다.");
         }
 
         if (loginId.length() <= 2) {
@@ -60,10 +62,10 @@ public class AccountService {
     public void sendPasswordResetEmail(PasswordResetLinkRequestDto request) {
 
         Users user = userRepository.findByLoginId(request.getLoginId())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 아이디입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,"존재하지 않는 아이디입니다."));
 
         if (!user.getEmail().equals(request.getEmail())) {
-            throw new RuntimeException("아이디와 이메일이 일치하지 않습니다.");
+            throw new CustomException(HttpStatus.NOT_FOUND,"아이디와 이메일이 일치하지 않습니다.");
         }
 
         String token = UUID.randomUUID().toString();
@@ -89,14 +91,14 @@ public class AccountService {
     public void validateResetToken(String token) {
 
         PasswordResetTokens resetToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("유효하지 않은 토큰입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.BAD_REQUEST,"유효하지 않은 토큰입니다."));
 
         if (resetToken.isUsed()) {
-            throw new RuntimeException("이미 사용된 토큰입니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST,"이미 사용된 토큰입니다.");
         }
 
         if (resetToken.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("만료된 토큰입니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST,"만료된 토큰입니다.");
         }
     }
 
@@ -106,14 +108,14 @@ public class AccountService {
     public void resetPassword(PasswordResetRequestDto request) {
 
         PasswordResetTokens resetToken = passwordResetTokenRepository.findByToken(request.getToken())
-                .orElseThrow(() -> new RuntimeException("유효하지 않은 토큰입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.BAD_REQUEST,"유효하지 않은 토큰입니다."));
 
         if (resetToken.isUsed()) {
-            throw new RuntimeException("이미 사용된 토큰입니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST,"이미 사용된 토큰입니다.");
         }
 
         if (resetToken.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("만료된 토큰입니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST,"만료된 토큰입니다.");
         }
 
         Users user = resetToken.getUsers();
@@ -150,7 +152,8 @@ public class AccountService {
             mailSender.send(message);
 
         } catch (Exception e) {
-            throw new RuntimeException("비밀번호 재설정 이메일 발송에 실패했습니다.");
+            throw new CustomException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,"비밀번호 재설정 이메일 발송에 실패했습니다.");
         }
     }
 }
