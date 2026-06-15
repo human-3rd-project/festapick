@@ -1,6 +1,6 @@
 package com.human.festapick.dto.request;
 
-import jakarta.validation.constraints.NotNull;
+import com.human.festapick.constant.ChatMessageType;
 import lombok.*;
 
 @Getter
@@ -12,8 +12,10 @@ public class LiveChatReqDto {
   // created_at - 자동 입력
   // message_type - default CHAT
 
-  @NotNull
+  // WebSocket 연결 URL에서 chatRoomId를 이미 받은 경우 생략 가능
   private Long chatRoomId;
+
+  private ChatMessageType messageType;
 
   // 이미지 전송 시 "(사진)" 같은 문구 저장 가능(?) - Service 에서 처리
   private String message;

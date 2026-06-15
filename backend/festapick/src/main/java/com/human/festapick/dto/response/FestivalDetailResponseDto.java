@@ -13,6 +13,8 @@ public class FestivalDetailResponseDto {
 
     private Long festivalId;
 
+    private Long chatRoomId;
+
     private String contentId;
 
     private String title;

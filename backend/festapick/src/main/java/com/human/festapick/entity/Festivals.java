@@ -165,4 +165,20 @@ public class Festivals {
         this.reviewCount = reviewCount;
         this.averageRating = averageRating;
     }
+
+    public void increaseFavoriteCount() {
+        this.favoriteCount = this.favoriteCount == null ? 1L : this.favoriteCount + 1;
+    }
+
+    public void decreaseFavoriteCount() {
+        this.favoriteCount = this.favoriteCount == null || this.favoriteCount <= 0 ? 0L : this.favoriteCount - 1;
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount = this.likeCount == null ? 1L : this.likeCount + 1;
+    }
+
+    public void decreaseLikeCount() {
+        this.likeCount = this.likeCount == null || this.likeCount <= 0 ? 0L : this.likeCount - 1;
+    }
 }

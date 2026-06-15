@@ -45,7 +45,21 @@ const LoginPage = () => {
 
   const handleSocialLogin = (provider) => {
     // TODO: 백엔드 소셜 로그인 API 연결 후 신규 가입자일 때 추가정보 입력 페이지로 이동하세요.
-    navigate("/social-login", { state: { provider } });
+
+    const kakaoRestApiKey = process.env.REACT_APP_KAKAO_REST_API_KEY;
+    const redirectUri = process.env.REACT_APP_KAKAO_REDIRECT_URI;
+
+    const kakaoUrl =
+      "https://kauth.kakao.com/oauth/authorize" +
+      `?client_id=${kakaoRestApiKey}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      "&response_type=code";
+
+    window.open(
+      kakaoUrl,
+      "kakaoLogin",
+      "width=500,height=600,top=100,left=100"
+    );
   };
 
   return (

@@ -14,6 +14,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokens, Lon
     // Users 객체로 조회
     Optional<RefreshTokens> findByUsers(Users users);
 
+    Optional<RefreshTokens> findByUsers_UserId(Long userId);
+
     // Users 객체로 삭제
     void deleteByUsers(Users users);
 

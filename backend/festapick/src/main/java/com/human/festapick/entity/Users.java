@@ -16,7 +16,11 @@ import java.time.LocalDateTime;
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_users_login_id", columnNames = "login_id"),
                 @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
-                @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname")
+                @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname"),
+                @UniqueConstraint(
+                        name = "uk_users_provider_provider_id",
+                        columnNames = {"provider", "provider_id"}
+                )
         }
 )
 @Getter
@@ -46,7 +50,7 @@ public class Users {
     @Column(name = "login_id", length = 50)
     private String loginId;
 
-    @Column(name = "email", length = 100, nullable = false)
+    @Column(name = "email", length = 100)
     private String email;
 
     // 암호화 비밀번호
@@ -54,7 +58,7 @@ public class Users {
     @Column(name = "password", length = 255)
     private String password;
 
-    @Column(name = "nickname", length = 50, nullable = false)
+    @Column(name = "nickname", length = 50)
     private String nickname;
 
     @Column(name = "profile_image_url", length = 500)
@@ -72,6 +76,12 @@ public class Users {
     // 일반 회원은 NULL 가능
     @Column(name = "provider_id", length = 100)
     private String providerId;
+
+    @Column(name = "temporary_token", length = 255, unique = true)
+    private String temporaryToken;
+
+    @Column(name = "temporary_token_expired_at")
+    private LocalDateTime temporaryTokenExpiredAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)

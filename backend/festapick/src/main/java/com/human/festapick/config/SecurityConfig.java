@@ -57,8 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()                            // 로그인/회원가입 허용
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()  // Swagger 허용
-                        .requestMatchers("/ws/**").permitAll()  // WebSocket 앤드포인트
-                        .requestMatchers("/chat/**").permitAll()   // 채팅 Rest API
+                        .requestMatchers("/ws/**").permitAll()  // WebSocket handshake는 JwtHandshakeInterceptor에서 인증
                         .requestMatchers(HttpMethod.POST,   "/api/inventory/**").hasRole("ADMIN") // 재고 등록
                         .requestMatchers(HttpMethod.PUT,    "/api/inventory/**").hasRole("ADMIN") // 재고 수정
                         .requestMatchers(HttpMethod.DELETE, "/api/inventory/**").hasRole("ADMIN") // 재고 삭제

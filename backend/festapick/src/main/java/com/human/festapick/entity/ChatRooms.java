@@ -12,6 +12,8 @@ import lombok.*;
 @ToString(exclude = "festival")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatRooms {
+  private static final int ROOM_NAME_MAX_LENGTH = 100;
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "chat_room_id")
@@ -33,5 +35,24 @@ public class ChatRooms {
   @PrePersist
   public void prePersist() {
     createdAt = LocalDateTime.now();
+  }
+
+  public static ChatRooms create(Festivals festival) {
+    ChatRooms chatRoom = new ChatRooms();
+    chatRoom.festival = festival;
+    chatRoom.roomName = createRoomName(festival);
+    chatRoom.active = true;
+    return chatRoom;
+  }
+
+  private static String createRoomName(Festivals festival) {
+    String title = festival.getTitle() == null ? "축제" : festival.getTitle();
+    String roomName = title + " LIVE TALK";
+
+    if (roomName.length() <= ROOM_NAME_MAX_LENGTH) {
+      return roomName;
+    }
+
+    return roomName.substring(0, ROOM_NAME_MAX_LENGTH);
   }
 }

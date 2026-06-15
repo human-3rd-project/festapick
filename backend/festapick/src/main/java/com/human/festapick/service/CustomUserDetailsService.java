@@ -4,6 +4,7 @@ import java.util.Collections;
 
 import com.human.festapick.entity.Users;
 import com.human.festapick.exception.CustomException;
+import com.human.festapick.repository.UserRepository;
 import com.human.festapick.security.CustomUserDetail;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.GrantedAuthority;

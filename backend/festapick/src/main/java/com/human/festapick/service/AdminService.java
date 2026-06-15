@@ -16,6 +16,7 @@ import com.human.festapick.entity.Festivals;
 import com.human.festapick.entity.Reviews;
 import com.human.festapick.entity.Users;
 import com.human.festapick.exception.CustomException;
+import com.human.festapick.repository.ChatRoomRepository;
 import com.human.festapick.repository.FestivalCategoryCodeRepository;
 import com.human.festapick.repository.FestivalImageRepository;
 import com.human.festapick.repository.FestivalRepository;
@@ -42,6 +43,7 @@ public class AdminService {
     private final FestivalRepository festivalRepository;
     private final FestivalImageRepository festivalImageRepository;
     private final FestivalCategoryCodeRepository festivalCategoryCodeRepository;
+    private final ChatRoomRepository chatRoomRepository;
     private final DonationService donationService;
     private final EntityManager entityManager;
 
@@ -176,6 +178,7 @@ public class AdminService {
 
         return FestivalDetailResponseDto.builder()
                 .festivalId(festival.getFestivalId())
+                .chatRoomId(resolveChatRoomId(festival.getFestivalId()))
                 .contentId(festival.getContentId())
                 .title(festival.getTitle())
                 .categoryName(resolveCategoryName(festival))
@@ -205,6 +208,12 @@ public class AdminService {
                 .orElseGet(() -> festival.getFestivalType() == null
                         ? festival.getLclsSystm3()
                         : festival.getFestivalType());
+    }
+
+    private Long resolveChatRoomId(Long festivalId) {
+        return chatRoomRepository.findByFestival_FestivalIdAndActiveTrue(festivalId)
+                .map(chatRoom -> chatRoom.getChatRoomId())
+                .orElse(null);
     }
 
     private String getMostSpecificCategoryName(FestivalCategoryCodes categoryCode) {
