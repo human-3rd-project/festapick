@@ -14,7 +14,6 @@ import com.human.festapick.repository.RefreshTokenRepository;
 import com.human.festapick.repository.UserRepository;
 import com.human.festapick.security.CustomUserDetail;
 import com.human.festapick.security.TokenProvider;
-import com.nimbusds.oauth2.sdk.token.RefreshToken;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,6 +39,30 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final AuthenticationManagerBuilder managerBuilder;
+
+    /**
+     * 로그인 ID 중복 여부를 확인합니다.
+     */
+    @Transactional(readOnly = true)
+    public boolean checkLoginIdDuplicate(String loginId) {
+        return userRepository.existsByLoginId(loginId);
+    }
+
+    /**
+     * 이메일 중복 여부를 확인합니다.
+     */
+    @Transactional(readOnly = true)
+    public boolean checkEmailDuplicate(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    /**
+     * 닉네임 중복 여부를 확인합니다.
+     */
+    @Transactional(readOnly = true)
+    public boolean checkNicknameDuplicate(String nickname) {
+        return userRepository.existsByNickname(nickname);
+    }
 
     /**
      * 일반 회원가입을 처리합니다.
@@ -124,6 +147,52 @@ public class AuthService {
         String profileImgUrl = user.getProfileImageUrl();
         tokenDto.setNickname(userNickName);
         tokenDto.setProfileImageUrl(profileImgUrl);
+
+        return tokenDto;
+    }
+
+    /**
+     * 저장된 refresh token을 검증하고 새 access token / refresh token을 발급합니다.
+     */
+    public LoginResponseDto reissueAccessToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "리프레시 토큰이 필요합니다.");
+        }
+
+        RefreshTokens savedRefreshToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() ->
+                        new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다.")
+                );
+
+        LocalDateTime now = LocalDateTime.now();
+        if (!savedRefreshToken.getExpiredAt().isAfter(now)) {
+            refreshTokenRepository.delete(savedRefreshToken);
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다.");
+        }
+
+        if (!tokenProvider.validateToken(refreshToken)) {
+            refreshTokenRepository.delete(savedRefreshToken);
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다.");
+        }
+
+        Users user = savedRefreshToken.getUsers();
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new CustomException(HttpStatus.FORBIDDEN, "활성 회원이 아닙니다.");
+        }
+
+        SimpleGrantedAuthority authority =
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        CustomUserDetail principal =
+                new CustomUserDetail(user, Collections.singleton(authority));
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+
+        LoginResponseDto tokenDto = tokenProvider.generateTokenDto(authentication);
+        LocalDateTime expiry = tokenProvider.getRefreshTokenExpiry();
+        savedRefreshToken.updateToken(tokenDto.getRefreshToken(), expiry);
+
+        tokenDto.setNickname(user.getNickname());
+        tokenDto.setProfileImageUrl(user.getProfileImageUrl());
 
         return tokenDto;
     }
