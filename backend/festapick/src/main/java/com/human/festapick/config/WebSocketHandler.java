@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor  // 생성자를 통한 의존성 주입을 간단하게 처리
 @Slf4j
@@ -31,6 +32,17 @@ public class WebSocketHandler extends TextWebSocketHandler {
     private final Map<WebSocketSession, Long> sessionRoomIdMap = new ConcurrentHashMap<>();
     private final Map<WebSocketSession, Long> sessionUserIdMap = new ConcurrentHashMap<>();
     private final Map<Long, Set<WebSocketSession>> roomSessionMap = new ConcurrentHashMap<>();
+
+    // 메인 페이지 로딩 시점에 채팅방별 현재 WebSocket 접속자 수를 스냅샷으로 조회합니다.
+    public Map<Long, Long> getLiveParticipantCountByChatRoomId() {
+        return roomSessionMap.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .filter(WebSocketSession::isOpen)
+                                .count()
+                ));
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {

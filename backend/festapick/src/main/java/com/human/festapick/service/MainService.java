@@ -1,6 +1,7 @@
 package com.human.festapick.service;
 
 import com.human.festapick.constant.FestivalStatus;
+import com.human.festapick.config.WebSocketHandler;
 import com.human.festapick.dto.response.FestivalInfoResponseDto;
 import com.human.festapick.dto.response.MainPageResponseDto;
 import com.human.festapick.dto.response.TourApiResDto;
@@ -25,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -41,6 +43,7 @@ public class MainService {
   private final FestivalRepository festivalRepository;
   private final FestivalCategoryCodeRepository festivalCategoryCodeRepository;
   private final ChatRoomRepository chatRoomRepository;
+  private final WebSocketHandler webSocketHandler;
   private final WebClient.Builder webClientBuilder;
 
   @Value("${tourapi.base-url}")
@@ -60,7 +63,7 @@ public class MainService {
     return MainPageResponseDto.builder()
             .nearbyFestivals(getNearbyFestivalRecommendations(ldongRegnCd, ldongSignguCd))
             .monthlyFestivals(getMonthlyNationalFestivals(YearMonth.now()))
-            .popularFestivals(getRealtimePopularFestivals())
+            .popularFestivals(getRealtimePopularFestivals(webSocketHandler.getLiveParticipantCountByChatRoomId()))
             .build();
   }
 
@@ -125,6 +128,37 @@ public class MainService {
             .toList();
   }
 
+  // 실시간 인기 축제 조회: WebSocket 접속자 수를 채팅방 기준으로 받아 축제별 참여 인원 순서로 정렬합니다.
+  public List<FestivalInfoResponseDto> getRealtimePopularFestivals(Map<Long, Long> liveParticipantCountByChatRoomId) {
+    Map<Long, Long> safeLiveParticipantCountByChatRoomId =
+            Optional.ofNullable(liveParticipantCountByChatRoomId).orElse(Map.of());
+
+    Map<Long, Long> liveParticipantCountByFestivalId = chatRoomRepository.findAll().stream()
+            .filter(ChatRooms::isActive)
+            .filter(chatRoom -> chatRoom.getFestival() != null)
+            .collect(java.util.stream.Collectors.toMap(
+                    chatRoom -> chatRoom.getFestival().getFestivalId(),
+                    chatRoom -> defaultLong(safeLiveParticipantCountByChatRoomId.get(chatRoom.getChatRoomId())),
+                    Long::sum
+            ));
+
+    return festivalRepository.findAll().stream()
+            .filter(this::isActiveFestival)
+            .filter(festival -> liveParticipantCountByFestivalId.containsKey(festival.getFestivalId()))
+            .sorted(Comparator
+                    .comparingLong((Festivals festival) ->
+                            liveParticipantCountByFestivalId.getOrDefault(festival.getFestivalId(), 0L))
+                    .reversed()
+                    .thenComparing(Festivals::getAverageRating, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder())))
+            .limit(DEFAULT_SECTION_LIMIT)
+            .map(festival -> toFestivalInfoResponseDto(
+                    festival,
+                    liveParticipantCountByFestivalId.getOrDefault(festival.getFestivalId(), 0L)
+            ))
+            .toList();
+  }
+
   // TourAPI 축제 목록 조회: 외부 API에서 축제 데이터를 가져오지만 DB에는 저장하지 않습니다.
   public List<TourFestivalItemDto> fetchTourApiFestivals(LocalDate eventStartDate, int page, int size) {
     TourApiResDto response = webClientBuilder
@@ -184,6 +218,11 @@ public class MainService {
 
   // 화면 응답 DTO 변환: Festivals 엔티티를 메인/목록 카드에서 쓰는 공통 형태로 바꿉니다.
   private FestivalInfoResponseDto toFestivalInfoResponseDto(Festivals festival) {
+    return toFestivalInfoResponseDto(festival, 0L);
+  }
+
+  // 화면 응답 DTO 변환: 실시간 채팅 참여 인원이 있으면 liveCount에 함께 담아 내려줍니다.
+  private FestivalInfoResponseDto toFestivalInfoResponseDto(Festivals festival, Long liveCount) {
     return FestivalInfoResponseDto.builder()
             .festivalId(festival.getFestivalId())
             .contentId(festival.getContentId())
@@ -195,7 +234,7 @@ public class MainService {
             .eventStartDate(festival.getEventStartDate())
             .eventEndDate(festival.getEventEndDate())
             .averageRating(festival.getAverageRating())
-            .liveCount(0L)
+            .liveCount(defaultLong(liveCount))
             .favoriteCount(defaultLong(festival.getFavoriteCount()))
             .likeCount(defaultLong(festival.getLikeCount()))
             .reviewCount(defaultLong(festival.getReviewCount()))
