@@ -1,8 +1,14 @@
 package com.human.festapick.repository;
 
 import com.human.festapick.constant.OAuthProvider;
+import com.human.festapick.constant.UserRole;
+import com.human.festapick.constant.UserStatus;
 import com.human.festapick.entity.Users;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -62,5 +68,35 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     boolean existsByProviderAndProviderId(
             OAuthProvider provider,
             String providerId
+    );
+
+    @Query(
+            value = """
+                    SELECT u
+                    FROM Users u
+                    WHERE (:numericKeyword IS NOT NULL AND u.userId = :numericKeyword)
+                       OR (:status IS NOT NULL AND u.status = :status)
+                       OR (:role IS NOT NULL AND u.role = :role)
+                       OR LOWER(u.loginId) LIKE :keyword
+                       OR LOWER(u.email) LIKE :keyword
+                       OR LOWER(u.nickname) LIKE :keyword
+                    """,
+            countQuery = """
+                    SELECT COUNT(u)
+                    FROM Users u
+                    WHERE (:numericKeyword IS NOT NULL AND u.userId = :numericKeyword)
+                       OR (:status IS NOT NULL AND u.status = :status)
+                       OR (:role IS NOT NULL AND u.role = :role)
+                       OR LOWER(u.loginId) LIKE :keyword
+                       OR LOWER(u.email) LIKE :keyword
+                       OR LOWER(u.nickname) LIKE :keyword
+                    """
+    )
+    Page<Users> searchAdminUsers(
+            @Param("keyword") String keyword,
+            @Param("numericKeyword") Long numericKeyword,
+            @Param("status") UserStatus status,
+            @Param("role") UserRole role,
+            Pageable pageable
     );
 }

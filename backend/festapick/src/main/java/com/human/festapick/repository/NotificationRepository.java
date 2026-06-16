@@ -40,4 +40,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Long referenceId,
     Integer notifyBeforeMinutes
   );
+
+  Slice<Notification> findByUsers_UserIdAndNotificationTypeAndReadStatusFalseOrderByCreatedAtDesc(
+          Long userId,
+          NotificationType notificationType,
+          Pageable pageable
+  );
 }
