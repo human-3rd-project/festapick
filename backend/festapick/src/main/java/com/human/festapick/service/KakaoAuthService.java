@@ -3,6 +3,7 @@ package com.human.festapick.service;
 import com.human.festapick.constant.OAuthProvider;
 import com.human.festapick.constant.UserRole;
 import com.human.festapick.constant.UserStatus;
+import com.human.festapick.dto.request.SocialSignupRequestDto;
 import com.human.festapick.dto.response.KakaoLoginResponseDto;
 import com.human.festapick.dto.response.KakaoTokenResponseDto;
 import com.human.festapick.dto.response.KakaoUserInfoResponseDto;
@@ -62,6 +63,38 @@ public class KakaoAuthService {
                 .orElseGet(() -> createTemporaryUser(providerId));
     }
 
+    public LoginResponseDto completeSocialSignup(
+            String temporaryToken,
+            SocialSignupRequestDto request
+    ) {
+        if (temporaryToken == null || temporaryToken.isBlank()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "임시 토큰이 필요합니다.");
+        }
+
+        Users user = userRepository.findByTemporaryToken(temporaryToken)
+                .orElseThrow(() ->
+                        new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않은 임시 토큰입니다.")
+                );
+
+        return completeSocialSignup(user, request);
+    }
+
+    public LoginResponseDto completeSocialSignup(
+            Long userId,
+            SocialSignupRequestDto request
+    ) {
+        if (userId == null) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 식별값이 필요합니다.");
+        }
+
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new CustomException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
+                );
+
+        return completeSocialSignup(user, request);
+    }
+
     private Object resolveExistingKakaoUser(
             Users user,
             String providerId
@@ -75,6 +108,73 @@ public class KakaoAuthService {
         }
 
         return issueLoginToken(user);
+    }
+
+    private LoginResponseDto completeSocialSignup(
+            Users user,
+            SocialSignupRequestDto request
+    ) {
+        validateSocialSignupRequest(request);
+        validateTemporaryUser(user);
+        validateSocialSignupDuplicate(request);
+
+        user.setEmail(request.getEmail());
+        user.setNickname(request.getNickname());
+        user.setStatus(UserStatus.ACTIVE);
+        user.setTemporaryToken(null);
+        user.setTemporaryTokenExpiredAt(null);
+
+        return issueLoginToken(user);
+    }
+
+    private void validateSocialSignupRequest(SocialSignupRequestDto request) {
+        if (request == null) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "회원가입 정보가 필요합니다.");
+        }
+
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "이메일 정보가 없습니다.");
+        }
+
+        if (request.getNickname() == null || request.getNickname().isBlank()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "닉네임을 입력해주세요.");
+        }
+
+        if (!request.isTermsAgreed()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "약관 동의는 필수입니다.");
+        }
+    }
+
+    private void validateTemporaryUser(Users user) {
+        if (user.getProvider() != OAuthProvider.KAKAO) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "카카오 임시 사용자가 아닙니다.");
+        }
+
+        if (user.getStatus() == UserStatus.ACTIVE && user.getTemporaryToken() == null) {
+            throw new CustomException(HttpStatus.CONFLICT, "이미 가입이 완료된 사용자입니다.");
+        }
+
+        if (user.getStatus() != UserStatus.SUSPENDED) {
+            throw new CustomException(HttpStatus.FORBIDDEN, "가입 가능한 임시 사용자가 아닙니다.");
+        }
+
+        if (user.getTemporaryToken() == null || user.getTemporaryTokenExpiredAt() == null) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않은 임시 사용자입니다.");
+        }
+
+        if (!user.getTemporaryTokenExpiredAt().isAfter(LocalDateTime.now())) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "만료된 임시 토큰입니다.");
+        }
+    }
+
+    private void validateSocialSignupDuplicate(SocialSignupRequestDto request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new CustomException(HttpStatus.CONFLICT, "이미 사용중인 이메일 입니다.");
+        }
+
+        if (userRepository.existsByNickname(request.getNickname())) {
+            throw new CustomException(HttpStatus.CONFLICT, "이미 사용중인 닉네임 입니다.");
+        }
     }
 
     private boolean isSignupRequired(Users user) {
