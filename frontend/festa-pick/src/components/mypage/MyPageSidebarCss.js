@@ -35,22 +35,42 @@ export const Avatar = styled.div`
   box-shadow: 0 0 24px rgba(255, 45, 117, 0.34);
 `;
 
+export const AvatarImage = styled.img`
+  display: block;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border: 2px solid rgba(155, 92, 255, 0.72);
+  border-radius: 50%;
+  background: #f7f8fc;
+  object-fit: cover;
+  box-shadow:
+    0 0 0 3px rgba(255, 45, 117, 0.12),
+    0 0 24px rgba(155, 92, 255, 0.24);
+`;
+
 export const ProfileText = styled.div`
   min-width: 0;
 `;
 
 export const ProfileName = styled.p`
+  overflow: hidden;
   margin: 0;
   color: #ffffff;
   font-size: 15px;
   font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const ProfileMeta = styled.p`
+  overflow: hidden;
   margin: 5px 0 0;
   color: #9da8c3;
   font-size: 12px;
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const MenuList = styled.nav`

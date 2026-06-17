@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
 import * as S from "./MyPageAccountStyle";
 
 function MyPageAccount() {
+  const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const openDeleteModal = () => {
     setDeleteMessage("");
@@ -16,9 +20,25 @@ function MyPageAccount() {
     setIsDeleteModalOpen(false);
   };
 
-  const confirmDeleteAccount = () => {
-    setDeleteMessage("계정 삭제 요청이 완료되었습니다.");
-    setIsDeleteModalOpen(false);
+  const confirmDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteMessage("");
+
+    try {
+      // 로그인 사용자의 계정을 삭제하고 로컬 인증 정보를 비웁니다.
+      await AxiosApi.deleteMyAccount();
+      localStorage.clear();
+      setDeleteMessage("계정 삭제 요청이 완료되었습니다.");
+      setIsDeleteModalOpen(false);
+      navigate("/");
+    } catch (error) {
+      setDeleteMessage(
+        error.response?.data?.message || "계정 삭제 요청에 실패했습니다.",
+      );
+      setIsDeleteModalOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -80,8 +100,9 @@ function MyPageAccount() {
                   <S.ConfirmDeleteButton
                     type="button"
                     onClick={confirmDeleteAccount}
+                    disabled={isDeleting}
                   >
-                    삭제하기
+                    {isDeleting ? "삭제 중" : "삭제하기"}
                   </S.ConfirmDeleteButton>
                 </S.ModalActions>
               </S.ModalPanel>

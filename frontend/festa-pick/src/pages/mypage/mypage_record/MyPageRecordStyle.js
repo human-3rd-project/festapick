@@ -55,8 +55,8 @@ export const Title = styled.h1`
 
 export const RecordLayout = styled.section`
   display: grid;
-  grid-template-columns: ${({ $hasSelectedDate }) =>
-    $hasSelectedDate ? "minmax(360px, 1fr) 280px" : "minmax(360px, 520px)"};
+  grid-template-columns: minmax(360px, 1fr)
+    ${({ $hasSelectedDate }) => ($hasSelectedDate ? "280px" : "0")};
   gap: 22px;
   align-items: start;
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   CalendarDays,
   ChevronLeft,
@@ -6,6 +6,7 @@ import {
   Heart,
   MapPin,
 } from "lucide-react";
+import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
 import * as S from "./MyPageFavoriteStyle";
 
@@ -21,74 +22,70 @@ const text = {
   itemUnit: "\uAC1C",
 };
 
-const favoriteItems = [
-  {
-    id: 1,
-    title: "\uC11C\uC6B8 \uC7AC\uC988 \uD398\uC2A4\uD2F0\uBC8C 2026",
-    date: "2026.06.18 - 2026.06.21",
-    place: "\uC11C\uC6B8 \uC62C\uB9BC\uD53D\uACF5\uC6D0",
-    category: "\uC74C\uC545",
-    color: "#ff2d75",
-  },
-  {
-    id: 2,
-    title: "\uBD80\uC0B0 \uBC14\uB2E4\uBE5B \uC57C\uAC04\uCD95\uC81C",
-    date: "2026.07.04 - 2026.07.12",
-    place: "\uBD80\uC0B0 \uD574\uC6B4\uB300\uAD6C",
-    category: "\uC57C\uAC04",
-    color: "#00d4ff",
-  },
-  {
-    id: 3,
-    title: "\uC804\uC8FC \uD55C\uC625\uB9C8\uC744 \uBBF8\uC2DD\uC8FC\uAC04",
-    date: "2026.08.09 - 2026.08.16",
-    place: "\uC804\uBD81 \uC804\uC8FC\uC2DC",
-    category: "\uBBF8\uC2DD",
-    color: "#b8ff3d",
-  },
-  {
-    id: 4,
-    title: "\uAC15\uB989 \uCEE4\uD53C \uC544\uD2B8 \uD398\uC5B4",
-    date: "2026.09.02 - 2026.09.06",
-    place: "\uAC15\uC6D0 \uAC15\uB989\uC2DC",
-    category: "\uC804\uC2DC",
-    color: "#9b5cff",
-  },
-  {
-    id: 5,
-    title: "\uC81C\uC8FC \uBD88\uAF43 \uBBA4\uC9C1 \uD398\uC2A4\uD0C0",
-    date: "2026.10.10 - 2026.10.12",
-    place: "\uC81C\uC8FC \uC11C\uADC0\uD3EC\uC2DC",
-    category: "\uBD88\uAF43",
-    color: "#ff9f1c",
-  },
-  {
-    id: 6,
-    title: "\uB300\uC804 \uC0AC\uC774\uC5B8\uC2A4 \uC57C\uD589",
-    date: "2026.11.05 - 2026.11.08",
-    place: "\uB300\uC804 \uC720\uC131\uAD6C",
-    category: "\uCCB4\uD5D8",
-    color: "#22e6a8",
-  },
-  {
-    id: 7,
-    title:
-      "\uAD11\uC8FC \uBBF8\uB514\uC5B4\uC544\uD2B8 \uD398\uC2A4\uD2F0\uBC8C",
-    date: "2026.12.01 - 2026.12.06",
-    place: "\uAD11\uC8FC \uB3D9\uAD6C",
-    category: "\uBBF8\uB514\uC5B4",
-    color: "#6c7dff",
-  },
-];
+const cardColors = ["#ff2d75", "#00d4ff", "#b8ff3d", "#9b5cff", "#ff9f1c", "#22e6a8"];
+
+// ApiResponse<T>와 axios response 양쪽 형태에서 실제 data만 꺼냅니다.
+const getResponseData = (response) => response?.data?.data ?? response?.data;
+
+const formatFestivalDate = (startDate, endDate) => {
+  if (!startDate && !endDate) {
+    return "일정 정보 없음";
+  }
+
+  return [startDate, endDate].filter(Boolean).join(" - ");
+};
+
+// FavoriteListResDto를 기존 카드 UI에서 쓰는 필드명으로 변환합니다.
+const mapFavoriteItem = (item, index) => ({
+  id: item.festivalId,
+  favoriteId: item.favoriteId,
+  title: item.title || "제목 없는 축제",
+  date: formatFestivalDate(item.eventStartDate, item.eventEndDate),
+  place: item.regionName || "지역 정보 없음",
+  category: item.categoryName || "축제",
+  image: item.thumbnailUrl,
+  color: cardColors[index % cardColors.length],
+});
 
 function MyPageFavorite() {
   const [page, setPage] = useState(1);
-  const pageCount = Math.ceil(favoriteItems.length / ITEMS_PER_PAGE);
+  const [favoriteItems, setFavoriteItems] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const hasFavorites = favoriteItems.length > 0;
 
-  const visibleFavorites = useMemo(() => {
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    return favoriteItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  useEffect(() => {
+    const loadFavorites = async () => {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        // 백엔드 Pageable은 0부터 시작하고, 화면 페이지는 1부터 시작합니다.
+        const response = await AxiosApi.getMyFavoriteList({
+          page: page - 1,
+          size: ITEMS_PER_PAGE,
+        });
+        const pageData = getResponseData(response);
+        const content = pageData?.content || [];
+
+        setFavoriteItems(content.map(mapFavoriteItem));
+        setTotalCount(pageData?.totalElements ?? content.length);
+        setPageCount(Math.max(pageData?.totalPages || 1, 1));
+      } catch (error) {
+        setFavoriteItems([]);
+        setTotalCount(0);
+        setPageCount(1);
+        setErrorMessage(
+          error.response?.data?.message || "찜 목록을 불러오지 못했습니다.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFavorites();
   }, [page]);
 
   const movePage = (nextPage) => {
@@ -123,15 +120,23 @@ function MyPageFavorite() {
               <S.Title>{text.title}</S.Title>
             </S.TitleGroup>
             <S.CountBadge>
-              {favoriteItems.length}
+              {totalCount}
               {text.itemUnit}
             </S.CountBadge>
           </S.TitleRow>
 
-          {hasFavorites ? (
+          {isLoading ? (
+            <S.EmptyState>
+              <S.EmptyTitle>찜 목록을 불러오는 중입니다</S.EmptyTitle>
+            </S.EmptyState>
+          ) : errorMessage ? (
+            <S.EmptyState>
+              <S.EmptyTitle>{errorMessage}</S.EmptyTitle>
+            </S.EmptyState>
+          ) : hasFavorites ? (
             <>
               <S.FavoriteGrid>
-                {visibleFavorites.map((item) => (
+                {favoriteItems.map((item) => (
                   <S.FestivalCard
                     key={item.id}
                     to={getFestivalLink(item).to}

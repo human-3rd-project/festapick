@@ -76,12 +76,12 @@ export const AvatarColumn = styled.div`
 export const AvatarImage = styled.img`
   width: 112px;
   height: 112px;
-  border: 3px solid rgba(0, 212, 255, 0.74);
+  border: 3px solid rgba(155, 92, 255, 0.78);
   border-radius: 50%;
   object-fit: cover;
   box-shadow:
-    0 0 0 4px rgba(255, 45, 117, 0.18),
-    0 0 34px rgba(0, 212, 255, 0.24);
+    0 0 0 4px rgba(255, 45, 117, 0.16),
+    0 0 34px rgba(155, 92, 255, 0.26);
 `;
 
 export const AvatarCaption = styled.p`

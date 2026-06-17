@@ -13,14 +13,14 @@ export const Container = styled.div`
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
   gap: 32px;
-  width: min(1180px, calc(100% - 40px));
+  width: min(1120px, calc(100% - 40px));
   margin: 0 auto;
   padding: 56px 0 72px;
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
     gap: 20px;
-    width: min(100% - 32px, 720px);
+    width: min(100% - 32px, 680px);
     padding: 28px 0 56px;
   }
 `;
@@ -30,7 +30,8 @@ export const Content = styled.main`
 `;
 
 export const DangerPanel = styled.section`
-  width: min(100%, 860px);
+  box-sizing: border-box;
+  width: 100%;
   min-height: 238px;
   padding: 42px 46px;
   border: 1px solid rgba(255, 130, 130, 0.28);
@@ -120,7 +121,8 @@ export const DeleteButton = styled.button`
 `;
 
 export const ResultMessage = styled.p`
-  width: min(100%, 860px);
+  box-sizing: border-box;
+  width: 100%;
   margin: 18px 0 0;
   padding: 14px 16px;
   border: 1px solid rgba(255, 154, 154, 0.32);
