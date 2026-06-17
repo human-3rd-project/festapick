@@ -1,5 +1,6 @@
 package com.human.festapick.dto.response;
 
+import com.human.festapick.constant.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -20,5 +21,8 @@ public class ProfileResDto {
 
     // 프로필 이미지 URL
     private String profileImageUrl;
+
+    // 사용자 권한
+    private UserRole role;
 
 }

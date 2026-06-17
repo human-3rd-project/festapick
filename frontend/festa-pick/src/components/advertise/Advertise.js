@@ -14,6 +14,7 @@ import {
   VisualArea,
   VisualMark,
 } from "./AdvertiseCss";
+import { useAuth } from "../../context/AuthContext";
 
 const hiddenPathPrefixes = [
   "/login",
@@ -23,11 +24,17 @@ const hiddenPathPrefixes = [
   "/find-password",
   "/find-account",
   "/find-id-password",
+  "/social-login",
+  "/reset-password",
 ];
 
 function Advertise({ onDetailClick }) {
   const [isVisible, setIsVisible] = useState(true);
   const { pathname } = useLocation();
+  const { user } = useAuth();
+
+  const isPremiumUser =
+    user?.role === "PREMIUM" || user?.role === "ROLE_PREMIUM";
 
   useEffect(() => {
     setIsVisible(true);
@@ -37,7 +44,7 @@ function Advertise({ onDetailClick }) {
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
-  if (!isVisible || isAuthPage) {
+  if (!isVisible || isAuthPage || isPremiumUser) {
     return null;
   }
 
