@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Baby,
@@ -9,6 +9,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
+import AxiosApi from "../../api/AxiosApi";
 import {
   AiAvatar,
   ChatArea,
@@ -68,44 +69,81 @@ const examplePrompts = [
   },
 ];
 
-const festivalRecommendations = [
-  {
-    id: 1,
-    name: "서울 불빛 판타지",
-    location: "반포 한강공원",
-    date: "11.23 - 11.24",
+const fallbackImage =
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80";
+
+const formatDateText = (date) => {
+  if (!date) {
+    return "";
+  }
+
+  const [, month, day] = String(date).split("-");
+  return month && day ? `${month}.${day}` : String(date);
+};
+
+const formatFestivalPeriod = (festival) => {
+  const startDate =
+    festival.eventStartDate || festival.startDate || festival.startedAt;
+  const endDate = festival.eventEndDate || festival.endDate || festival.endedAt;
+
+  const startText = formatDateText(startDate);
+  const endText = formatDateText(endDate);
+
+  if (startText && endText) {
+    return `${startText} - ${endText}`;
+  }
+
+  return startText || endText || festival.date || festival.period || "";
+};
+
+const getFestivalRegion = (festival) => {
+  const regionParts = [festival.addr1, festival.addr2].filter(Boolean);
+
+  return (
+    regionParts.join(" ") ||
+    festival.region ||
+    festival.location ||
+    festival.venue ||
+    ""
+  );
+};
+
+const normalizeFestival = (festival, index) => {
+  const id =
+    festival.festivalId ||
+    festival.id ||
+    festival.contentId ||
+    `ai-festival-${index}`;
+
+  const title = festival.title || festival.name || "축제 정보";
+  const location = getFestivalRegion(festival);
+  const date = formatFestivalPeriod(festival);
+
+  return {
+    ...festival,
+    id,
+    festivalId: festival.festivalId || id,
+    name: title,
+    title,
+    location,
+    venue: location,
+    date,
+    period: date,
+    image: festival.firstImage || festival.image || fallbackImage,
     reason:
-      "한강의 야경과 초대형 라이트 아트가 어우러져 로맨틱한 분위기를 선사합니다.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDxEEFpPJPEZq4STMAj-kQInQ8AWwRK-HF7XlgHOYCYV8FIR1QEL6oiETr725kVNS1H23Kkj5NxEqOxKYI-Cye9okybmCEiPN_HIqDibXnZADhp83CP-Q0Zbtd333Ip8oWktjHgAYhtU-nv7QnqEW59RlGVcHg5ue1VrN_OKunOB0Gr61ivZjTgerBXn7s_FPUzhEB_l2dYTqGEkI6bFJ1_uNvq40ngfJMVp3nBP1QbGzYfwmri9CBZTDNX8V3JwYRw65pAXmqefw",
-  },
-  {
-    id: 2,
-    name: "DDP 루미나리에",
-    location: "동대문 DDP",
-    date: "11.22 - 11.30",
-    reason:
-      "DDP 외벽에 펼쳐지는 미디어 파사드가 환상적인 사진 스팟이 되어줍니다.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD-W3VEbQYO5YngMfRogwqHaFllbEf6cwht-lSnc4g33mYpcj2JlQzS56qL7aeeMu4c0omiQpNNj9f7Wv6qqcuHObKSyyYbklAgsfxySF_pY2o_TI7i3UCxocHZGy1qMY0LLaTT1xWXb7cO7xYPtz9diC8KDhLs2R8vREjse7puWOARpXYiFBRoAmnnny7ev2-UpWy0pwmYA3nCEuKZRUcPZXd3xQiSgsUKEcxlGLokhGb8ffsGznwTXScfAp1btdKtlRxr4bGbhA",
-  },
-  {
-    id: 3,
-    name: "경복궁 별빛야행",
-    location: "경복궁",
-    date: "11.15 - 12.01",
-    reason:
-      "고궁의 고즈넉함과 화려한 조명이 어우러져 한국적인 밤 산책을 즐기기 좋습니다.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBQgr2HfkOqtGTxwLlFCt9-g76NjX43kJUgrYVVEN1sb9zghLpXeyDDX6wxIZVWoMzhBblVe7qCPraiiD8VZodDyEyzRCrgiSwEs3cN9MhFwHkV4raAja-khLFsqDxuFoAu5tw6z5vLyWkX821jo79VDD_1a5QwSS0z4y8yTjh72wo9CXl-pNiAs3mRePe3X-2EFZ5I7EJDFW8zfMtmChJPg_J7jrr945GwyjIZW36n19OvnrAZr62xbXVcIwduarRE0jwApRkWAQ",
-  },
-];
+      festival.reason ||
+      festival.recommendReason ||
+      "AI가 입력하신 조건과 어울리는 축제로 추천했어요.",
+  };
+};
+
+const getResponseData = (response) =>
+  response?.data?.data ?? response?.data ?? {};
 
 function AiRecommendPage() {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const pendingTimer = useRef(null);
 
   const hasMessages = messages.length > 0;
   const placeholder = useMemo(
@@ -114,46 +152,78 @@ function AiRecommendPage() {
   );
 
   const getFestivalLink = (festival) => ({
-    to: `/festivals/${festival.id}`,
+    to: `/festivals/${festival.festivalId || festival.id}`,
     state: {
       festival: {
         ...festival,
-        title: festival.name,
-        venue: festival.location,
+        title: festival.title || festival.name,
+        name: festival.name || festival.title,
+        venue: festival.venue || festival.location,
+        location: festival.location || festival.venue,
       },
     },
   });
 
-  const addRecommendation = (prompt) => {
+  const addRecommendation = async (prompt) => {
     const trimmedPrompt = prompt.trim();
 
     if (!trimmedPrompt || isLoading) {
       return;
     }
 
-    if (pendingTimer.current) {
-      window.clearTimeout(pendingTimer.current);
-    }
+    const userMessageId = Date.now();
 
     setMessages((prevMessages) => [
       ...prevMessages,
-      { id: Date.now(), type: "user", text: trimmedPrompt },
+      {
+        id: userMessageId,
+        type: "user",
+        text: trimmedPrompt,
+      },
     ]);
+
     setInputValue("");
     setIsLoading(true);
 
-    pendingTimer.current = window.setTimeout(() => {
+    try {
+      const response = await AxiosApi.sendQuestion(trimmedPrompt);
+      const data = getResponseData(response);
+
+      const aiMessage =
+        data.message ||
+        response.data?.message ||
+        "입력하신 조건에 맞는 축제를 추천해드릴게요.";
+
+      const festivals = Array.isArray(data.festivals)
+        ? data.festivals.map(normalizeFestival)
+        : [];
+
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           id: Date.now() + 1,
           type: "ai",
-          text: "좋아요! 입력하신 조건에 맞춰 지금 즐기기 좋은 축제 3곳을 골라봤어요. 일정과 분위기를 함께 비교해보세요.",
+          text: aiMessage,
+          festivals,
         },
       ]);
+    } catch (error) {
+      console.error("AI 축제 추천 요청 실패:", error);
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          id: Date.now() + 1,
+          type: "ai",
+          text:
+            error.response?.data?.message ||
+            "AI 추천을 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
+          festivals: [],
+        },
+      ]);
+    } finally {
       setIsLoading(false);
-      pendingTimer.current = null;
-    }, 500);
+    }
   };
 
   const handleSubmit = (event) => {
@@ -162,7 +232,7 @@ function AiRecommendPage() {
   };
 
   const handleQuickPrompt = (prompt) => {
-    addRecommendation(prompt);
+    addRecommendation(prompt.replaceAll('"', ""));
   };
 
   return (
@@ -182,8 +252,13 @@ function AiRecommendPage() {
             onChange={(event) => setInputValue(event.target.value)}
             placeholder={placeholder}
             aria-label="AI 축제 추천 입력"
+            disabled={isLoading}
           />
-          <SendButton type="submit" aria-label="추천 요청 보내기">
+          <SendButton
+            type="submit"
+            aria-label="추천 요청 보내기"
+            disabled={isLoading}
+          >
             <Send size={20} aria-hidden="true" />
           </SendButton>
         </InputRow>
@@ -195,6 +270,7 @@ function AiRecommendPage() {
             key={prompt}
             type="button"
             onClick={() => handleQuickPrompt(prompt)}
+            disabled={isLoading}
           >
             {prompt}
           </QuickButton>
@@ -246,39 +322,42 @@ function AiRecommendPage() {
                 </AiAvatar>
                 <div>
                   <ChatBubble $type="ai">{message.text}</ChatBubble>
-                  <RecommendationGrid>
-                    {festivalRecommendations.map((festival) => (
-                      <FestivalCard key={festival.id}>
-                        <FestivalImage src={festival.image} alt="" />
-                        <FestivalInfo>
-                          <h3>{festival.name}</h3>
-                          <FestivalMeta>
-                            <span>
-                              <MapPin size={15} aria-hidden="true" />
-                              {festival.location}
-                            </span>
-                            <span>
-                              <CalendarDays size={15} aria-hidden="true" />
-                              {festival.date}
-                            </span>
-                          </FestivalMeta>
-                          <FestivalReason>
-                            <strong>
-                              <Sparkles size={15} aria-hidden="true" />
-                              추천 이유
-                            </strong>
-                            <p>{festival.reason}</p>
-                          </FestivalReason>
-                          <Link
-                            to={getFestivalLink(festival).to}
-                            state={getFestivalLink(festival).state}
-                          >
-                            상세보기
-                          </Link>
-                        </FestivalInfo>
-                      </FestivalCard>
-                    ))}
-                  </RecommendationGrid>
+
+                  {message.festivals?.length > 0 && (
+                    <RecommendationGrid>
+                      {message.festivals.map((festival) => (
+                        <FestivalCard key={festival.id}>
+                          <FestivalImage src={festival.image} alt="" />
+                          <FestivalInfo>
+                            <h3>{festival.name}</h3>
+                            <FestivalMeta>
+                              <span>
+                                <MapPin size={15} aria-hidden="true" />
+                                {festival.location || "위치 정보 없음"}
+                              </span>
+                              <span>
+                                <CalendarDays size={15} aria-hidden="true" />
+                                {festival.date || "일정 정보 없음"}
+                              </span>
+                            </FestivalMeta>
+                            <FestivalReason>
+                              <strong>
+                                <Sparkles size={15} aria-hidden="true" />
+                                추천 이유
+                              </strong>
+                              <p>{festival.reason}</p>
+                            </FestivalReason>
+                            <Link
+                              to={getFestivalLink(festival).to}
+                              state={getFestivalLink(festival).state}
+                            >
+                              상세보기
+                            </Link>
+                          </FestivalInfo>
+                        </FestivalCard>
+                      ))}
+                    </RecommendationGrid>
+                  )}
                 </div>
               </ResultGroup>
             ),

@@ -26,6 +26,7 @@ import {
   Indicator,
   IndicatorGroup,
   LiveBadge,
+  LocationCard,
   MainContainer,
   MainPageWrapper,
   MonthlyHeader,
@@ -45,18 +46,20 @@ import {
   SectionHeader,
   SectionLink,
   SectionTitle,
+  TextButton,
 } from "./MainPageCss";
+import { useAuth } from "../../context/AuthContext";
 
 const heroImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDBrYn5jMWZYXDrlPprdhFpepITwihd3_4MAWAPXZkK8ja_yqOFcgyTJeTb_bP0T0h8NXQRuA2s1smT1Iy90oT9yS0mRwG3Tx4NTC7TfIYrDTtGgFAIbqd_6IWeMaDpkjqmlZ7mxyeR8eLR6Hy8nCiJU1aK1pgtGS9T_S5x-2-AoYzxQ7R9DZqWYP3tmJxgafWNaKqvyMyQ0-GjpHD3Oph-rMYHD8Q3Odx81BKuIzu5ICvtAqO2hFnY3LBTAvUvud_Nfy1u1Lg5TA";
 
-const heroSlides = [
+const fallbackHeroSlides = [
   heroImage,
   "https://lh3.googleusercontent.com/aida-public/AB6AXuD1VGpq9wqZGX6RUGI37IiGuqPM1isG5Q10F9xxVytPkauqG7yMCd2pJ_gInrvBA-Cdt1ge5s5bS5afhJ2rxj-iiIg9bwIv_Y_fvPwl0vM4YKJkfgJEUyEUBfFJgQMVscdJjbe6Dy6sHfAmx1hXwzq_5hp9ltWInG7gCZ33QqIr7NwKn4DN_AKQsdD4mA4sGkRN-IaFTEMH8bnoO5oi7p7VUXX7851y-N53_3ge-tObxo0Aq5lg88jz2n4maWbH2cxYspCEKyHknA",
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCtgNLtXcRyenXfIjFgSLP_Nkx2Dx_glc49QvEJhDd5nESjyg996g_zmCG-rqx1u1xdtmFbN8jKWerv3BW8WBjDBQu15OUq8DRZThUL6supO7NFZAlQrsYuad9q1aYHbvd5LlZIaVJp8NHgbwzTnYs1ElrBM5M0i0YQe0Y9uqGz_qFLkpS66wAkIFfF2xcrMoZaM62ZSmuNO704ICck58WM69aQofh0ZPSTw1-lxtpWiik4RJObeRcBhu4_CPIfr1_vGVuhQDyvXw",
 ];
 
-const monthlyFestivals = [
+const fallbackMonthlyFestivals = [
   {
     region: "전라남도 해남",
     title: "해남 매화나무 축제",
@@ -87,7 +90,7 @@ const monthlyFestivals = [
   },
 ];
 
-const nearbyFestivals = [
+const fallbackNearbyFestivals = [
   {
     name: "서울억새축제",
     region: "서울 마포구 하늘공원",
@@ -120,7 +123,7 @@ const nearbyFestivals = [
   },
 ];
 
-const popularFestivals = [
+const fallbackPopularFestivals = [
   {
     rank: 1,
     title: "월드 뮤직 페스티벌",
@@ -139,7 +142,8 @@ const popularFestivals = [
     region: "경기 이천시",
     date: "04.25 - 05.06",
     meta: "조회수 2.5k · 관심 1.2k",
-    description: "도자 전시와 체험 프로그램이 함께 열려 가족 나들이로 인기예요.",
+    description:
+      "도자 전시와 체험 프로그램이 함께 열려 가족 나들이로 인기예요.",
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuAMTdWRkgYZN_aoTdq7gf8UoUZJC4QK4B2n-qPb-H02hMGcX9usbfmI7dv9Qy8mOYb55ntVfpYy6yInoGWKLBaBdkRi5B0-WLIt9GmyX0erD7mKQZc1gRWmFpMDxzK7dCnmQFqKCFF89DxxkmV8mLFsh37bvKH-jcVv0YybIieowLiub2MRcE_tGTTVt_W36OpuRQQQQJPJaicS71nCAHRIYOobUQvDfbWARvCCrzPrw_zIMajcFcRUT2k-HYoajRlvTa-welaEXw",
   },
@@ -180,13 +184,54 @@ const popularFestivals = [
 ];
 
 function MainPage() {
+  const auth = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHeroPlaying, setIsHeroPlaying] = useState(true);
   const [selectedPopularRank, setSelectedPopularRank] = useState(1);
+  const isMainLoading = false;
+  const user = auth?.user || {};
+  const storedUserRegion =
+    typeof window !== "undefined"
+      ? localStorage.getItem("userRegion") ||
+        localStorage.getItem("region") ||
+        localStorage.getItem("address") ||
+        localStorage.getItem("ldongRegnCd") ||
+        localStorage.getItem("ldongSignguCd")
+      : null;
+  const isLoggedIn =
+    Boolean(auth?.isLoggedIn) ||
+    (typeof window !== "undefined" &&
+      Boolean(localStorage.getItem("accessToken")));
+  // TODO: 사용자 지역 저장 필드 확정 후 ldongRegnCd/ldongSignguCd 기준으로 정리 필요
+  const hasUserRegion = Boolean(
+    user.ldongRegnCd ||
+    user.ldongSignguCd ||
+    user.region ||
+    user.userRegion ||
+    user.address ||
+    user.sidoName ||
+    user.sigunguName ||
+    storedUserRegion,
+  );
+  const shouldShowLocationGuide = !isLoggedIn || !hasUserRegion;
+  const locationSettingPath = isLoggedIn ? "/mypage/region" : "/signup";
+  const displayHeroSlides = fallbackHeroSlides;
+  const displayRegionFestivals = fallbackNearbyFestivals;
+  const displayMonthlyFestivals = fallbackMonthlyFestivals;
+  const displayPopularFestivals = fallbackPopularFestivals;
   const selectedPopularFestival =
-    popularFestivals.find((festival) => festival.rank === selectedPopularRank) ||
-    popularFestivals[0];
-  const rankingItems = popularFestivals;
+    displayPopularFestivals.find(
+      (festival) => festival.rank === selectedPopularRank,
+    ) || displayPopularFestivals[0];
+  const rankingItems = displayPopularFestivals;
+
+  useEffect(() => {
+    // TODO: AxiosApi 함수명 확정 후 연결 필요
+    // AxiosApi.getBannerFestivals()
+    // AxiosApi.getNearbyFestivalRecommendations()
+    // AxiosApi.getMonthlyNationalFestivals()
+    // AxiosApi.getRealtimePopularFestivals()
+  }, []);
 
   useEffect(() => {
     if (!isHeroPlaying) {
@@ -194,24 +239,28 @@ function MainPage() {
     }
 
     const slideTimer = window.setInterval(() => {
-      setCurrentSlide((prevSlide) => (prevSlide + 1) % heroSlides.length);
+      setCurrentSlide(
+        (prevSlide) => (prevSlide + 1) % displayHeroSlides.length,
+      );
     }, 5000);
 
     return () => window.clearInterval(slideTimer);
-  }, [isHeroPlaying]);
+  }, [displayHeroSlides.length, isHeroPlaying]);
 
   const showPreviousSlide = () => {
     setCurrentSlide(
-      (prevSlide) => (prevSlide - 1 + heroSlides.length) % heroSlides.length,
+      (prevSlide) =>
+        (prevSlide - 1 + displayHeroSlides.length) % displayHeroSlides.length,
     );
   };
 
   const showNextSlide = () => {
-    setCurrentSlide((prevSlide) => (prevSlide + 1) % heroSlides.length);
+    setCurrentSlide((prevSlide) => (prevSlide + 1) % displayHeroSlides.length);
   };
 
   const getFestivalLink = (festival) => {
-    const festivalId = festival.id || festival.rank || festival.title || festival.name;
+    const festivalId =
+      festival.id || festival.rank || festival.title || festival.name;
 
     return {
       to: `/festivals/${encodeURIComponent(festivalId)}`,
@@ -229,10 +278,10 @@ function MainPage() {
   };
 
   return (
-    <MainPageWrapper>
+    <MainPageWrapper aria-busy={isMainLoading}>
       <MainContainer>
         <HeroSection>
-          {heroSlides.map((slide, index) => (
+          {displayHeroSlides.map((slide, index) => (
             <HeroImageLayer
               key={slide}
               $image={slide}
@@ -264,8 +313,7 @@ function MainPage() {
                 <span>FestaPick</span>에서 만나보세요
               </HeroTitle>
               <p>
-                실시간 현장 정보부터 AI 개인 맞춤 추천까지 한눈에
-                확인하세요.
+                실시간 현장 정보부터 AI 개인 맞춤 추천까지 한눈에 확인하세요.
               </p>
             </div>
             <HeroActions>
@@ -280,12 +328,14 @@ function MainPage() {
             </HeroActions>
           </HeroContent>
           <IndicatorGroup aria-label="메인 배너 슬라이드">
-            {heroSlides.map((slide, index) => (
+            {displayHeroSlides.map((slide, index) => (
               <Indicator key={slide} $active={index === currentSlide} />
             ))}
             <HeroPlaybackButton
               type="button"
-              aria-label={isHeroPlaying ? "배너 자동 재생 일시정지" : "배너 자동 재생"}
+              aria-label={
+                isHeroPlaying ? "배너 자동 재생 일시정지" : "배너 자동 재생"
+              }
               onClick={() => setIsHeroPlaying((prevState) => !prevState)}
             >
               {isHeroPlaying ? (
@@ -300,8 +350,7 @@ function MainPage() {
         <Section>
           <SectionHeader>
             <SectionTitle>
-              <MapPin size={28} />
-              내 주변 추천 축제
+              <MapPin size={28} />내 주변 추천 축제
             </SectionTitle>
             <SectionLink as={Link} to="/search">
               전체보기
@@ -311,35 +360,46 @@ function MainPage() {
           <NearbySectionLead>
             서울 은평구 근처 추천 축제를 가까운 순서대로 골랐어요.
           </NearbySectionLead>
-          <NearbyGrid>
-            {nearbyFestivals.map((festival, index) => (
-              <NearbyCard key={festival.name}>
-                <NearbyImage src={festival.image} alt="" />
-                <NearbyInfo>
-                  <span>{index + 1}번째로 가까워요</span>
-                  <h3>{festival.name}</h3>
-                  <NearbyMeta>
-                    <span>
-                      <MapPin size={15} aria-hidden="true" />
-                      {festival.region}
-                    </span>
-                    <span>{festival.distance}</span>
-                    <span>
-                      <CalendarDays size={15} aria-hidden="true" />
-                      {festival.date}
-                    </span>
-                  </NearbyMeta>
-                  <p>{festival.description}</p>
-                  <Link
-                    to={getFestivalLink(festival).to}
-                    state={getFestivalLink(festival).state}
-                  >
-                    상세보기
-                  </Link>
-                </NearbyInfo>
-              </NearbyCard>
-            ))}
-          </NearbyGrid>
+          {shouldShowLocationGuide ? (
+            <LocationCard $image={heroImage}>
+              <MapPin size={42} aria-hidden="true" />
+              <h3>내 위치를 설정하면</h3>
+              <p>주변의 핫한 축제들을 실시간으로 추천받을 수 있어요.</p>
+              <TextButton as={Link} to={locationSettingPath}>
+                위치 설정하기
+              </TextButton>
+            </LocationCard>
+          ) : (
+            <NearbyGrid>
+              {displayRegionFestivals.map((festival, index) => (
+                <NearbyCard key={festival.id || festival.name}>
+                  <NearbyImage src={festival.image} alt="" />
+                  <NearbyInfo>
+                    <span>{index + 1}번째로 가까워요</span>
+                    <h3>{festival.name}</h3>
+                    <NearbyMeta>
+                      <span>
+                        <MapPin size={15} aria-hidden="true" />
+                        {festival.region}
+                      </span>
+                      <span>{festival.distance}</span>
+                      <span>
+                        <CalendarDays size={15} aria-hidden="true" />
+                        {festival.date}
+                      </span>
+                    </NearbyMeta>
+                    <p>{festival.description}</p>
+                    <Link
+                      to={getFestivalLink(festival).to}
+                      state={getFestivalLink(festival).state}
+                    >
+                      상세보기
+                    </Link>
+                  </NearbyInfo>
+                </NearbyCard>
+              ))}
+            </NearbyGrid>
+          )}
         </Section>
 
         <Section>
@@ -350,9 +410,9 @@ function MainPage() {
             </SectionTitle>
           </MonthlyHeader>
           <FestivalGrid>
-            {monthlyFestivals.map((festival) => (
+            {displayMonthlyFestivals.map((festival) => (
               <FestivalCard
-                key={festival.title}
+                key={festival.id || festival.title}
                 as={Link}
                 to={getFestivalLink(festival).to}
                 state={getFestivalLink(festival).state}
@@ -405,7 +465,9 @@ function MainPage() {
                   <img src={item.image} alt="" />
                   <div>
                     <h3>{item.title}</h3>
-                    <p>{item.region} · {item.date}</p>
+                    <p>
+                      {item.region} · {item.date}
+                    </p>
                     <p>{item.meta}</p>
                   </div>
                   <TrendingUp size={22} />
