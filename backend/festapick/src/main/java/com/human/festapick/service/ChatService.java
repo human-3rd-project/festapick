@@ -65,8 +65,6 @@ public class ChatService {
         ChatMessageType messageType = resolveMessageType(reqDto);
         validateMessageContent(messageType, reqDto);
 
-        // 이미지 파일 업로드는 별도 REST API/Firebase Storage 연동에서 처리하고,
-        // WebSocket 메시지에는 업로드 후 발급된 imageUrl만 담아 보낸다.
         ChatRooms chatRoom = getChatRoom(chatRoomId);
         Users user = getUser(userId);
 

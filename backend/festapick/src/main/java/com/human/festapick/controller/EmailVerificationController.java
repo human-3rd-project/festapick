@@ -5,6 +5,7 @@ import com.human.festapick.dto.response.ApiResponse;
 import com.human.festapick.service.EmailVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,19 +22,19 @@ public class EmailVerificationController {
 
     // 인증 코드 생성, 저장, 메일 발송은 서비스에 위임한다.
     @PostMapping("/send")
-    public ApiResponse<Void> sendVerificationCode(
+    public ResponseEntity<ApiResponse<Void>> sendVerificationCode(
             @RequestParam String email
     ) {
         emailVerificationService.sendVerificationCode(email);
-        return ApiResponse.ok("인증코드를 발송했습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("인증코드를 발송했습니다.", null));
     }
 
     // 사용자가 입력한 인증 코드를 검증하고, 성공하면 이후 회원가입에서 인증 완료로 판단한다.
     @PostMapping("/verify")
-    public ApiResponse<Void> verifyEmail(
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(
             @Valid @RequestBody EmailVerificationRequestDto request
     ) {
         emailVerificationService.verifyEmail(request);
-        return ApiResponse.ok("인증 완료!", null);
+        return ResponseEntity.ok(ApiResponse.ok("인증 완료!", null));
     }
 }

@@ -8,6 +8,7 @@ import com.human.festapick.service.VisitHistoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +31,7 @@ public class VisitHistoryController {
     private final VisitHistoryService visitHistoryService;
 
     @PostMapping
-    public ApiResponse<VisitHistoryResDto> createVisitHistory(
+    public ResponseEntity<ApiResponse<VisitHistoryResDto>> createVisitHistory(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody VisitHistoryReqDto request
     ) {
@@ -39,11 +40,11 @@ public class VisitHistoryController {
                 visitHistoryService.createVisitHistory(userDetail.getUserId(), request);
 
         // 저장된 방문 기록 DTO를 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok("방문 기록이 저장되었습니다.", visitHistory);
+        return ResponseEntity.ok(ApiResponse.ok("방문 기록이 저장되었습니다.", visitHistory));
     }
 
     @GetMapping
-    public ApiResponse<List<VisitHistoryResDto>> getVisitHistoryList(
+    public ResponseEntity<ApiResponse<List<VisitHistoryResDto>>> getVisitHistoryList(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
@@ -53,11 +54,11 @@ public class VisitHistoryController {
                 visitHistoryService.getVisitHistoryList(userDetail.getUserId(), startDate, endDate);
 
         // 조회된 목록을 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok(visitHistories);
+        return ResponseEntity.ok(ApiResponse.ok(visitHistories));
     }
 
     @GetMapping("/{visitHistoryId}")
-    public ApiResponse<VisitHistoryResDto> getVisitHistory(
+    public ResponseEntity<ApiResponse<VisitHistoryResDto>> getVisitHistory(
             @PathVariable Long visitHistoryId,
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
@@ -66,11 +67,11 @@ public class VisitHistoryController {
                 visitHistoryService.getVisitHistory(userDetail.getUserId(), visitHistoryId);
 
         // 상세 DTO를 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok(visitHistory);
+        return ResponseEntity.ok(ApiResponse.ok(visitHistory));
     }
 
     @PutMapping("/{visitHistoryId}")
-    public ApiResponse<VisitHistoryResDto> updateVisitHistory(
+    public ResponseEntity<ApiResponse<VisitHistoryResDto>> updateVisitHistory(
             @PathVariable Long visitHistoryId,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody VisitHistoryReqDto request
@@ -80,11 +81,11 @@ public class VisitHistoryController {
                 visitHistoryService.updateVisitHistory(userDetail.getUserId(), visitHistoryId, request);
 
         // 수정된 방문 기록 DTO를 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok("방문 기록이 수정되었습니다.", visitHistory);
+        return ResponseEntity.ok(ApiResponse.ok("방문 기록이 수정되었습니다.", visitHistory));
     }
 
     @DeleteMapping("/{visitHistoryId}")
-    public ApiResponse<Void> deleteVisitHistory(
+    public ResponseEntity<ApiResponse<Void>> deleteVisitHistory(
             @PathVariable Long visitHistoryId,
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
@@ -92,17 +93,17 @@ public class VisitHistoryController {
         visitHistoryService.deleteVisitHistory(userDetail.getUserId(), visitHistoryId);
 
         // 삭제 성공 여부는 공통 응답 형식으로 반환합니다.
-        return ApiResponse.ok("방문 기록이 삭제되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("방문 기록이 삭제되었습니다.", null));
     }
 
     @GetMapping("/count")
-    public ApiResponse<Long> getVisitHistoryCount(
+    public ResponseEntity<ApiResponse<Long>> getVisitHistoryCount(
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
         // 현재 로그인 사용자의 전체 방문 기록 개수를 조회합니다.
         long visitHistoryCount = visitHistoryService.getVisitHistoryCount(userDetail.getUserId());
 
         // primitive long 값을 Long data로 감싸 반환합니다.
-        return ApiResponse.ok(visitHistoryCount);
+        return ResponseEntity.ok(ApiResponse.ok(visitHistoryCount));
     }
 }
