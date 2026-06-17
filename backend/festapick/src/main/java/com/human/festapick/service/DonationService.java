@@ -31,6 +31,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -178,6 +179,23 @@ public class DonationService {
         return toPage(filteredDonations, pageable);
     }
 
+    public Page<DonationManageResDto> searchDonationHistory(String keyword, Pageable pageable) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+
+        if (normalizedKeyword == null) {
+            return donationRepository.findAll(pageable)
+                    .map(this::toDonationManageResDto);
+        }
+
+        return donationRepository.searchAdminDonations(
+                        toLikePattern(normalizedKeyword),
+                        parseLong(normalizedKeyword),
+                        parseInteger(normalizedKeyword),
+                        pageable
+                )
+                .map(this::toDonationManageResDto);
+    }
+
     public DonationStatisticsResDto getDonationStatistics() {
         return DonationStatisticsResDto.builder()
                 .totalDonationAmount(donationRepository.getTotalDonationAmount())
@@ -314,6 +332,26 @@ public class DonationService {
 
     private boolean contains(String source, String keyword) {
         return source != null && source.toLowerCase().contains(keyword.toLowerCase());
+    }
+
+    private String toLikePattern(String keyword) {
+        return "%" + keyword.toLowerCase(Locale.ROOT) + "%";
+    }
+
+    private Long parseLong(String keyword) {
+        try {
+            return Long.valueOf(keyword);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Integer parseInteger(String keyword) {
+        try {
+            return Integer.valueOf(keyword);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private Page<DonationManageResDto> toPage(List<DonationManageResDto> donations, Pageable pageable) {

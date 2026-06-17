@@ -79,6 +79,47 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
             Pageable pageable
     );
 
+    @Query(
+            value = """
+                    SELECT review
+                    FROM Reviews review
+                    JOIN review.user writer
+                    JOIN review.festival festival
+                    WHERE (:numericKeyword IS NOT NULL AND review.reviewId = :numericKeyword)
+                       OR (:numericKeyword IS NOT NULL AND writer.userId = :numericKeyword)
+                       OR (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
+                       OR (:rating IS NOT NULL AND review.rating = :rating)
+                       OR LOWER(review.content) LIKE :keyword
+                       OR LOWER(writer.nickname) LIKE :keyword
+                       OR LOWER(writer.email) LIKE :keyword
+                       OR LOWER(writer.loginId) LIKE :keyword
+                       OR LOWER(festival.title) LIKE :keyword
+                       OR LOWER(festival.contentId) LIKE :keyword
+                    """,
+            countQuery = """
+                    SELECT COUNT(review)
+                    FROM Reviews review
+                    JOIN review.user writer
+                    JOIN review.festival festival
+                    WHERE (:numericKeyword IS NOT NULL AND review.reviewId = :numericKeyword)
+                       OR (:numericKeyword IS NOT NULL AND writer.userId = :numericKeyword)
+                       OR (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
+                       OR (:rating IS NOT NULL AND review.rating = :rating)
+                       OR LOWER(review.content) LIKE :keyword
+                       OR LOWER(writer.nickname) LIKE :keyword
+                       OR LOWER(writer.email) LIKE :keyword
+                       OR LOWER(writer.loginId) LIKE :keyword
+                       OR LOWER(festival.title) LIKE :keyword
+                       OR LOWER(festival.contentId) LIKE :keyword
+                    """
+    )
+    Page<Reviews> searchAdminReviews(
+            @Param("keyword") String keyword,
+            @Param("numericKeyword") Long numericKeyword,
+            @Param("rating") Integer rating,
+            Pageable pageable
+    );
+
     // 리뷰 수정 / 삭제 권한 확인용 조회
     Optional<Reviews> findByReviewIdAndUser_UserIdAndStatus(
             Long reviewId,

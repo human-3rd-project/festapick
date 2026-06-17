@@ -2,6 +2,7 @@ package com.human.festapick.service;
 
 import com.human.festapick.constant.FestivalStatus;
 import com.human.festapick.constant.ReviewStatus;
+import com.human.festapick.constant.UserRole;
 import com.human.festapick.constant.UserStatus;
 import com.human.festapick.dto.request.UserManageReqDto;
 import com.human.festapick.dto.response.DonationManageResDto;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +51,23 @@ public class AdminService {
 
     public Page<UserManageResDto> getUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
+                .map(this::toUserManageResDto);
+    }
+
+    public Page<UserManageResDto> searchUsers(String keyword, Pageable pageable) {
+        String normalizedKeyword = normalizeKeyword(keyword);
+
+        if (normalizedKeyword == null) {
+            return getUsers(pageable);
+        }
+
+        return userRepository.searchAdminUsers(
+                        toLikePattern(normalizedKeyword),
+                        parseLong(normalizedKeyword),
+                        parseUserStatus(normalizedKeyword),
+                        parseUserRole(normalizedKeyword),
+                        pageable
+                )
                 .map(this::toUserManageResDto);
     }
 
@@ -85,6 +104,22 @@ public class AdminService {
                 .map(ReviewResDto::of);
     }
 
+    public Page<ReviewResDto> searchReviews(String keyword, Pageable pageable) {
+        String normalizedKeyword = normalizeKeyword(keyword);
+
+        if (normalizedKeyword == null) {
+            return getReviews(pageable);
+        }
+
+        return reviewRepository.searchAdminReviews(
+                        toLikePattern(normalizedKeyword),
+                        parseLong(normalizedKeyword),
+                        parseInteger(normalizedKeyword),
+                        pageable
+                )
+                .map(ReviewResDto::of);
+    }
+
     public ReviewResDto getReview(Long reviewId) {
         return ReviewResDto.of(getReviewEntity(reviewId));
     }
@@ -92,11 +127,27 @@ public class AdminService {
     @Transactional
     public void deleteReview(Long reviewId) {
         Reviews review = getReviewEntity(reviewId);
-        review.setStatus(ReviewStatus.DELETED);
+        reviewRepository.delete(review);
     }
 
     public Page<FestivalInfoResponseDto> getFestivals(Pageable pageable) {
         return festivalRepository.findAll(pageable)
+                .map(this::toFestivalInfoResponseDto);
+    }
+
+    public Page<FestivalInfoResponseDto> searchFestivals(String keyword, Pageable pageable) {
+        String normalizedKeyword = normalizeKeyword(keyword);
+
+        if (normalizedKeyword == null) {
+            return getFestivals(pageable);
+        }
+
+        return festivalRepository.searchAdminFestivals(
+                        toLikePattern(normalizedKeyword),
+                        parseLong(normalizedKeyword),
+                        parseFestivalStatus(normalizedKeyword),
+                        pageable
+                )
                 .map(this::toFestivalInfoResponseDto);
     }
 
@@ -106,27 +157,17 @@ public class AdminService {
     }
 
     @Transactional
-    public FestivalInfoResponseDto changeFestivalStatus(Long festivalId, FestivalStatus status) {
-        if (status == null) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "축제 상태는 필수입니다.");
-        }
-
+    public void deleteFestival(Long festivalId) {
         Festivals festival = getFestivalEntity(festivalId);
-        entityManager.createQuery("""
-                        update Festivals f
-                        set f.status = :status
-                        where f.festivalId = :festivalId
-                        """)
-                .setParameter("status", status)
-                .setParameter("festivalId", festivalId)
-                .executeUpdate();
-        entityManager.refresh(festival);
-
-        return toFestivalInfoResponseDto(festival);
+        festivalRepository.delete(festival);
     }
 
     public Page<DonationManageResDto> getDonations(Long donationId, String keyword, Pageable pageable) {
         return donationService.getDonationHistory(donationId, keyword, pageable);
+    }
+
+    public Page<DonationManageResDto> searchDonations(String keyword, Pageable pageable) {
+        return donationService.searchDonationHistory(keyword, pageable);
     }
 
     @Transactional
@@ -224,6 +265,54 @@ public class AdminService {
             return categoryCode.getMclsName();
         }
         return categoryCode.getLclsName();
+    }
+
+    private String normalizeKeyword(String keyword) {
+        return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private String toLikePattern(String keyword) {
+        return "%" + keyword.toLowerCase(Locale.ROOT) + "%";
+    }
+
+    private Long parseLong(String keyword) {
+        try {
+            return Long.valueOf(keyword);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Integer parseInteger(String keyword) {
+        try {
+            return Integer.valueOf(keyword);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private UserStatus parseUserStatus(String keyword) {
+        try {
+            return UserStatus.valueOf(keyword.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private UserRole parseUserRole(String keyword) {
+        try {
+            return UserRole.valueOf(keyword.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private FestivalStatus parseFestivalStatus(String keyword) {
+        try {
+            return FestivalStatus.valueOf(keyword.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private Users getUserEntity(Long userId) {

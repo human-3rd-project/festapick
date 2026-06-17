@@ -138,7 +138,7 @@ public class NotificationService {
 
         int pageSize = size <= 0 ? 10 : size;
 
-        return notificationRepository.findByUsers_UserIdAndNotificationTypeOrderByCreatedAtDesc(
+        return notificationRepository.findByUsers_UserIdAndNotificationTypeAndReadStatusFalseOrderByCreatedAtDesc(
                 userId,
                 NotificationType.FESTIVAL,
                 PageRequest.of(0, pageSize)
@@ -170,11 +170,11 @@ public class NotificationService {
     /**
      * 날짜 알림 자동 실행 메서드
      * 새 Scheduler 파일을 만들지 않고,
-     * NotificationService 안에서 직접 매일 오전 9시에 실행되게 하는 방식.
+     * NotificationService 안에서 직접 매일 30분 마다 실행되게 하는 방식.
      * 순서:
      * 초 분 시 일 월 요일
      * 뜻:
-     * 매일 오전 9시 0분 0초에 실행.
+     * 매일 30분 마다 실행.
      */
     @Scheduled(cron = "0 */30 * * * *", zone = "Asia/Seoul")
     public void runFestivalStartNotificationScheduler() {

@@ -3,7 +3,10 @@ package com.human.festapick.repository;
 import com.human.festapick.constant.FestivalStatus;
 import com.human.festapick.entity.Festivals;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -70,4 +73,43 @@ public interface FestivalRepository extends JpaRepository<Festivals, Long> {
     Page<Festivals> findTop10ByStatusOrderByAverageRatingDesc(FestivalStatus status);
 
     Page<Festivals> findTop10ByStatusOrderByCreatedAtDesc(FestivalStatus status);
+
+    @Query(
+            value = """
+                    SELECT festival
+                    FROM Festivals festival
+                    WHERE (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
+                       OR (:status IS NOT NULL AND festival.status = :status)
+                       OR LOWER(festival.contentId) LIKE :keyword
+                       OR LOWER(festival.title) LIKE :keyword
+                       OR LOWER(festival.addr1) LIKE :keyword
+                       OR LOWER(festival.addr2) LIKE :keyword
+                       OR LOWER(festival.festivalType) LIKE :keyword
+                       OR LOWER(festival.progressType) LIKE :keyword
+                       OR LOWER(festival.lclsSystm1) LIKE :keyword
+                       OR LOWER(festival.lclsSystm2) LIKE :keyword
+                       OR LOWER(festival.lclsSystm3) LIKE :keyword
+                    """,
+            countQuery = """
+                    SELECT COUNT(festival)
+                    FROM Festivals festival
+                    WHERE (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
+                       OR (:status IS NOT NULL AND festival.status = :status)
+                       OR LOWER(festival.contentId) LIKE :keyword
+                       OR LOWER(festival.title) LIKE :keyword
+                       OR LOWER(festival.addr1) LIKE :keyword
+                       OR LOWER(festival.addr2) LIKE :keyword
+                       OR LOWER(festival.festivalType) LIKE :keyword
+                       OR LOWER(festival.progressType) LIKE :keyword
+                       OR LOWER(festival.lclsSystm1) LIKE :keyword
+                       OR LOWER(festival.lclsSystm2) LIKE :keyword
+                       OR LOWER(festival.lclsSystm3) LIKE :keyword
+                    """
+    )
+    Page<Festivals> searchAdminFestivals(
+            @Param("keyword") String keyword,
+            @Param("numericKeyword") Long numericKeyword,
+            @Param("status") FestivalStatus status,
+            Pageable pageable
+    );
 }

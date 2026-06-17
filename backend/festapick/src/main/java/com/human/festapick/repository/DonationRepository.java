@@ -35,4 +35,37 @@ public interface DonationRepository extends JpaRepository<Donations, Long> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    @Query(
+            value = """
+                    select donation
+                    from Donations donation
+                    join donation.users user
+                    left join DonationPayments payment on payment.donations = donation
+                    where (:numericKeyword is not null and donation.donationId = :numericKeyword)
+                       or (:amountKeyword is not null and donation.amount = :amountKeyword)
+                       or lower(user.nickname) like :keyword
+                       or lower(user.email) like :keyword
+                       or lower(user.loginId) like :keyword
+                       or lower(payment.orderId) like :keyword
+                    """,
+            countQuery = """
+                    select count(donation)
+                    from Donations donation
+                    join donation.users user
+                    left join DonationPayments payment on payment.donations = donation
+                    where (:numericKeyword is not null and donation.donationId = :numericKeyword)
+                       or (:amountKeyword is not null and donation.amount = :amountKeyword)
+                       or lower(user.nickname) like :keyword
+                       or lower(user.email) like :keyword
+                       or lower(user.loginId) like :keyword
+                       or lower(payment.orderId) like :keyword
+                    """
+    )
+    Page<Donations> searchAdminDonations(
+            @Param("keyword") String keyword,
+            @Param("numericKeyword") Long numericKeyword,
+            @Param("amountKeyword") Integer amountKeyword,
+            Pageable pageable
+    );
 }
