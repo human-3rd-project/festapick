@@ -10,8 +10,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -57,6 +62,46 @@ public class ImageUploadService {
         return buildDownloadUrl(storagePath, downloadToken);
     }
 
+    public String uploadImageFromUrl(String imageUrl, String directoryPath) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "업로드할 이미지 URL이 필요합니다.");
+        }
+
+        HttpResponse<byte[]> response;
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(imageUrl))
+                    .timeout(Duration.ofSeconds(20))
+                    .GET()
+                    .build();
+
+            response = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build()
+                    .send(request, HttpResponse.BodyHandlers.ofByteArray());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "올바른 이미지 URL이 아닙니다.");
+        } catch (IOException e) {
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "외부 이미지 파일을 읽는 중 오류가 발생했습니다.");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "외부 이미지 업로드가 중단되었습니다.");
+        }
+
+        validateImageResponse(response);
+
+        String contentType = normalizeContentType(response.headers()
+                .firstValue("Content-Type")
+                .orElse(null));
+        String storagePath = buildStoragePath(directoryPath, imageUrl, contentType);
+        String downloadToken = UUID.randomUUID().toString();
+
+        uploadBytes(storagePath, contentType, response.body(), downloadToken);
+
+        return buildDownloadUrl(storagePath, downloadToken);
+    }
+
     private void validateUserId(Long userId) {
         if (userId == null) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "사용자 ID가 필요합니다.");
@@ -79,11 +124,56 @@ public class ImageUploadService {
         }
     }
 
+    private void validateImageResponse(HttpResponse<byte[]> response) {
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "외부 이미지 파일을 가져오지 못했습니다.");
+        }
+
+        byte[] imageBytes = response.body();
+
+        if (imageBytes == null || imageBytes.length == 0) {
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "외부 이미지 파일이 비어 있습니다.");
+        }
+
+        if (imageBytes.length > MAX_IMAGE_SIZE) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "이미지 파일은 10MB 이하만 업로드할 수 있습니다.");
+        }
+
+        String contentType = normalizeContentType(response.headers()
+                .firstValue("Content-Type")
+                .orElse(null));
+
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "JPG, PNG, GIF, WEBP 이미지만 업로드할 수 있습니다.");
+        }
+    }
+
     private String buildStoragePath(Long userId, String originalFilename, String contentType) {
         String extension = resolveExtension(originalFilename, contentType);
         String basePath = normalizeBasePath(uploadBasePath);
 
         return basePath + "/" + userId + "/" + UUID.randomUUID() + extension;
+    }
+
+    private String buildStoragePath(String directoryPath, String sourceUrl, String contentType) {
+        String extension = resolveExtension(sourceUrl, contentType);
+        String basePath = normalizeBasePath(uploadBasePath);
+        String normalizedDirectoryPath = normalizeDirectoryPath(directoryPath);
+
+        return basePath + "/" + normalizedDirectoryPath + "/" + UUID.randomUUID() + extension;
+    }
+
+    private void uploadBytes(String storagePath, String contentType, byte[] imageBytes, String downloadToken) {
+        try {
+            BlobInfo blobInfo = BlobInfo.newBuilder(firebaseStorageBucket.getName(), storagePath)
+                    .setContentType(contentType)
+                    .setMetadata(Map.of("firebaseStorageDownloadTokens", downloadToken))
+                    .build();
+
+            firebaseStorageBucket.getStorage().create(blobInfo, imageBytes);
+        } catch (RuntimeException e) {
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "이미지 업로드에 실패했습니다.");
+        }
     }
 
     private String resolveExtension(String originalFilename, String contentType) {
@@ -113,6 +203,26 @@ public class ImageUploadService {
         }
 
         return basePath.replaceAll("^/+", "").replaceAll("/+$", "");
+    }
+
+    private String normalizeDirectoryPath(String directoryPath) {
+        if (directoryPath == null || directoryPath.isBlank()) {
+            return "external";
+        }
+
+        return directoryPath
+                .replace("\\", "/")
+                .replaceAll("^/+", "")
+                .replaceAll("/+$", "")
+                .replaceAll("[^A-Za-z0-9/_-]", "_");
+    }
+
+    private String normalizeContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return null;
+        }
+
+        return contentType.split(";")[0].trim().toLowerCase();
     }
 
     private String buildDownloadUrl(String storagePath, String downloadToken) {

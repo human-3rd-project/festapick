@@ -45,6 +45,7 @@ public class MainService {
   private final ChatRoomRepository chatRoomRepository;
   private final WebSocketHandler webSocketHandler;
   private final WebClient.Builder webClientBuilder;
+  private final ImageUploadService imageUploadService;
 
   @Value("${tourapi.base-url}")
   private String tourApiBaseUrl;
@@ -257,8 +258,8 @@ public class MainService {
             .tourCreatedTime(item.getCreatedTime())
             .eventStartDate(parseTourApiDate(item.getEventStartDate()))
             .eventEndDate(parseTourApiDate(item.getEventEndDate()))
-            .firstImage(item.getFirstImage())
-            .firstImage2(item.getFirstImage2())
+            .firstImage(uploadTourImage(item.getFirstImage(), item.getContentId(), "main"))
+            .firstImage2(uploadTourImage(item.getFirstImage2(), item.getContentId(), "thumb"))
             .copyrightType(item.getCopyrightType())
             .mapX(parseBigDecimal(item.getMapX()))
             .mapY(parseBigDecimal(item.getMapY()))
@@ -274,6 +275,21 @@ public class MainService {
             .festivalType(item.getFestivalType())
             .status(FestivalStatus.ACTIVE)
             .build();
+  }
+
+  private String uploadTourImage(String imageUrl, String contentId, String imageType) {
+    if (imageUrl == null || imageUrl.isBlank()) {
+      return imageUrl;
+    }
+
+    try {
+      return imageUploadService.uploadImageFromUrl(
+              imageUrl,
+              "festivals/" + contentId + "/" + imageType
+      );
+    } catch (RuntimeException e) {
+      return imageUrl;
+    }
   }
 
   // 카테고리 코드가 있으면 코드 테이블에서 표시명을 찾고, 없으면 축제 타입/소분류 코드를 대체 표시명으로 사용합니다.
