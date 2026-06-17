@@ -140,13 +140,13 @@ const AxiosApi = {
 
   // AI에게 질문 보내기
   sendQuestion: (question) =>
-    publicApi.post("/api/ai/question", {
+    publicApi.post("/ai/question", {
       question,
     }),
 
   // 현장톡 내용 AI 요약 조회
   getAiFieldSummary: (chatRoomId) =>
-    AxiosInstance.get(`/api/ai/field-summary/${chatRoomId}`),
+    AxiosInstance.get(`/ai/field-summary/${chatRoomId}`),
 
   // 인증 - 중복 확인
   checkLoginId: (loginId) =>
@@ -243,14 +243,14 @@ const AxiosApi = {
   },
 
   // 월별 축제 조회 - 공개 API
-  getMonthlyFestivals: (targetMonth) =>
+  getCalendarMonthlyFestivals: (targetMonth) =>
     publicApi.get("/calendar/monthly", { params: { targetMonth } }),
 
   // 지역 필터 조회 - 공개 API
-  getRegionFilters: () => publicApi.get("/calendar/filters/regions"),
+  getCalendarRegionFilters: () => publicApi.get("/calendar/filters/regions"),
 
   // 테마 필터 조회 - 공개 API
-  getThemeFilters: () => publicApi.get("/calendar/filters/themes"),
+  getCalendarThemeFilters: () => publicApi.get("/calendar/filters/themes"),
 
   // 찜한 축제 일정 조회 - 로그인 필요
   getFavoriteCalendars: (page = 0, size = 10) =>
@@ -282,7 +282,7 @@ const AxiosApi = {
 
   // 축제 목록 조회
   getFestivalList: (page = 0, size = 10) =>
-    publicApi.get("/festival", { params: { page, size } }),
+    publicApi.get("/festivals", { params: { page, size } }),
 
   // 축제 통합 검색
   searchFestivals: ({
@@ -295,7 +295,7 @@ const AxiosApi = {
     page = 0,
     size = 10,
   }) =>
-    publicApi.get("/festival/search", {
+    publicApi.get("/festivals/search", {
       params: {
         keyword,
         ldongRegnCd,
@@ -310,48 +310,48 @@ const AxiosApi = {
 
   // 키워드 검색
   searchByKeyword: (keyword, page = 0, size = 10) =>
-    publicApi.get("/festival/search/keyword", {
+    publicApi.get("/festivals/search/keyword", {
       params: { keyword, page, size },
     }),
 
   // 지역 검색
   searchByRegion: (ldongRegnCd, ldongSignguCd, page = 0, size = 10) =>
-    publicApi.get("/festival/search/region", {
+    publicApi.get("/festivals/search/region", {
       params: { ldongRegnCd, ldongSignguCd, page, size },
     }),
 
   // 테마 검색
   searchByTheme: (lclsSystm, page = 0, size = 10) =>
-    publicApi.get("/festival/search/theme", {
+    publicApi.get("/festivals/search/theme", {
       params: { lclsSystm, page, size },
     }),
 
   // 기간 검색 - startDate, endDate는 "yyyy-MM-dd" 형태
   searchByPeriod: (startDate, endDate, page = 0, size = 10) =>
-    publicApi.get("/festival/search/period", {
+    publicApi.get("/festivals/search/period", {
       params: { startDate, endDate, page, size },
     }),
 
   // 지도 표시용 축제 조회
   getMapFestivals: (ldongRegnCd, ldongSignguCd) =>
-    publicApi.get("/festival/map", { params: { ldongRegnCd, ldongSignguCd } }),
+    publicApi.get("/festivals/map", { params: { ldongRegnCd, ldongSignguCd } }),
 
   // 월별 축제 조회 - targetMonth는 "yyyy-MM" 형태
-  getMonthlyFestivals: (targetMonth) =>
-    publicApi.get("/festival/monthly", { params: { targetMonth } }),
+  getFestivalMonthlyFestivals: (targetMonth) =>
+    publicApi.get("/festivals/monthly", { params: { targetMonth } }),
 
   // 지역 필터 조회
-  getRegionFilters: () => publicApi.get("/festival/filters/regions"),
+  getFestivalRegionFilters: () => publicApi.get("/festivals/filters/regions"),
 
   // 테마 필터 조회
-  getThemeFilters: () => publicApi.get("/festival/filters/themes"),
+  getFestivalThemeFilters: () => publicApi.get("/festivals/filters/themes"),
 
   // 축제 상세 조회
-  getFestivalDetail: (festivalId) => publicApi.get(`/festival/${festivalId}`),
+  getFestivalDetail: (festivalId) => publicApi.get(`/festivals/${festivalId}`),
 
   // 축제 위치 조회
   getFestivalLocation: (festivalId) =>
-    publicApi.get(`/festival/${festivalId}/location`),
+    publicApi.get(`/festivals/${festivalId}/location`),
 
   // 메인 화면 조회
   getMainPage: (ldongRegnCd, ldongSignguCd) =>

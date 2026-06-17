@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import FilterModal from "./FilterModal";
+import AxiosApi from "../../api/AxiosApi";
+import { useAuth } from "../../context/AuthContext";
 import {
   ButtonGroup,
   CardBody,
@@ -58,191 +60,133 @@ import {
   Title,
 } from "./FestaSearchCss";
 
-const FESTIVALS = [
-  {
-    id: 1,
-    title: "네온 갤럭시 페스티벌 2024",
-    category: "문화예술축제",
-    categoryTone: "violet",
-    location: "서울 강남구",
-    period: "2024.08.15 - 08.17",
-    rating: "4.8 (1.2k)",
-    likes: "850",
-    saves: "2.4k",
-    live: true,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuArg1f_X5Awzvi7aEs3vgBFmhpAQ4E3M6EB-aSBX5f6bEdoFB4ZHw_YyW4JmdAItBXLvjOExkQx1t0HhFmkWanyXtFeYPi-TWhzpPB5yr6yCfBiKrOazV0QLctEcHhOu8g2XKKDS5hbe7lGXMWRo4nRH5mnEzMYXTIIP_ovguDSIbDx2J8mKzwxODbAEXohc3RakDdjXqPlGlPkBYoyKeAZt0Vbh6PmhBNX5nC7nfRCBeyodbEXd08ChKuHjJRfvVNNJbvrpOJnuuCy",
-  },
-  {
-    id: 2,
-    title: "미드나잇 블루 재즈 페어",
-    category: "문화예술축제",
-    categoryTone: "amber",
-    location: "부산 해운대구",
-    period: "2024.09.02 - 09.04",
-    rating: "4.9 (450)",
-    likes: "320",
-    saves: "1.1k",
-    live: false,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDvRXMyUblRDrPybiJtQ7N9hRaHqFenK4Esti_ijEnq1KaaN8Ed7WcR_x6OlJNztJV3VZa72wwFVEKtcTdp-_3x89im5bWleDuXTZwfaSuFASXnFXzJG4Yi0tylO20bYdFummfCKSIq_5CHA9jO12HLd1DbRtEw37lyJ5m8XB7T0IgjT-wCrGRH5kURQqv2_xatESvV7x0JzpTtVS3cqnJwbJuCGInoC9fxehglIjgH4BZ1s29PqxAw9ljD_e0xfWWNE7pCp4yMPvNt",
-  },
-  {
-    id: 3,
-    title: "루미너스 라이트 익스포",
-    category: "문화관광축제",
-    categoryTone: "coral",
-    location: "대전 유성구",
-    period: "2024.10.12 - 10.20",
-    rating: "4.7 (890)",
-    likes: "610",
-    saves: "3.2k",
-    live: false,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBe5nxL_lPG74j7JT_XQhhi4y_K4QNBpzESNkp89SVytCYe1uUkxCyUzAsNKrbQFIHLSwtA-dhqoGfcFkl6ZLzm58ERVchkMUNvG5gSYCO51LOd0zbGwSfKjHcASfZVFoZoaEkhqvJFBzizVhCLqbidUSIRYuEsX0WUNZ69GJ3CIqMBuoy3iX7NdS-XooM4DhsF4Pj1ADglFlEVD1-Q2OiZKu27K2P1jygOenbQQPVPvyRrztuyr_EqRDRGA8GjBbrJqQTiWdFkHd_4",
-  },
-  {
-    id: 4,
-    title: "별빛 궁궐 야행",
-    category: "전통역사축제",
-    categoryTone: "violet",
-    location: "서울 종로구",
-    period: "2024.08.20 - 08.25",
-    rating: "4.9 (2.1k)",
-    likes: "1.2k",
-    saves: "5.5k",
-    live: false,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCuM37ieKo2QKVF9zO3zNr1GdJ-FZBnCR2SCvE6ImlrjUadWzVk9t27ERL8XMMd3ghAjrau3HRWo9n3_rTPwFcjk7gB2ACtNNet-2sA4v4zFBrGQNMbnI7EfA2wOgI9Uhk6jIKOZ-Itv8EXbosk_-VDxnFfM-In9jnyhpk4RXY1bI5h7V1qDqvRtY0g5kek5lqwe3QbfZRElXcuryTNClus77gTjc61TzSabBAXg_Qo44-SAULaM792wMRNGQIfTgrHVoAY_Hn5TEuR",
-  },
-  {
-    id: 5,
-    title: "한강 선셋 푸드 페스타",
-    category: "지역특산물축제",
-    categoryTone: "amber",
-    location: "서울 영등포구",
-    period: "2024.09.18 - 09.22",
-    rating: "4.6 (730)",
-    likes: "540",
-    saves: "1.8k",
-    live: true,
-    image:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 6,
-    title: "제주 오름 뮤직 캠프",
-    category: "생태자연축제",
-    categoryTone: "coral",
-    location: "제주특별자치도 제주시",
-    period: "2024.10.03 - 10.06",
-    rating: "4.8 (980)",
-    likes: "780",
-    saves: "2.9k",
-    live: false,
-    image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 7,
-    title: "전주 한옥 빛 축제",
-    category: "전통역사축제",
-    categoryTone: "violet",
-    location: "전북특별자치도 전주시",
-    period: "2024.11.01 - 11.10",
-    rating: "4.9 (1.6k)",
-    likes: "1.4k",
-    saves: "4.1k",
-    live: false,
-    image:
-      "https://images.unsplash.com/photo-1538485399081-7c8ed3b6bd71?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 8,
-    title: "목포 바다 재즈 나이트",
-    category: "문화예술축제",
-    categoryTone: "amber",
-    location: "전라남도 목포시",
-    period: "2024.09.27 - 09.29",
-    rating: "4.7 (510)",
-    likes: "410",
-    saves: "1.5k",
-    live: false,
-    image:
-      "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 9,
-    title: "나주 배꽃 문화제",
-    category: "지역특산물축제",
-    categoryTone: "coral",
-    location: "전라남도 나주시",
-    period: "2024.04.05 - 04.09",
-    rating: "4.5 (360)",
-    likes: "290",
-    saves: "870",
-    live: false,
-    image:
-      "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 10,
-    title: "부산 비치 EDM 위크",
-    category: "문화관광축제",
-    categoryTone: "violet",
-    location: "부산 해운대구",
-    period: "2024.08.01 - 08.04",
-    rating: "4.8 (2.4k)",
-    likes: "2.1k",
-    saves: "6.2k",
-    live: true,
-    image:
-      "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 11,
-    title: "강릉 커피 앤 아트 페어",
-    category: "기타축제",
-    categoryTone: "amber",
-    location: "강원특별자치도 강릉시",
-    period: "2024.10.18 - 10.20",
-    rating: "4.6 (640)",
-    likes: "520",
-    saves: "1.9k",
-    live: false,
-    image:
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 12,
-    title: "대전 사이언스 라이트 페스티벌",
-    category: "문화관광축제",
-    categoryTone: "coral",
-    location: "대전 유성구",
-    period: "2024.12.06 - 12.15",
-    rating: "4.7 (1.1k)",
-    likes: "890",
-    saves: "3.7k",
-    live: false,
-    hasMap: false,
-    reviews: [],
-    image:
-      "https://images.unsplash.com/photo-1535223289827-42f1e9919769?auto=format&fit=crop&w=900&q=80",
-  },
-];
-
 const INITIAL_RESULT_COUNT = 6;
 const RESULT_LOAD_SIZE = 3;
 
 const DEFAULT_FILTER_VALUES = {
-  location: "서울특별시 강남구",
-  period: "2026.6.1 - 6.10",
-  theme: "전통역사축제",
+  location: "",
+  period: "",
+  theme: "",
+  ldongRegnCd: "",
+  ldongSignguCd: "",
+  lclsSystm: "",
+};
+
+// 추가: ApiResponse(data 래핑)와 일반 axios 응답을 모두 안전하게 꺼내기 위한 헬퍼입니다.
+const getResponseData = (response) => response?.data?.data ?? response?.data ?? null;
+
+// 추가: Spring Page 응답(content)과 일반 배열 응답을 모두 검색 결과 배열로 처리합니다.
+const getPageContent = (value) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value?.content)) {
+    return value.content;
+  }
+
+  return [];
+};
+
+// 추가: 백엔드 LocalDate 문자열과 기존 period 문자열을 카드 표시용으로 통일합니다.
+const formatDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  return String(value).replaceAll("-", ".");
+};
+
+// 추가: FilterModal의 "yyyy.M.d - M.d" 표시값을 검색 API의 yyyy-MM-dd 값으로 변환합니다.
+const toApiDate = (value, baseYear) => {
+  const match = value?.trim().match(/(?:(\d{4})\.)?(\d{1,2})\.(\d{1,2})/);
+
+  if (!match) {
+    return "";
+  }
+
+  const year = match[1] || baseYear;
+  const month = String(match[2]).padStart(2, "0");
+  const day = String(match[3]).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+// 추가: 기간 필터 표시값을 startDate/endDate 검색 파라미터로 정규화합니다.
+const parsePeriodForApi = (period) => {
+  const [startValue, endValue] = period?.split(" - ") || [];
+  const startDate = toApiDate(startValue);
+  const startYear = startDate ? startDate.slice(0, 4) : "";
+  const endDate = toApiDate(endValue, startYear) || startDate;
+
+  return { startDate, endDate };
+};
+
+// 추가: 숫자값을 "1.2k" 형태의 짧은 표시 문자열로 바꿉니다.
+const formatCount = (value) => {
+  const numberValue = Number(value) || 0;
+
+  if (numberValue >= 1000) {
+    return `${(numberValue / 1000).toFixed(1).replace(".0", "")}k`;
+  }
+
+  return numberValue.toLocaleString("ko-KR");
+};
+
+// 추가: 카테고리명에 따라 기존 카드 배지 색상 톤을 안정적으로 배정합니다.
+const getCategoryTone = (category = "") => {
+  if (category.includes("예술") || category.includes("전통")) {
+    return "violet";
+  }
+
+  if (category.includes("특산") || category.includes("기타")) {
+    return "amber";
+  }
+
+  return "coral";
+};
+
+// 추가: 백엔드 축제 DTO를 카드/상세 이동에 쓰는 형태로 정규화합니다.
+const normalizeFestival = (festival) => {
+  const id = festival?.festivalId ?? festival?.id ?? festival?.contentId;
+  const category = festival?.categoryName ?? festival?.category ?? "기타축제";
+  const startDate = formatDate(festival?.eventStartDate);
+  const endDate = formatDate(festival?.eventEndDate);
+  const period =
+    festival?.period ||
+    (startDate && endDate ? `${startDate} - ${endDate}` : startDate || "일정 미정");
+  const ratingValue =
+    Number.parseFloat(festival?.averageRating ?? festival?.rating) || 0;
+
+  return {
+    ...festival,
+    id,
+    festivalId: festival?.festivalId ?? id,
+    title: festival?.title || "이름 없는 축제",
+    category,
+    categoryTone: festival?.categoryTone || getCategoryTone(category),
+    location:
+      festival?.location ||
+      [festival?.addr1, festival?.addr2].filter(Boolean).join(" ") ||
+      "지역 정보 없음",
+    period,
+    rating:
+      festival?.rating && typeof festival.rating === "string"
+        ? festival.rating
+        : `${ratingValue.toFixed(1)} (${formatCount(festival?.reviewCount)} reviews)`,
+    likes: festival?.likes ?? formatCount(festival?.likeCount),
+    saves: festival?.saves ?? formatCount(festival?.favoriteCount),
+    live: Boolean(festival?.live || festival?.status === "ACTIVE"),
+    image: festival?.image || festival?.firstImage || "",
+  };
 };
 
 function Search() {
   const location = useLocation();
   const navigate = useNavigate();
+  // AuthContext 역할: 찜 API는 로그인 사용자 기능이므로 로그인 여부를 확인합니다.
+  const auth = useAuth();
+  const isLoggedIn = auth?.isLoggedIn ?? false;
   const initialKeyword =
     location.state?.keyword ||
     new URLSearchParams(location.search).get("keyword") ||
@@ -254,37 +198,19 @@ function Search() {
   const [draftFilterValues, setDraftFilterValues] = useState(
     DEFAULT_FILTER_VALUES,
   );
+  // 추가: 실제 검색에 적용된 필터입니다. 모달의 draft 값은 적용 버튼을 누르기 전까지 검색 조건에 쓰지 않습니다.
+  const [appliedFilterValues, setAppliedFilterValues] = useState(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [favoriteFestivalIds, setFavoriteFestivalIds] = useState(
     () => new Set(),
   );
   const [visibleResultCount, setVisibleResultCount] =
     useState(INITIAL_RESULT_COUNT);
+  // 추가: API 검색 결과와 로딩/안내 메시지를 별도 상태로 관리합니다.
+  const [results, setResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchMessage, setSearchMessage] = useState("");
 
-  const results = useMemo(() => {
-    const query = submittedKeyword.trim().toLowerCase();
-
-    if (!hasSearched) {
-      return [];
-    }
-
-    if (!query) {
-      return FESTIVALS;
-    }
-
-    return FESTIVALS.filter((festival) => {
-      const searchableText = [
-        festival.title,
-        festival.category,
-        festival.location,
-        festival.period,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(query);
-    });
-  }, [hasSearched, submittedKeyword]);
   const visibleResults = useMemo(
     () => results.slice(0, visibleResultCount),
     [results, visibleResultCount],
@@ -303,6 +229,67 @@ function Search() {
     setVisibleResultCount(INITIAL_RESULT_COUNT);
   }, [location.search, location.state]);
 
+  // 추가: 검색어 또는 적용된 필터가 바뀌면 백엔드 축제 통합 검색 API를 호출합니다.
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!hasSearched) {
+      setResults([]);
+      setSearchMessage("");
+      return undefined;
+    }
+
+    const fetchSearchResults = async () => {
+      const periodParams = parsePeriodForApi(appliedFilterValues?.period);
+      const requestParams = {
+        keyword: submittedKeyword.trim(),
+        ldongRegnCd: appliedFilterValues?.ldongRegnCd || undefined,
+        ldongSignguCd: appliedFilterValues?.ldongSignguCd || undefined,
+        lclsSystm: appliedFilterValues?.lclsSystm || undefined,
+        startDate: periodParams.startDate || undefined,
+        endDate: periodParams.endDate || undefined,
+        page: 0,
+        size: 30,
+      };
+
+      setIsSearching(true);
+      setSearchMessage("");
+
+      try {
+        const response = await AxiosApi.searchFestivals(requestParams);
+        const pageData = getResponseData(response);
+        const apiResults = getPageContent(pageData).map(normalizeFestival);
+
+        if (isMounted) {
+          setResults(apiResults);
+          setSearchMessage(
+            apiResults.length === 0
+              ? "검색 조건에 맞는 축제 데이터가 없습니다."
+              : "",
+          );
+          setVisibleResultCount(INITIAL_RESULT_COUNT);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error("FestaSearch search error:", error);
+          setResults([]);
+          setSearchMessage("검색 결과를 불러오지 못했습니다.");
+          setVisibleResultCount(INITIAL_RESULT_COUNT);
+        }
+      } finally {
+        if (isMounted) {
+          setIsSearching(false);
+        }
+      }
+    };
+
+    fetchSearchResults();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [appliedFilterValues, hasSearched, submittedKeyword]);
+
   const handleSubmit = (event) => {
     event.preventDefault();
     setSubmittedKeyword(keyword);
@@ -313,16 +300,63 @@ function Search() {
   const handleResetFilters = () => {
     setFilters([]);
     setDraftFilterValues(DEFAULT_FILTER_VALUES);
+    setAppliedFilterValues(null);
   };
 
   const removeFilter = (targetFilter) => {
     setFilters((currentFilters) =>
       currentFilters.filter((filter) => filter !== targetFilter),
     );
+    // 추가: 칩을 개별 제거하면 적용된 검색 파라미터에서도 해당 조건을 함께 제거합니다.
+    setAppliedFilterValues((currentValues) => {
+      if (!currentValues) {
+        return currentValues;
+      }
+
+      const nextValues = { ...currentValues };
+
+      if (targetFilter === currentValues.location) {
+        nextValues.location = "";
+        nextValues.ldongRegnCd = "";
+        nextValues.ldongSignguCd = "";
+      }
+
+      if (targetFilter === currentValues.period) {
+        nextValues.period = "";
+      }
+
+      if (targetFilter === currentValues.theme) {
+        nextValues.theme = "";
+        nextValues.lclsSystm = "";
+      }
+
+      return nextValues;
+    });
+    setDraftFilterValues((currentValues) => {
+      const nextValues = { ...currentValues };
+
+      if (targetFilter === currentValues.location) {
+        nextValues.location = "";
+        nextValues.ldongRegnCd = "";
+        nextValues.ldongSignguCd = "";
+      }
+
+      if (targetFilter === currentValues.period) {
+        nextValues.period = "";
+      }
+
+      if (targetFilter === currentValues.theme) {
+        nextValues.theme = "";
+        nextValues.lclsSystm = "";
+      }
+
+      return nextValues;
+    });
   };
 
   const handleApplyFilters = (nextFilterValues) => {
     setDraftFilterValues(nextFilterValues);
+    setAppliedFilterValues(nextFilterValues);
     setFilters(
       [
         nextFilterValues.location,
@@ -330,6 +364,7 @@ function Search() {
         nextFilterValues.theme,
       ].filter(Boolean),
     );
+    setHasSearched(true);
     setIsFilterOpen(false);
     setVisibleResultCount(INITIAL_RESULT_COUNT);
   };
@@ -345,7 +380,19 @@ function Search() {
     });
   };
 
-  const toggleFavorite = (festivalId) => {
+  // 추가: 찜 버튼은 로그인 상태에서 API를 호출하고, 실패 시 기존 로컬 상태로 되돌립니다.
+  const toggleFavorite = async (festivalId) => {
+    if (!festivalId) {
+      return;
+    }
+
+    if (!isLoggedIn) {
+      setSearchMessage("로그인 후 축제를 찜할 수 있습니다.");
+      return;
+    }
+
+    const wasFavorite = favoriteFestivalIds.has(festivalId);
+
     setFavoriteFestivalIds((currentIds) => {
       const nextIds = new Set(currentIds);
 
@@ -357,6 +404,29 @@ function Search() {
 
       return nextIds;
     });
+
+    try {
+      if (wasFavorite) {
+        await AxiosApi.deleteFavorite(festivalId);
+      } else {
+        await AxiosApi.createFavorite(festivalId);
+      }
+      setSearchMessage("");
+    } catch (error) {
+      console.error("FestaSearch favorite toggle error:", error);
+      setFavoriteFestivalIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+
+        if (wasFavorite) {
+          nextIds.add(festivalId);
+        } else {
+          nextIds.delete(festivalId);
+        }
+
+        return nextIds;
+      });
+      setSearchMessage("찜 상태 변경 중 오류가 발생했습니다.");
+    }
   };
 
   const handleCardKeyDown = (event, festival) => {
@@ -437,7 +507,23 @@ function Search() {
             )}
           </FilterPanel>
 
-          {!hasSearched && (
+          {/* 추가: API 검색 진행/실패 상태를 검색 패널 아래에 표시합니다. */}
+          {(isSearching || searchMessage) && (
+            <p
+              role="status"
+              style={{
+                color: searchMessage ? "#ffb690" : "#ddb7ff",
+                fontSize: "14px",
+                fontWeight: 800,
+                lineHeight: "22px",
+                margin: "-40px 0 36px",
+              }}
+            >
+              {isSearching ? "축제를 검색하고 있습니다." : searchMessage}
+            </p>
+          )}
+
+          {!hasSearched && !isSearching && (
             <EmptyState>
               <EmptyIcon>
                 <SearchIcon size={48} strokeWidth={1.8} />
@@ -452,7 +538,7 @@ function Search() {
             </EmptyState>
           )}
 
-          {hasSearched && results.length === 0 && (
+          {hasSearched && !isSearching && results.length === 0 && (
             <EmptyState>
               <EmptyIcon>
                 <SearchX size={48} strokeWidth={1.8} />
@@ -495,7 +581,7 @@ function Search() {
                     tabIndex={0}
                   >
                     <ImageWrap>
-                      <img alt={festival.title} src={festival.image} />
+                      {festival.image && <img alt={festival.title} src={festival.image} />}
                       {festival.live && <LiveBadge>LIVE</LiveBadge>}
                       <HeartButton
                         $active={favoriteFestivalIds.has(festival.id)}

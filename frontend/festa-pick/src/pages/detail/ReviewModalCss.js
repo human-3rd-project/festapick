@@ -97,12 +97,14 @@ export const FestivalCard = styled.div`
   display: flex;
   align-items: center;
   gap: 16px;
+  min-height: 96px;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   background: #222a3d;
 
   div {
+    width: 100%;
     min-width: 0;
   }
 
@@ -132,6 +134,7 @@ export const FestivalImage = styled.img`
   height: 64px;
   flex: 0 0 auto;
   border-radius: 8px;
+  background: #131b2e;
   object-fit: cover;
 `;
 
@@ -206,6 +209,7 @@ export const TextareaGroup = styled.section`
 export const Textarea = styled.textarea`
   width: 100%;
   min-height: 144px;
+  box-sizing: border-box;
   padding: 16px;
   border: 1px solid #4d4354;
   border-radius: 12px;
@@ -275,5 +279,9 @@ export const ActionButton = styled.button`
 
   &:active {
     transform: ${({ disabled }) => (disabled ? "none" : "scale(0.96)")};
+  }
+
+  &:disabled {
+    box-shadow: none;
   }
 `;

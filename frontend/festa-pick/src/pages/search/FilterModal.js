@@ -8,6 +8,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import AxiosApi from "../../api/AxiosApi";
 import {
   ApplyButton,
   CalendarHeader,
@@ -38,267 +39,68 @@ import {
 } from "./FilterModalCss";
 
 const DEFAULT_VALUES = {
-  province: "서울특별시",
-  district: "강남구",
-  location: "서울특별시 강남구",
-  period: "2026.06.01 - 06.05",
+  province: "",
+  district: "",
+  location: "",
+  period: "",
   theme: "",
+  ldongRegnCd: "",
+  ldongSignguCd: "",
+  lclsSystm: "",
 };
-
-const DISTRICTS_BY_PROVINCE = {
-  서울특별시: [
-    "강남구",
-    "강동구",
-    "강북구",
-    "강서구",
-    "관악구",
-    "광진구",
-    "구로구",
-    "금천구",
-    "노원구",
-    "도봉구",
-    "동대문구",
-    "동작구",
-    "마포구",
-    "서대문구",
-    "서초구",
-    "성동구",
-    "성북구",
-    "송파구",
-    "양천구",
-    "영등포구",
-    "용산구",
-    "은평구",
-    "종로구",
-    "중구",
-    "중랑구",
-  ],
-  부산광역시: [
-    "강서구",
-    "금정구",
-    "기장군",
-    "남구",
-    "동구",
-    "동래구",
-    "부산진구",
-    "북구",
-    "사상구",
-    "사하구",
-    "서구",
-    "수영구",
-    "연제구",
-    "영도구",
-    "중구",
-    "해운대구",
-  ],
-  대구광역시: [
-    "군위군",
-    "남구",
-    "달서구",
-    "달성군",
-    "동구",
-    "북구",
-    "서구",
-    "수성구",
-    "중구",
-  ],
-  인천광역시: [
-    "강화군",
-    "계양구",
-    "남동구",
-    "동구",
-    "미추홀구",
-    "부평구",
-    "서구",
-    "연수구",
-    "옹진군",
-    "중구",
-  ],
-  광주광역시: ["광산구", "남구", "동구", "북구", "서구"],
-  대전광역시: ["대덕구", "동구", "서구", "유성구", "중구"],
-  울산광역시: ["남구", "동구", "북구", "울주군", "중구"],
-  세종특별자치시: ["세종시"],
-  경기도: [
-    "가평군",
-    "고양시",
-    "과천시",
-    "광명시",
-    "광주시",
-    "구리시",
-    "군포시",
-    "김포시",
-    "남양주시",
-    "동두천시",
-    "부천시",
-    "성남시",
-    "수원시",
-    "시흥시",
-    "안산시",
-    "안성시",
-    "안양시",
-    "양주시",
-    "양평군",
-    "여주시",
-    "연천군",
-    "오산시",
-    "용인시",
-    "의왕시",
-    "의정부시",
-    "이천시",
-    "파주시",
-    "평택시",
-    "포천시",
-    "하남시",
-    "화성시",
-  ],
-  강원특별자치도: [
-    "강릉시",
-    "고성군",
-    "동해시",
-    "삼척시",
-    "속초시",
-    "양구군",
-    "양양군",
-    "영월군",
-    "원주시",
-    "인제군",
-    "정선군",
-    "철원군",
-    "춘천시",
-    "태백시",
-    "평창군",
-    "홍천군",
-    "화천군",
-    "횡성군",
-  ],
-  충청북도: [
-    "괴산군",
-    "단양군",
-    "보은군",
-    "영동군",
-    "옥천군",
-    "음성군",
-    "제천시",
-    "증평군",
-    "진천군",
-    "청주시",
-    "충주시",
-  ],
-  충청남도: [
-    "계룡시",
-    "공주시",
-    "금산군",
-    "논산시",
-    "당진시",
-    "보령시",
-    "부여군",
-    "서산시",
-    "서천군",
-    "아산시",
-    "예산군",
-    "천안시",
-    "청양군",
-    "태안군",
-    "홍성군",
-  ],
-  전북특별자치도: [
-    "고창군",
-    "군산시",
-    "김제시",
-    "남원시",
-    "무주군",
-    "부안군",
-    "순창군",
-    "완주군",
-    "익산시",
-    "임실군",
-    "장수군",
-    "전주시",
-    "정읍시",
-    "진안군",
-  ],
-  전라남도: [
-    "강진군",
-    "고흥군",
-    "곡성군",
-    "광양시",
-    "구례군",
-    "나주시",
-    "담양군",
-    "목포시",
-    "무안군",
-    "보성군",
-    "순천시",
-    "신안군",
-    "여수시",
-    "영광군",
-    "영암군",
-    "완도군",
-    "장성군",
-    "장흥군",
-    "진도군",
-    "함평군",
-    "해남군",
-    "화순군",
-  ],
-  경상북도: [
-    "경산시",
-    "경주시",
-    "고령군",
-    "구미시",
-    "김천시",
-    "문경시",
-    "봉화군",
-    "상주시",
-    "성주군",
-    "안동시",
-    "영덕군",
-    "영양군",
-    "영주시",
-    "영천시",
-    "예천군",
-    "울릉군",
-    "울진군",
-    "의성군",
-    "청도군",
-    "청송군",
-    "칠곡군",
-    "포항시",
-  ],
-  경상남도: [
-    "거제시",
-    "거창군",
-    "고성군",
-    "김해시",
-    "남해군",
-    "밀양시",
-    "사천시",
-    "산청군",
-    "양산시",
-    "의령군",
-    "진주시",
-    "창녕군",
-    "창원시",
-    "통영시",
-    "하동군",
-    "함안군",
-    "함양군",
-    "합천군",
-  ],
-  제주특별자치도: ["서귀포시", "제주시"],
-};
-
-const PROVINCES = Object.keys(DISTRICTS_BY_PROVINCE);
-const THEMES = [
-  "문화관광축제",
-  "문화예술축제",
-  "지역특산물축제",
-  "전통역사축제",
-  "생태자연축제",
-  "기타축제",
-];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// 추가: ApiResponse(data 래핑)와 일반 axios 응답을 모두 안전하게 꺼내기 위한 헬퍼입니다.
+const getResponseData = (response) => response?.data?.data ?? response?.data ?? null;
+
+// 추가: 값이 배열인지 확인해 필터 API가 null을 내려줘도 빈 목록으로 처리합니다.
+const getSafeArray = (value) => (Array.isArray(value) ? value : []);
+
+// 추가: 백엔드 LegalDongCodes 응답을 화면에서 사용할 지역 option 형태로 정규화합니다.
+const normalizeRegionOption = (region) => {
+  const province = region?.sidoName || region?.province || "";
+  const district = region?.sigunguName || region?.district || "";
+
+  if (!province || !district) {
+    return null;
+  }
+
+  return {
+    province,
+    district,
+    fullName: region?.fullName || `${province} ${district}`,
+    ldongRegnCd: region?.ldongRegnCd || "",
+    ldongSignguCd: region?.ldongSignguCd || "",
+  };
+};
+
+// 추가: 지역 option 배열을 province 기준으로 묶어 select 옵션을 만들기 쉽게 합니다.
+const groupRegionsByProvince = (regions) =>
+  regions.reduce((groups, region) => {
+    if (!groups[region.province]) {
+      groups[region.province] = [];
+    }
+
+    groups[region.province].push(region);
+    return groups;
+  }, {});
+
+// 추가: 백엔드 FestivalCategoryCodes 응답을 표시명과 검색 코드가 있는 option으로 정규화합니다.
+const normalizeThemeOption = (theme) => {
+  const label = theme?.sclsName || theme?.mclsName || theme?.lclsName || theme?.name || "";
+  const code = theme?.sclsCode || theme?.mclsCode || theme?.lclsCode || theme?.code || "";
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    label,
+    value: code || label,
+    lclsSystm: code,
+  };
+};
 
 function getCurrentVisibleMonth() {
   const today = new Date();
@@ -327,7 +129,8 @@ function formatDateRange(startDate, endDate) {
 }
 
 function parseDateKey(value) {
-  const match = value?.match(/(\d{4})\.(\d{2})\.(\d{2})/);
+  // 수정: "2026.6.1"처럼 한 자리 월/일도 테스트 값으로 들어올 수 있어 허용합니다.
+  const match = value?.match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
 
   if (!match) {
     return null;
@@ -340,22 +143,18 @@ function parseDateRange(period) {
   const [startValue, endValue] = period?.split(" - ") || [];
 
   if (!startValue) {
-    const fallbackStart = new Date(2026, 6, 1);
-    const fallbackEnd = new Date(2026, 6, 10);
-    return { startDate: fallbackStart, endDate: fallbackEnd };
+    return { startDate: null, endDate: null };
   }
 
   const startDate = parseDateKey(startValue);
   let endDate = parseDateKey(endValue);
 
   if (!startDate) {
-    const fallbackStart = new Date(2026, 6, 1);
-    const fallbackEnd = new Date(2026, 6, 10);
-    return { startDate: fallbackStart, endDate: fallbackEnd };
+    return { startDate: null, endDate: null };
   }
 
   if (!endDate && endValue && startDate) {
-    const shortDateMatch = endValue.match(/(\d{2})\.(\d{2})/);
+    const shortDateMatch = endValue.match(/(\d{1,2})\.(\d{1,2})/);
 
     if (!shortDateMatch) {
       return { startDate, endDate: startDate };
@@ -431,18 +230,8 @@ function getInitialValues(values) {
 
   if (values?.location && !values?.province && !values?.district) {
     const [province, district] = values.location.split(" ");
-    nextValues.province = province || DEFAULT_VALUES.province;
-    nextValues.district = district || DEFAULT_VALUES.district;
-  }
-
-  if (!DISTRICTS_BY_PROVINCE[nextValues.province]) {
-    nextValues.province = DEFAULT_VALUES.province;
-  }
-
-  const provinceDistricts = DISTRICTS_BY_PROVINCE[nextValues.province];
-
-  if (!provinceDistricts.includes(nextValues.district)) {
-    nextValues.district = provinceDistricts[0];
+    nextValues.province = province || "";
+    nextValues.district = district || "";
   }
 
   nextValues.location = `${nextValues.province} ${nextValues.district}`.trim();
@@ -457,6 +246,10 @@ function FilterModal({
   onClose,
   onReset,
 }) {
+  // 추가: API 필터 옵션입니다. 응답이 비어 있거나 실패하면 빈 목록으로 표시합니다.
+  const [regionOptions, setRegionOptions] = useState([]);
+  const [themeOptions, setThemeOptions] = useState([]);
+  const [filterLoadMessage, setFilterLoadMessage] = useState("");
   const [draftValues, setDraftValues] = useState(() =>
     getInitialValues(values),
   );
@@ -466,6 +259,61 @@ function FilterModal({
   );
   const [selectedRange, setSelectedRange] = useState(initialRange);
   const [visibleMonth, setVisibleMonth] = useState(getCurrentVisibleMonth);
+
+  // 추가: 모달이 열릴 때 지역/테마 필터 API를 조회합니다. 실패 시 빈 옵션 상태를 표시합니다.
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const fetchFilterOptions = async () => {
+      try {
+        const [regionResponse, themeResponse] = await Promise.all([
+          AxiosApi.getFestivalRegionFilters(),
+          AxiosApi.getFestivalThemeFilters(),
+        ]);
+        const nextRegionOptions = getSafeArray(getResponseData(regionResponse))
+          .map(normalizeRegionOption)
+          .filter(Boolean);
+        const nextThemeOptions = getSafeArray(getResponseData(themeResponse))
+          .map(normalizeThemeOption)
+          .filter(Boolean);
+
+        if (isMounted) {
+          setRegionOptions(
+            nextRegionOptions.length > 0
+              ? nextRegionOptions
+              : [],
+          );
+          setThemeOptions(
+            nextThemeOptions.length > 0
+              ? nextThemeOptions
+              : [],
+          );
+          setFilterLoadMessage(
+            nextRegionOptions.length === 0 && nextThemeOptions.length === 0
+              ? "필터 API 데이터가 없습니다."
+              : "",
+          );
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error("FilterModal filter option load error:", error);
+          setRegionOptions([]);
+          setThemeOptions([]);
+          setFilterLoadMessage("필터 옵션을 불러오지 못했습니다.");
+        }
+      }
+    };
+
+    fetchFilterOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -482,9 +330,17 @@ function FilterModal({
     () => getCalendarDays(visibleMonth.year, visibleMonth.month),
     [visibleMonth],
   );
+  // 지역 select 역할: API 옵션을 province별로 묶고, 비어 있으면 기존 정적 목록으로 대체합니다.
+  const regionsByProvince = useMemo(
+    () => groupRegionsByProvince(regionOptions),
+    [regionOptions],
+  );
+  const provinceOptions = useMemo(() => {
+    const provinces = Object.keys(regionsByProvince);
+    return provinces;
+  }, [regionsByProvince]);
   const districtOptions =
-    DISTRICTS_BY_PROVINCE[draftValues.province] ||
-    DISTRICTS_BY_PROVINCE[DEFAULT_VALUES.province];
+    regionsByProvince[draftValues.province] || [];
 
   if (!isOpen) {
     return null;
@@ -497,7 +353,23 @@ function FilterModal({
     };
 
     if (name === "province") {
-      nextValues.district = DISTRICTS_BY_PROVINCE[value]?.[0] || "";
+      const firstDistrict = regionsByProvince[value]?.[0];
+      nextValues.district = firstDistrict?.district || "";
+      nextValues.ldongRegnCd = firstDistrict?.ldongRegnCd || "";
+      nextValues.ldongSignguCd = firstDistrict?.ldongSignguCd || "";
+    }
+
+    if (name === "district") {
+      const selectedRegion = districtOptions.find(
+        (region) => region.district === value,
+      );
+      nextValues.ldongRegnCd = selectedRegion?.ldongRegnCd || "";
+      nextValues.ldongSignguCd = selectedRegion?.ldongSignguCd || "";
+    }
+
+    if (name === "theme") {
+      const selectedTheme = themeOptions.find((theme) => theme.label === value);
+      nextValues.lclsSystm = selectedTheme?.lclsSystm || "";
     }
 
     if (name === "province" || name === "district") {
@@ -550,19 +422,26 @@ function FilterModal({
 
     setDraftValues(DEFAULT_VALUES);
     setSelectedRange(defaultRange);
-    setVisibleMonth({
-      year: defaultRange.startDate.getFullYear(),
-      month: defaultRange.startDate.getMonth(),
-    });
+    setVisibleMonth(getCurrentVisibleMonth());
     onChange?.(DEFAULT_VALUES);
     onReset?.();
   };
 
   const handleApply = () => {
+    const selectedRegion = districtOptions.find(
+      (region) => region.district === draftValues.district,
+    );
+    const selectedTheme = themeOptions.find(
+      (theme) => theme.label === draftValues.theme,
+    );
     const appliedValues = {
       ...draftValues,
       location: `${draftValues.province} ${draftValues.district}`.trim(),
       period: formatDateRange(selectedRange.startDate, selectedRange.endDate),
+      ldongRegnCd: draftValues.ldongRegnCd || selectedRegion?.ldongRegnCd || "",
+      ldongSignguCd:
+        draftValues.ldongSignguCd || selectedRegion?.ldongSignguCd || "",
+      lclsSystm: draftValues.lclsSystm || selectedTheme?.lclsSystm || "",
     };
 
     onApply?.(appliedValues);
@@ -583,6 +462,22 @@ function FilterModal({
         </ModalHeader>
 
         <ModalContent>
+          {/* 추가: API/DB에 필터 데이터가 없거나 호출 실패한 상태를 표시합니다. */}
+          {filterLoadMessage && (
+            <p
+              role="status"
+              style={{
+                color: "#ffb690",
+                fontSize: "13px",
+                fontWeight: 700,
+                lineHeight: "20px",
+                margin: "0 0 16px",
+              }}
+            >
+              {filterLoadMessage}
+            </p>
+          )}
+
           <ContentGrid>
             <LeftColumn>
               <Section>
@@ -595,14 +490,16 @@ function FilterModal({
                   <FieldLabel htmlFor="filter-province">광역시/도</FieldLabel>
                   <SelectWrap>
                     <Select
+                      disabled={provinceOptions.length === 0}
                       id="filter-province"
                       onChange={(event) =>
                         updateDraft("province", event.target.value)
                       }
                       value={draftValues.province}
                     >
-                      {PROVINCES.map((province) => (
-                        <option key={province}>{province}</option>
+                      <option value="">지역 데이터 없음</option>
+                      {provinceOptions.map((province) => (
+                        <option key={province} value={province}>{province}</option>
                       ))}
                     </Select>
                     <ChevronDown size={18} strokeWidth={2.4} />
@@ -611,14 +508,21 @@ function FilterModal({
                   <FieldLabel htmlFor="filter-district">시/군/구</FieldLabel>
                   <SelectWrap>
                     <Select
+                      disabled={districtOptions.length === 0}
                       id="filter-district"
                       onChange={(event) =>
                         updateDraft("district", event.target.value)
                       }
                       value={draftValues.district}
                     >
+                      <option value="">시/군/구 데이터 없음</option>
                       {districtOptions.map((district) => (
-                        <option key={district}>{district}</option>
+                        <option
+                          key={`${district.province}-${district.district}-${district.ldongSignguCd}`}
+                          value={district.district}
+                        >
+                          {district.district}
+                        </option>
                       ))}
                     </Select>
                     <ChevronDown size={18} strokeWidth={2.4} />
@@ -635,14 +539,19 @@ function FilterModal({
                 <SelectWrap>
                   <Select
                     aria-label="테마 선택"
+                    disabled={themeOptions.length === 0}
                     onChange={(event) =>
                       updateDraft("theme", event.target.value)
                     }
                     value={draftValues.theme}
                   >
-                    <option value="">테마를 선택해주세요</option>
-                    {THEMES.map((theme) => (
-                      <option key={theme}>{theme}</option>
+                    <option value="">
+                      {themeOptions.length === 0 ? "테마 데이터 없음" : "테마를 선택해주세요"}
+                    </option>
+                    {themeOptions.map((theme) => (
+                      <option key={`${theme.label}-${theme.value}`} value={theme.label}>
+                        {theme.label}
+                      </option>
                     ))}
                   </Select>
                   <ChevronDown size={18} strokeWidth={2.4} />

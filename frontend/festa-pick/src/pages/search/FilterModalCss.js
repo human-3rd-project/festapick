@@ -208,6 +208,13 @@ export const Select = styled.select`
     border-color: transparent;
     box-shadow: 0 0 0 2px var(--primary), 0 0 15px rgba(221, 183, 255, 0.3);
   }
+
+  &:disabled {
+    border-color: rgba(255, 255, 255, 0.06);
+    background: rgba(34, 42, 61, 0.42);
+    color: rgba(207, 194, 214, 0.46);
+    cursor: not-allowed;
+  }
 `;
 
 export const CalendarPanel = styled.div`
@@ -254,6 +261,11 @@ export const MonthButton = styled.button`
 
   &:hover {
     color: var(--primary);
+  }
+
+  &:disabled {
+    color: rgba(152, 141, 159, 0.28);
+    cursor: not-allowed;
   }
 `;
 
@@ -353,6 +365,11 @@ export const ResetButton = styled.button`
   &:active {
     transform: scale(0.95);
   }
+
+  &:disabled {
+    color: rgba(207, 194, 214, 0.42);
+    cursor: not-allowed;
+  }
 `;
 
 export const ApplyButton = styled.button`
@@ -377,5 +394,12 @@ export const ApplyButton = styled.button`
 
   &:active {
     transform: scale(0.95);
+  }
+
+  &:disabled {
+    background: var(--surface-container-highest);
+    color: rgba(207, 194, 214, 0.48);
+    cursor: not-allowed;
+    box-shadow: none;
   }
 `;
