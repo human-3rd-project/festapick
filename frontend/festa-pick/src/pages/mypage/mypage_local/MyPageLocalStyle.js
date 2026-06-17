@@ -14,6 +14,7 @@ export const Container = styled.div`
   grid-template-columns: 240px minmax(0, 1fr);
   gap: 32px;
   width: min(1120px, calc(100% - 40px));
+  min-height: calc(100vh - 64px);
   margin: 0 auto;
   padding: 48px 0 72px;
 
@@ -21,6 +22,7 @@ export const Container = styled.div`
     grid-template-columns: 1fr;
     gap: 20px;
     width: min(100% - 32px, 720px);
+    min-height: auto;
     padding: 28px 0 56px;
   }
 `;

@@ -14,7 +14,6 @@ const ITEMS_PER_PAGE = 6;
 
 const text = {
   title: "\uCC1C \uBAA9\uB85D",
-  eyebrow: "My Page",
   emptyTitle: "\uC544\uC9C1 \uCC1C\uD55C \uCD95\uC81C\uAC00 \uC5C6\uC5B4\uC694",
   emptyDescription:
     "\uAD00\uC2EC \uC788\uB294 \uCD95\uC81C\uB97C \uCC1C\uD558\uBA74 \uC774\uACF3\uC5D0\uC11C \uD55C\uB208\uC5D0 \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
@@ -116,7 +115,6 @@ function MyPageFavorite() {
         <S.Content>
           <S.TitleRow>
             <S.TitleGroup>
-              <S.Eyebrow>{text.eyebrow}</S.Eyebrow>
               <S.Title>{text.title}</S.Title>
             </S.TitleGroup>
             <S.CountBadge>

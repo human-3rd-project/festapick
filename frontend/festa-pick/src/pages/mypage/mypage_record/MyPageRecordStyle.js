@@ -22,6 +22,7 @@ export const Container = styled.div`
   grid-template-columns: 240px minmax(0, 1fr);
   gap: 32px;
   width: min(1120px, calc(100% - 40px));
+  min-height: calc(100vh - 64px);
   margin: 0 auto;
   padding: 48px 0 72px;
 
@@ -29,6 +30,7 @@ export const Container = styled.div`
     grid-template-columns: 1fr;
     gap: 20px;
     width: min(100% - 32px, 720px);
+    min-height: auto;
     padding: 28px 0 56px;
   }
 `;
@@ -55,8 +57,7 @@ export const Title = styled.h1`
 
 export const RecordLayout = styled.section`
   display: grid;
-  grid-template-columns: minmax(360px, 1fr)
-    ${({ $hasSelectedDate }) => ($hasSelectedDate ? "280px" : "0")};
+  grid-template-columns: minmax(360px, 1fr) 280px;
   gap: 22px;
   align-items: start;
 

@@ -19,6 +19,7 @@ export const Container = styled.div`
   grid-template-columns: 240px minmax(0, 1fr);
   gap: 32px;
   width: min(1120px, calc(100% - 40px));
+  min-height: calc(100vh - 64px);
   margin: 0 auto;
   padding: 48px 0 72px;
 
@@ -26,6 +27,7 @@ export const Container = styled.div`
     grid-template-columns: 1fr;
     gap: 20px;
     width: min(100% - 32px, 680px);
+    min-height: auto;
     padding: 28px 0 56px;
   }
 `;
@@ -36,7 +38,7 @@ export const Content = styled.main`
 
 export const TitleRow = styled.div`
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
@@ -44,14 +46,6 @@ export const TitleRow = styled.div`
 
 export const TitleGroup = styled.div`
   min-width: 0;
-`;
-
-export const Eyebrow = styled.p`
-  margin: 0 0 6px;
-  color: #00d4ff;
-  font-size: 13px;
-  font-weight: 900;
-  text-shadow: 0 0 18px rgba(0, 212, 255, 0.45);
 `;
 
 export const Title = styled.h1`
