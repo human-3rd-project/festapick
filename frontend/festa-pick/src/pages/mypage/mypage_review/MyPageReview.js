@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -7,96 +7,77 @@ import {
   MessageSquareText,
   Star,
 } from "lucide-react";
+import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
 import * as S from "./MyPageReviewStyle";
 
 const REVIEWS_PER_PAGE = 4;
 
-const reviews = [
-  {
-    id: 1,
-    reviewId: 1001,
-    title: "서울 락스페 2024",
-    date: "2024년 6월 14일 작성",
-    category: "ROCK / INDIE",
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=700&q=80",
-    content:
-      "역대 최고의 락 페스티벌이었습니다. 사운드 엔지니어링이 정말 훌륭했고 라인업도 다양했습니다. 내년 공연이 벌써 기다려지네요.",
-  },
-  {
-    id: 2,
-    reviewId: 1002,
-    title: "네온 비츠 미드나잇",
-    date: "2024년 7월 2일 작성",
-    category: "ELECTRONIC",
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80",
-    content:
-      "시각 효과가 정말 압도적이었습니다. 마지막 드롭 구간의 연출은 잊기 힘들어요. 관객 동선과 스테이지 구성도 좋았습니다.",
-  },
-  {
-    id: 3,
-    reviewId: 1003,
-    title: "트와일라잇 재즈 나잇",
-    date: "2024년 8월 9일 작성",
-    category: "JAZZ / ARTS",
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=700&q=80",
-    content:
-      "야외 분위기와 재즈 사운드가 잘 어울렸습니다. 무대가 아늑했고 음식 부스의 품질도 훌륭했습니다.",
-  },
-  {
-    id: 4,
-    reviewId: 1004,
-    title: "글로벌 컬쳐 페스트",
-    date: "2024년 9월 20일 작성",
-    category: "CULTURE",
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=700&q=80",
-    content:
-      "다양한 나라의 문화 체험과 공연을 즐길 수 있었습니다. 안내 동선이 좋아 가족과 함께 방문하기에도 좋았어요.",
-  },
-  {
-    id: 5,
-    reviewId: 1005,
-    title: "문라이트 푸드마켓",
-    date: "2024년 10월 5일 작성",
-    category: "FOOD",
-    rating: 4,
-    image:
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=700&q=80",
-    content:
-      "야시장 분위기와 로컬 푸드 구성이 좋았습니다. 인기 부스는 대기가 길어서 동선을 미리 잡는 게 좋겠어요.",
-  },
-  {
-    id: 6,
-    reviewId: 1006,
-    title: "시티 라이트 아트페어",
-    date: "2024년 10월 18일 작성",
-    category: "ART",
-    rating: 4,
-    image:
-      "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&w=700&q=80",
-    content:
-      "밤 조명과 미디어아트가 잘 어우러진 전시였습니다. 포토존이 많고 관람 동선도 편했습니다.",
-  },
-];
+const fallbackImage =
+  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80";
 
-const hasReviews = reviews.length > 0;
+// ApiResponse<T>와 axios response 양쪽 형태에서 실제 data만 꺼냅니다.
+const getResponseData = (response) => response?.data?.data ?? response?.data;
+
+const formatReviewDate = (createdAt) => {
+  if (!createdAt) {
+    return "작성일 정보 없음";
+  }
+
+  return `${String(createdAt).slice(0, 10)} 작성`;
+};
+
+// MyReviewResDto를 기존 리뷰 카드 UI에서 쓰는 필드명으로 변환합니다.
+const mapReview = (review) => ({
+  id: review.festivalId,
+  reviewId: review.reviewId,
+  title: review.title || "제목 없는 축제",
+  date: formatReviewDate(review.createdAt),
+  category: review.categoryName || "축제",
+  rating: review.rating || 0,
+  image: review.thumbnailUrl || fallbackImage,
+  content: review.content || "리뷰 내용이 없습니다.",
+});
 
 function MyPageReview() {
   const [page, setPage] = useState(1);
-  const pageCount = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
+  const [reviews, setReviews] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const hasReviews = reviews.length > 0;
 
-  const visibleReviews = useMemo(() => {
-    const startIndex = (page - 1) * REVIEWS_PER_PAGE;
+  useEffect(() => {
+    const loadReviews = async () => {
+      setIsLoading(true);
+      setErrorMessage("");
 
-    return reviews.slice(startIndex, startIndex + REVIEWS_PER_PAGE);
+      try {
+        // 백엔드 Pageable은 0부터 시작하고, 화면 페이지는 1부터 시작합니다.
+        const response = await AxiosApi.getMyReviewList({
+          page: page - 1,
+          size: REVIEWS_PER_PAGE,
+        });
+        const pageData = getResponseData(response);
+        const content = pageData?.content || [];
+
+        setReviews(content.map(mapReview));
+        setTotalCount(pageData?.totalElements ?? content.length);
+        setPageCount(Math.max(pageData?.totalPages || 1, 1));
+      } catch (error) {
+        setReviews([]);
+        setTotalCount(0);
+        setPageCount(1);
+        setErrorMessage(
+          error.response?.data?.message || "리뷰 목록을 불러오지 못했습니다.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadReviews();
   }, [page]);
 
   const movePage = (nextPage) => {
@@ -142,17 +123,29 @@ function MyPageReview() {
 
             {hasReviews && (
               <S.TotalBox>
-                <S.TotalNumber>{reviews.length}</S.TotalNumber>
+                <S.TotalNumber>{totalCount}</S.TotalNumber>
                 <S.TotalLabel>TOTAL REVIEWS</S.TotalLabel>
               </S.TotalBox>
             )}
           </S.HeaderRow>
 
-          {hasReviews ? (
+          {isLoading ? (
+            <S.EmptyPanel>
+              <S.EmptyContent>
+                <S.EmptyTitle>리뷰 목록을 불러오는 중입니다</S.EmptyTitle>
+              </S.EmptyContent>
+            </S.EmptyPanel>
+          ) : errorMessage ? (
+            <S.EmptyPanel>
+              <S.EmptyContent>
+                <S.EmptyTitle>{errorMessage}</S.EmptyTitle>
+              </S.EmptyContent>
+            </S.EmptyPanel>
+          ) : hasReviews ? (
             <>
               <S.ReviewGrid>
-                {visibleReviews.map((review) => (
-                  <S.ReviewCard key={review.id}>
+                {reviews.map((review) => (
+                  <S.ReviewCard key={review.reviewId}>
                     <S.CardImageWrap>
                       <S.CardImage src={review.image} alt="" />
                       <S.CategoryBadge>{review.category}</S.CategoryBadge>
@@ -231,7 +224,7 @@ function MyPageReview() {
                 <S.EmptyIcon aria-hidden="true">
                   <MessageSquareText size={46} strokeWidth={1.7} />
                 </S.EmptyIcon>
-                <S.EmptyTitle>아직 작성한 리뷰가 없습니다</S.EmptyTitle>
+                <S.EmptyTitle>아직 작성한 리뷰가 없어요</S.EmptyTitle>
                 <S.EmptyDescription>
                   경험했던 멋진 순간들을 사람들과 공유해보세요.
                   <br />

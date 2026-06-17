@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,6 +13,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import AxiosApi from "../../api/AxiosApi";
 import * as S from "./CalendarStyle";
 
 const weekDays = ["일", "월", "화", "수", "목", "금", "토"];
@@ -269,80 +270,36 @@ const themes = [
   { id: "etc", name: "기타축제", icon: Sparkles },
 ];
 
-const festivals = [
-  {
-    id: 1,
-    title: "사이버펑크 블레이드 파티",
-    date: "2024-10-04",
-    city: "서울특별시",
-    district: "강남구",
-    theme: "culturalArts",
-    isFavorite: true,
-    image:
-      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80",
-    description: "네온 조명과 일렉트로닉 사운드가 어우러지는 야간 파티",
-  },
-  {
-    id: 2,
-    title: "네온 스테이지",
-    date: "2024-10-04",
-    city: "서울특별시",
-    district: "마포구",
-    theme: "culturalArts",
-    isFavorite: false,
-    image:
-      "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80",
-    description: "도심 속 라이브 공연과 미디어 아트가 결합된 페스티벌",
-  },
-  {
-    id: 3,
-    title: "미드나잇 일렉트로닉",
-    date: "2024-10-11",
-    city: "서울특별시",
-    district: "강남구",
-    theme: "culturalArts",
-    isFavorite: true,
-    image:
-      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
-    description: "밤새 이어지는 EDM 무대와 레이저 쇼",
-  },
-  {
-    id: 4,
-    title: "강남 거리 예술제",
-    date: "2024-10-05",
-    city: "서울특별시",
-    district: "강남구",
-    theme: "culturalTourism",
-    isFavorite: false,
-    image:
-      "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&w=1200&q=80",
-    description: "거리 공연, 전시, 체험 부스가 함께 열리는 문화 축제",
-  },
-  {
-    id: 5,
-    title: "서울 푸드 마켓",
-    date: "2024-10-05",
-    city: "서울특별시",
-    district: "종로구",
-    theme: "localSpecialty",
-    isFavorite: true,
-    image:
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80",
-    description: "지역 셰프와 푸드트럭이 모이는 가을 미식 행사",
-  },
-  {
-    id: 6,
-    title: "부산 바다빛 여행축제",
-    date: "2024-10-18",
-    city: "부산광역시",
-    district: "해운대구",
-    theme: "ecoNature",
-    isFavorite: false,
-    image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-    description: "바다 산책, 야간 조명, 로컬 투어를 즐기는 여행형 축제",
-  },
-];
+const fallbackImage =
+  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80";
+
+// ApiResponse<T>와 axios response 양쪽 형태에서 실제 data만 꺼냅니다.
+const getResponseData = (response) => response?.data?.data ?? response?.data;
+
+const getThemeIdByName = (categoryName) => {
+  const matchedTheme = themes.find((theme) => theme.name === categoryName);
+
+  return matchedTheme?.id || "";
+};
+
+// CalendarResDto/FestivalInfoResponseDto를 캘린더 UI에서 쓰는 일정 객체로 변환합니다.
+const mapCalendarFestival = (festival) => {
+  const regionName = festival.regionName || festival.addr1 || "";
+
+  return {
+    id: festival.festivalId,
+    title: festival.title || "제목 없는 축제",
+    date: festival.eventStartDate,
+    endDate: festival.eventEndDate,
+    city: regionName,
+    district: regionName,
+    theme: getThemeIdByName(festival.categoryName),
+    category: festival.categoryName,
+    isFavorite: Boolean(festival.favorite),
+    image: festival.thumbnailUrl || festival.firstImage || fallbackImage,
+    description: festival.categoryName || "축제",
+  };
+};
 
 const createDateKey = (year, monthIndex, day) =>
   `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(
@@ -351,7 +308,10 @@ const createDateKey = (year, monthIndex, day) =>
   )}`;
 
 function Calendar() {
-  const [viewDate, setViewDate] = useState(new Date(2024, 9, 1));
+  const [viewDate, setViewDate] = useState(new Date());
+  const [festivals, setFestivals] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showFavoriteMarks, setShowFavoriteMarks] = useState(false);
   const [selectedCity, setSelectedCity] = useState("");
@@ -365,6 +325,48 @@ function Calendar() {
   const monthIndex = viewDate.getMonth();
   const monthTitle = `${year}년 ${monthIndex + 1}월`;
   const draftDistricts = draftCity ? regions[draftCity] || [] : [];
+
+  useEffect(() => {
+    const loadFestivals = async () => {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        // 로그인 사용자는 찜 여부까지 포함된 캘린더 필터 API를 우선 사용합니다.
+        const response = await AxiosApi.getFilteredCalendars({
+          year,
+          month: monthIndex + 1,
+          page: 0,
+          size: 200,
+        });
+        const pageData = getResponseData(response);
+        const content = pageData?.content || [];
+
+        setFestivals(content.map(mapCalendarFestival));
+      } catch (privateError) {
+        try {
+          // 비로그인 또는 인증 실패 시 공개 캘린더 월별 축제 API로 한 번 더 조회합니다.
+          const targetMonth = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+          const response =
+            await AxiosApi.getCalendarMonthlyFestivals(targetMonth);
+          const data = getResponseData(response) || [];
+
+          setFestivals(data.map(mapCalendarFestival));
+        } catch (publicError) {
+          setFestivals([]);
+          setErrorMessage(
+            publicError.response?.data?.message ||
+              privateError.response?.data?.message ||
+              "축제 일정을 불러오지 못했습니다.",
+          );
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFestivals();
+  }, [monthIndex, year]);
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, monthIndex, 1).getDay();
@@ -387,15 +389,15 @@ function Calendar() {
 
   const filteredFestivals = useMemo(() => {
     return festivals.filter((festival) => {
-      const matchesCity = !selectedCity || festival.city === selectedCity;
+      const matchesCity = !selectedCity || festival.city.includes(selectedCity);
       const matchesDistrict =
-        !selectedDistrict || festival.district === selectedDistrict;
+        !selectedDistrict || festival.district.includes(selectedDistrict);
       const matchesTheme =
         selectedThemes.length === 0 || selectedThemes.includes(festival.theme);
 
       return matchesCity && matchesDistrict && matchesTheme;
     });
-  }, [selectedCity, selectedDistrict, selectedThemes]);
+  }, [festivals, selectedCity, selectedDistrict, selectedThemes]);
 
   const festivalsByDate = useMemo(() => {
     return filteredFestivals.reduce((map, festival) => {
@@ -465,7 +467,11 @@ function Calendar() {
         <S.HeaderRow>
           <S.TitleGroup>
             <S.Title>페스티벌 일정</S.Title>
-            <S.Description>이번 달의 뜨거운 열기를 미리 확인하세요.</S.Description>
+            <S.Description>
+              {isLoading
+                ? "축제 일정을 불러오는 중입니다."
+                : errorMessage || "이번 달의 뜨거운 열기를 미리 확인하세요."}
+            </S.Description>
           </S.TitleGroup>
           <S.Toolbar>
             <S.ToolButton type="button" onClick={openFilter}>
@@ -518,7 +524,10 @@ function Calendar() {
                 : [];
 
               return calendarDay.day ? (
-                <S.DayCell key={calendarDay.key} $hasFestival={dayFestivals.length > 0}>
+                <S.DayCell
+                  key={calendarDay.key}
+                  $hasFestival={dayFestivals.length > 0}
+                >
                   <S.DayNumber>{calendarDay.day}</S.DayNumber>
                   <S.EventList>
                     {dayFestivals.slice(0, 3).map((festival) => (
@@ -530,7 +539,11 @@ function Calendar() {
                       >
                         <span>{festival.title}</span>
                         {showFavoriteMarks && festival.isFavorite && (
-                          <Heart size={11} fill="currentColor" aria-hidden="true" />
+                          <Heart
+                            size={11}
+                            fill="currentColor"
+                            aria-hidden="true"
+                          />
                         )}
                       </S.EventPill>
                     ))}
@@ -542,7 +555,6 @@ function Calendar() {
             })}
           </S.DayGrid>
         </S.CalendarPanel>
-
       </S.Content>
 
       {isFilterOpen && (

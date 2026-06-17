@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   ChevronLeft,
@@ -11,45 +11,17 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
 import * as S from "./MyPageRecordStyle";
 
 const weekDays = ["일", "월", "화", "수", "목", "금", "토"];
 
-const initialRecords = [
-  {
-    id: 1,
-    date: "2024-10-12",
-    title: "서울 재즈 페스티벌 방문기",
-    place: "서울 올림픽공원",
-    category: "음악",
-    image:
-      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=600&q=80",
-    content:
-      "분위기가 정말 환상적이었어요. 드디어 고대하고 있던 라인업을 직접 보게 되다니... 밤공기는 시원했고 무대 조명은 오래 기억에 남을 것 같아요.",
-  },
-  {
-    id: 2,
-    date: "2024-10-04",
-    title: "한강 야간 버스킹",
-    place: "서울 여의도 한강공원",
-    category: "야간",
-    image:
-      "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=600&q=80",
-    content:
-      "강바람이 선선했고 작은 무대의 라이브 사운드가 좋아서 오래 머물렀다.",
-  },
-  {
-    id: 3,
-    date: "2024-10-25",
-    title: "가을 미식 축제",
-    place: "서울 성수동",
-    category: "미식",
-    image:
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&q=80",
-    content: "부스 동선은 조금 복잡했지만 디저트와 로컬 푸드 구성이 알찼다.",
-  },
-];
+const fallbackImage =
+  "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80";
+
+// ApiResponse<T>와 axios response 양쪽 형태에서 실제 data만 꺼냅니다.
+const getResponseData = (response) => response?.data?.data ?? response?.data;
 
 const createDateKey = (year, monthIndex, day) => {
   const month = String(monthIndex + 1).padStart(2, "0");
@@ -68,16 +40,42 @@ const formatDisplayDate = (dateKey) => {
   return `${year}년 ${Number(month)}월 ${Number(day)}일`;
 };
 
+// 현재 보고 있는 달의 시작일과 종료일을 LocalDate 문자열로 만듭니다.
+const getMonthBounds = (date) => {
+  const year = date.getFullYear();
+  const monthIndex = date.getMonth();
+
+  return {
+    startDate: createDateKey(year, monthIndex, 1),
+    endDate: createDateKey(year, monthIndex, new Date(year, monthIndex + 1, 0).getDate()),
+  };
+};
+
+// VisitHistoryResDto를 기존 기록 카드 UI에서 쓰는 필드명으로 변환합니다.
+const mapVisitHistory = (record) => ({
+  id: record.visitHistoryId,
+  date: record.visitDate,
+  title: record.historyTitle || "제목 없는 기록",
+  place: "방문 기록",
+  category: "기록",
+  image: record.thumbnailUrl || record.imageUrls?.[0] || fallbackImage,
+  imageUrls: record.imageUrls || [],
+  content: record.memo || "기록 내용이 없습니다.",
+});
+
 function MyPageRecord() {
-  const [viewDate, setViewDate] = useState(new Date(2024, 9, 1));
+  const [viewDate, setViewDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState("");
-  const [records, setRecords] = useState(initialRecords);
+  const [records, setRecords] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [draft, setDraft] = useState({
     title: "",
     date: "",
-    image: "",
+    imagePreview: "",
+    imageUrls: [],
     content: "",
   });
 
@@ -98,6 +96,31 @@ function MyPageRecord() {
 
     return [...blanks, ...days];
   }, [monthIndex, year]);
+
+  const loadRecords = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      // 방문 기록 목록 API는 startDate/endDate 쿼리 파라미터가 필수입니다.
+      const { startDate, endDate } = getMonthBounds(viewDate);
+      const response = await AxiosApi.getVisitHistoryList(startDate, endDate);
+      const data = getResponseData(response) || [];
+
+      setRecords(data.map(mapVisitHistory));
+    } catch (error) {
+      setRecords([]);
+      setErrorMessage(
+        error.response?.data?.message || "방문 기록을 불러오지 못했습니다.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [viewDate]);
+
+  useEffect(() => {
+    loadRecords();
+  }, [loadRecords]);
 
   const recordDates = useMemo(
     () => new Set(records.map((record) => record.date)),
@@ -120,13 +143,25 @@ function MyPageRecord() {
     setSelectedDate(dateKey);
     setIsAdding(false);
     setEditingId(null);
-    setDraft({ title: "", date: dateKey, image: "", content: "" });
+    setDraft({
+      title: "",
+      date: dateKey,
+      imagePreview: "",
+      imageUrls: [],
+      content: "",
+    });
   };
 
   const startAddRecord = () => {
     setIsAdding(true);
     setEditingId(null);
-    setDraft({ title: "", date: selectedDate, image: "", content: "" });
+    setDraft({
+      title: "",
+      date: selectedDate,
+      imagePreview: "",
+      imageUrls: [],
+      content: "",
+    });
   };
 
   const startEditRecord = (record) => {
@@ -135,7 +170,8 @@ function MyPageRecord() {
     setDraft({
       title: record.title,
       date: record.date,
-      image: record.image,
+      imagePreview: record.image,
+      imageUrls: record.imageUrls || [],
       content: record.content,
     });
   };
@@ -143,7 +179,13 @@ function MyPageRecord() {
   const cancelDraft = () => {
     setIsAdding(false);
     setEditingId(null);
-    setDraft({ title: "", date: selectedDate, image: "", content: "" });
+    setDraft({
+      title: "",
+      date: selectedDate,
+      imagePreview: "",
+      imageUrls: [],
+      content: "",
+    });
   };
 
   const handleImageUpload = (event) => {
@@ -155,12 +197,13 @@ function MyPageRecord() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      setDraft((current) => ({ ...current, image: reader.result }));
+      // Firebase 업로드가 붙기 전까지는 파일을 미리보기로만 보관합니다.
+      setDraft((current) => ({ ...current, imagePreview: reader.result }));
     };
     reader.readAsDataURL(file);
   };
 
-  const saveRecord = () => {
+  const saveRecord = async () => {
     const title = draft.title.trim();
     const recordDate = draft.date || selectedDate;
 
@@ -168,47 +211,44 @@ function MyPageRecord() {
       return;
     }
 
-    if (editingId) {
-      setRecords((currentRecords) =>
-        currentRecords.map((record) =>
-          record.id === editingId
-            ? {
-                ...record,
-                title,
-                date: recordDate,
-                image: draft.image || record.image,
-                content: draft.content.trim() || "기록 내용이 없습니다.",
-              }
-            : record,
-        ),
-      );
-    } else {
-      setRecords((currentRecords) => [
-        ...currentRecords,
-        {
-          id: Date.now(),
-          date: recordDate,
-          title,
-          place: "장소 미입력",
-          category: "기록",
-          image:
-            draft.image ||
-            "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80",
-          content: draft.content.trim() || "기록 내용이 없습니다.",
-        },
-      ]);
-    }
+    // 백엔드는 Firebase 업로드가 끝난 이미지 URL 배열을 imageUrls로 받습니다.
+    const payload = {
+      historyTitle: title,
+      visitDate: recordDate,
+      memo: draft.content.trim(),
+      imageUrls: draft.imageUrls,
+    };
 
-    setSelectedDate(recordDate);
-    setViewDate(new Date(`${recordDate}T00:00:00`));
-    cancelDraft();
+    try {
+      // editingId가 있으면 수정, 없으면 신규 방문 기록 생성으로 처리합니다.
+      if (editingId) {
+        await AxiosApi.updateVisitHistory(editingId, payload);
+      } else {
+        await AxiosApi.createVisitHistory(payload);
+      }
+
+      setSelectedDate(recordDate);
+      setViewDate(new Date(`${recordDate}T00:00:00`));
+      cancelDraft();
+      await loadRecords();
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message || "방문 기록을 저장하지 못했습니다.",
+      );
+    }
   };
 
-  const deleteRecord = (recordId) => {
-    setRecords((currentRecords) =>
-      currentRecords.filter((record) => record.id !== recordId),
-    );
-    setEditingId(null);
+  const deleteRecord = async (recordId) => {
+    try {
+      // 삭제 후 현재 월 데이터를 다시 조회해 캘린더 표시 상태를 맞춥니다.
+      await AxiosApi.deleteVisitHistory(recordId);
+      setEditingId(null);
+      await loadRecords();
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message || "방문 기록을 삭제하지 못했습니다.",
+      );
+    }
   };
 
   return (
@@ -220,6 +260,8 @@ function MyPageRecord() {
           <S.TitleRow>
             <S.Title>나의 기록</S.Title>
           </S.TitleRow>
+          {errorMessage && <S.ModalDescription>{errorMessage}</S.ModalDescription>}
+          {isLoading && <S.ModalDescription>방문 기록을 불러오는 중입니다.</S.ModalDescription>}
 
           <S.RecordLayout $hasSelectedDate={Boolean(selectedDate)}>
             <S.CalendarPanel>
@@ -359,8 +401,8 @@ function MyPageRecord() {
                         onChange={handleImageUpload}
                       />
                       <S.UploadLabel htmlFor="record-image">
-                        {draft.image ? (
-                          <S.UploadPreview src={draft.image} alt="" />
+                        {draft.imagePreview ? (
+                          <S.UploadPreview src={draft.imagePreview} alt="" />
                         ) : (
                           <>
                             <ImagePlus size={27} aria-hidden="true" />
