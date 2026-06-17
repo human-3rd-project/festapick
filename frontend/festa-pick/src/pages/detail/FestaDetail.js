@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
   ChevronDown,
   ChevronUp,
@@ -17,6 +17,8 @@ import {
 
 import RealTimeTalkModal from "./LiveTalkModal";
 import ReviewModal from "./ReviewModal";
+import AxiosApi from "../../api/AxiosApi";
+import { useAuth } from "../../context/AuthContext";
 import {
   ActionButton,
   AiMarquee,
@@ -69,94 +71,165 @@ import {
   Title,
 } from "./FestaDetailCss";
 
-const DEFAULT_FESTIVAL = {
-  title: "일렉트로닉 나이트 페스티벌 2024",
-  category: "MUSIC",
-  image:
-    "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1800&q=85",
-  period: "2024.11.24 - 11.26",
-  time: "18:00 - 02:00",
-  location: "서울 난지 한강공원",
-  venue: "제1축제광장 일대",
-  description: [
-    "서울의 밤을 깨우는 가장 뜨거운 순간, 일렉트로닉 나이트 페스티벌 2024에 여러분을 초대합니다. 이번 페스티벌은 Digital Neon을 테마로 하여 가상과 현실이 교차하는 듯한 몽환적인 공간 경험을 제공합니다.",
-    "세계적인 비주얼 아티스트들과의 협업으로 탄생한 360도 미디어 파사드 스테이지에서 압도적인 몰입감을 느껴보세요. 트렌디한 일렉트로닉 사운드와 함께 도심 속 해방감을 만끽할 수 있는 최고의 기회입니다.",
-  ],
-  price: "88,000원",
-  remainCount: 124,
-  rating: 4.8,
-  reviewCount: 1240,
-};
-
-const DEFAULT_REVIEWS = [
-  {
-    id: "mine",
-    author: "김페스",
-    time: "방금 전",
-    rating: 5,
-    text: "진짜 역대급 페스티벌입니다! 사운드 퀄리티랑 조명 연출이 미쳤어요. 밤새도록 놀고 싶네요.",
-    isMine: true,
-  },
-  {
-    id: "review-1",
-    author: "지니_DJ",
-    time: "10분 전",
-    rating: 5,
-    text: "라인업 실화인가요... DJ Luminous 셋리스트 미쳤습니다. 지금 당장 오세요!",
-  },
-  {
-    id: "review-2",
-    author: "Hyein_P",
-    time: "32분 전",
-    rating: 4,
-    text: "사람이 좀 많긴 한데 그만큼 분위기가 뜨겁습니다. 화장실 줄이 긴 건 조금 아쉽네요.",
-  },
-  {
-    id: "review-3",
-    author: "Festival_Mate",
-    time: "1시간 전",
-    rating: 5,
-    text: "입장 동선이 생각보다 잘 정리되어 있고, 스태프 안내가 친절해서 처음 방문해도 편했습니다.",
-  },
-  {
-    id: "review-4",
-    author: "NeonWalk",
-    time: "2시간 전",
-    rating: 4,
-    text: "푸드존 메뉴가 다양해서 좋았어요. 인기 부스는 대기 시간이 조금 있으니 공연 사이에 다녀오는 걸 추천합니다.",
-  },
-  {
-    id: "review-5",
-    author: "SoundTrip",
-    time: "3시간 전",
-    rating: 5,
-    text: "음향 밸런스가 정말 좋았습니다. 뒤쪽에서도 보컬과 베이스가 또렷하게 들려서 만족스러웠어요.",
-  },
-  {
-    id: "review-6",
-    author: "MoonStage",
-    time: "어제",
-    rating: 4,
-    text: "야간 조명 연출이 예뻐서 사진 찍기 좋습니다. 다만 늦은 시간에는 택시 잡기가 조금 어렵습니다.",
-  },
-];
-
 const REVIEW_PAGE_SIZE = 3;
 
-const LIVE_MESSAGES = [
-  {
-    id: 1,
-    author: "지니_DJ",
-    text: "지금 입구 쪽 입장 원활해요!! 빨리 오세요!",
-  },
-  { id: 2, author: "나", text: "거의 다 왔어요! 셔틀 금방 오네요", mine: true },
-  {
-    id: 3,
-    author: "BassDrop_Fan",
-    text: "메인 스테이지 조명 진짜 예술이다...",
-  },
-  { id: 4, author: "TechnoKing", text: "물품보관소 줄 어떤가요?" },
-];
+const EMPTY_FESTIVAL = {
+  festivalId: null,
+  chatRoomId: null,
+  title: "축제 정보 없음",
+  category: "분류 정보 없음",
+  image: "",
+  period: "일정 정보 없음",
+  time: "시간 정보 없음",
+  location: "지역 정보 없음",
+  venue: "장소 정보 없음",
+  description: [],
+  rating: 0,
+  reviewCount: 0,
+  favorite: false,
+  liked: false,
+  live: false,
+  hasMap: false,
+};
+
+// 추가: ApiResponse(data 래핑)와 일반 axios 응답을 모두 안전하게 꺼내기 위한 헬퍼입니다.
+const getResponseData = (response) => response?.data?.data ?? response?.data ?? null;
+
+// 추가: Spring Page 응답(content)과 일반 배열 응답을 모두 리뷰 배열로 처리합니다.
+const getPageContent = (value) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value?.content)) {
+    return value.content;
+  }
+
+  return [];
+};
+
+// 추가: 숫자/문자열/빈 값이 섞인 ID 후보 중 실제 사용할 축제 ID를 찾습니다.
+const getFestivalId = (...sources) =>
+  sources
+    .flatMap((source) => [
+      source?.festivalId,
+      source?.id,
+      source?.contentId,
+      source,
+    ])
+    .find((value) => value !== undefined && value !== null && value !== "");
+
+// 추가: 날짜 문자열이 없거나 잘못 들어와도 화면에는 기본 문구를 보여줍니다.
+const formatDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  return String(value).replaceAll("-", ".");
+};
+
+// 추가: 백엔드 날짜(eventStartDate/eventEndDate)와 기존 period 필드를 같은 표시 형식으로 맞춥니다.
+const formatPeriod = (festival) => {
+  if (festival?.period) {
+    return festival.period;
+  }
+
+  const startDate = formatDate(festival?.eventStartDate);
+  const endDate = formatDate(festival?.eventEndDate);
+
+  if (startDate && endDate) {
+    return `${startDate} - ${endDate}`;
+  }
+
+  return startDate || endDate || EMPTY_FESTIVAL.period;
+};
+
+// 추가: description이 문자열/배열/null 중 무엇으로 오든 map 가능한 배열로 정리합니다.
+const normalizeDescription = (description) => {
+  if (Array.isArray(description)) {
+    return description.filter(Boolean);
+  }
+
+  if (typeof description === "string" && description.trim()) {
+    return description
+      .split(/\r?\n+/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+// 추가: 리뷰 작성자 판별용으로 로그인 사용자 ID 후보를 한곳에서 확인합니다.
+const getUserId = (user) => user?.userId ?? user?.id ?? user?.memberId ?? null;
+
+// 추가: 백엔드 리뷰 DTO와 기존 로컬 리뷰 형태를 ReviewCard에서 쓰는 필드로 정규화합니다.
+const normalizeReview = (review, currentUserId) => ({
+  ...review,
+  id: review?.reviewId ?? review?.id ?? crypto.randomUUID(),
+  reviewId: review?.reviewId ?? review?.id,
+  author: review?.nickname ?? review?.author ?? "익명",
+  time:
+    review?.time ||
+    (review?.updatedAt ? "수정됨" : review?.createdAt ? formatDate(review.createdAt) : ""),
+  rating: Math.min(5, Math.max(0, Number(review?.rating) || 0)),
+  text: review?.content ?? review?.text ?? "",
+  content: review?.content ?? review?.text ?? "",
+  isMine:
+    Boolean(review?.isMine) ||
+    (currentUserId !== null && Number(review?.userId) === Number(currentUserId)),
+});
+
+// 추가: 백엔드 상세 DTO와 검색 화면의 축제 데이터를 FestaDetail 표시용 필드로 정규화합니다.
+const normalizeFestival = (sourceFestival) => {
+  if (!sourceFestival) {
+    return EMPTY_FESTIVAL;
+  }
+
+  const imageUrls = Array.isArray(sourceFestival.imageUrls)
+    ? sourceFestival.imageUrls
+    : [];
+  const address = [sourceFestival.addr1, sourceFestival.addr2]
+    .filter(Boolean)
+    .join(" ");
+
+  return {
+    ...EMPTY_FESTIVAL,
+    ...sourceFestival,
+    festivalId: getFestivalId(sourceFestival),
+    chatRoomId: sourceFestival.chatRoomId ?? null,
+    title: sourceFestival.title || EMPTY_FESTIVAL.title,
+    category:
+      sourceFestival.category ||
+      sourceFestival.categoryName ||
+      EMPTY_FESTIVAL.category,
+    image:
+      sourceFestival.image ||
+      sourceFestival.firstImage ||
+      imageUrls[0] ||
+      EMPTY_FESTIVAL.image,
+    period: formatPeriod(sourceFestival),
+    time: sourceFestival.time || EMPTY_FESTIVAL.time,
+    location: sourceFestival.location || address || EMPTY_FESTIVAL.location,
+    venue: sourceFestival.venue || sourceFestival.addr2 || sourceFestival.addr1 || EMPTY_FESTIVAL.venue,
+    description: normalizeDescription(sourceFestival.description),
+    rating:
+      Number.parseFloat(sourceFestival.averageRating ?? sourceFestival.rating) ||
+      0,
+    reviewCount: Number(sourceFestival.reviewCount) || 0,
+    favorite: Boolean(sourceFestival.favorite),
+    liked: Boolean(sourceFestival.liked),
+    live:
+      typeof sourceFestival.live === "boolean"
+        ? sourceFestival.live
+        : sourceFestival.progressType === "ONGOING" ||
+          sourceFestival.status === "ACTIVE",
+    hasMap:
+      typeof sourceFestival.hasMap === "boolean"
+        ? sourceFestival.hasMap
+        : Boolean(sourceFestival.mapX && sourceFestival.mapY),
+  };
+};
 
 function FestaDetail({
   festival: festivalProp,
@@ -165,41 +238,46 @@ function FestaDetail({
   hasMap: hasMapProp,
 }) {
   const location = useLocation();
+  const { festivalId: routeFestivalId } = useParams();
+  // AuthContext 역할: 찜/좋아요/내 리뷰 판별처럼 로그인 상태가 필요한 기능에 사용합니다.
+  const auth = useAuth();
+  const currentUserId = getUserId(auth?.user);
+  // 수정: AuthProvider가 감싸져 있다고 가정하고 AuthContext의 로그인 상태만 사용합니다.
+  const isLoggedIn = auth?.isLoggedIn ?? false;
+
+  // 실시간 톡/리뷰 모달 UI 상태를 관리합니다.
   const [isTalkExpanded, setIsTalkExpanded] = useState(false);
   const [isTalkModalOpen, setIsTalkModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
-  const [localReviews, setLocalReviews] = useState(DEFAULT_REVIEWS);
+  const [deletingReview, setDeletingReview] = useState(null);
+
+  // 추가: API로 불러온 상세/리뷰/오류 상태입니다. API 실패 시 빈 상태를 표시합니다.
+  const [apiFestival, setApiFestival] = useState(null);
+  const [detailError, setDetailError] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+
+  // 리뷰/톡/찜/좋아요 로컬 상태입니다.
+  const [localReviews, setLocalReviews] = useState([]);
   const [talkMessage, setTalkMessage] = useState("");
   const [isFavorite, setIsFavorite] = useState(Boolean(festivalProp?.favorite));
   const [isLiked, setIsLiked] = useState(Boolean(festivalProp?.liked));
   const [visibleReviewCount, setVisibleReviewCount] = useState(REVIEW_PAGE_SIZE);
 
+  // 라우터 state에서 넘어온 축제 정보가 있으면 API 로딩 전 초기 화면에 사용합니다.
   const routedFestival = location.state?.festival;
+  const requestedFestivalId = useMemo(
+    () => getFestivalId(festivalProp, routedFestival, routeFestivalId),
+    [festivalProp, routedFestival, routeFestivalId],
+  );
+
+  // 축제 상세 표시 데이터: API 상세 > props > route state > 기본값 순서로 사용합니다.
   const festival = useMemo(() => {
-    const sourceFestival = festivalProp || routedFestival;
-
-    if (!sourceFestival) {
-      return DEFAULT_FESTIVAL;
-    }
-
-    return {
-      ...DEFAULT_FESTIVAL,
-      ...sourceFestival,
-      category: sourceFestival.category || DEFAULT_FESTIVAL.category,
-      location: sourceFestival.location || DEFAULT_FESTIVAL.location,
-      rating:
-        typeof sourceFestival.rating === "string"
-          ? Number.parseFloat(sourceFestival.rating) || DEFAULT_FESTIVAL.rating
-          : sourceFestival.rating || DEFAULT_FESTIVAL.rating,
-      reviewCount: sourceFestival.reviewCount || DEFAULT_FESTIVAL.reviewCount,
-      venue:
-        sourceFestival.venue ||
-        sourceFestival.location ||
-        DEFAULT_FESTIVAL.venue,
-    };
-  }, [festivalProp, routedFestival]);
+    const sourceFestival = apiFestival || festivalProp || routedFestival;
+    return normalizeFestival(sourceFestival);
+  }, [apiFestival, festivalProp, routedFestival]);
 
   const resolvedIsFestivalActive =
     isFestivalActive ??
@@ -208,25 +286,129 @@ function FestaDetail({
     hasMapProp ?? (typeof festival.hasMap === "boolean" ? festival.hasMap : true);
   const resolvedReviews = useMemo(() => {
     if (reviewsProp) {
-      return reviewsProp;
+      return reviewsProp.map((review) => normalizeReview(review, currentUserId));
     }
 
     if (Array.isArray(festival.reviews)) {
-      return festival.reviews;
+      return festival.reviews.map((review) => normalizeReview(review, currentUserId));
     }
 
-    return DEFAULT_REVIEWS;
-  }, [festival.reviews, reviewsProp]);
+    return [];
+  }, [currentUserId, festival.reviews, reviewsProp]);
+
+  // 추가: URL/검색 state에서 확인한 festivalId로 축제 상세 정보를 조회합니다.
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!requestedFestivalId) {
+      setApiFestival(null);
+      setDetailError("");
+      return undefined;
+    }
+
+    const fetchFestivalDetail = async () => {
+      try {
+        const response = await AxiosApi.getFestivalDetail(requestedFestivalId);
+        const detail = getResponseData(response);
+
+        if (isMounted) {
+          setApiFestival(detail);
+          setDetailError("");
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error("FestaDetail detail load error:", error);
+          setApiFestival(null);
+          setDetailError("축제 상세 정보를 불러오지 못해 기본 정보를 표시합니다.");
+        }
+      }
+    };
+
+    fetchFestivalDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [requestedFestivalId]);
+
+  // 추가: 축제 리뷰 목록을 조회하고, 응답이 비어 있으면 빈 리뷰 상태를 그대로 테스트할 수 있게 둡니다.
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!requestedFestivalId) {
+      setLocalReviews(resolvedReviews);
+      setVisibleReviewCount(REVIEW_PAGE_SIZE);
+      return undefined;
+    }
+
+    const fetchReviews = async () => {
+      try {
+        const response = await AxiosApi.getReviewList(requestedFestivalId, {
+          page: 0,
+          size: 20,
+        });
+        const reviewPage = getResponseData(response);
+        const reviews = getPageContent(reviewPage).map((review) =>
+          normalizeReview(review, currentUserId),
+        );
+
+        if (isMounted) {
+          setLocalReviews(reviews);
+          setReviewError("");
+          setVisibleReviewCount(REVIEW_PAGE_SIZE);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error("FestaDetail review load error:", error);
+          setLocalReviews([]);
+          setReviewError("리뷰를 불러오지 못했습니다.");
+          setVisibleReviewCount(REVIEW_PAGE_SIZE);
+        }
+      }
+    };
+
+    fetchReviews();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUserId, requestedFestivalId, resolvedReviews]);
 
   useEffect(() => {
     setIsFavorite(Boolean(festival.favorite));
     setIsLiked(Boolean(festival.liked));
   }, [festival.favorite, festival.liked]);
 
+  // 추가: 로그인 상태에서만 현재 사용자의 찜/좋아요 여부를 백엔드와 동기화합니다.
   useEffect(() => {
-    setLocalReviews(resolvedReviews);
-    setVisibleReviewCount(REVIEW_PAGE_SIZE);
-  }, [resolvedReviews]);
+    let isMounted = true;
+
+    if (!requestedFestivalId || !isLoggedIn) {
+      return undefined;
+    }
+
+    const fetchMemberActions = async () => {
+      try {
+        const [favoriteResponse, likeResponse] = await Promise.all([
+          AxiosApi.isFavorite(requestedFestivalId),
+          AxiosApi.isLiked(requestedFestivalId),
+        ]);
+
+        if (isMounted) {
+          setIsFavorite(Boolean(getResponseData(favoriteResponse)));
+          setIsLiked(Boolean(getResponseData(likeResponse)));
+        }
+      } catch (error) {
+        console.error("FestaDetail member action load error:", error);
+      }
+    };
+
+    fetchMemberActions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isLoggedIn, requestedFestivalId]);
 
   const myReview = useMemo(
     () => localReviews.find((review) => review.isMine),
@@ -264,19 +446,35 @@ function FestaDetail({
     setEditingReview(null);
   };
 
-  const openDeleteConfirm = () => {
+  const openDeleteConfirm = (review) => {
+    setDeletingReview(review || myReview || null);
     setIsDeleteConfirmOpen(true);
   };
 
   const closeDeleteConfirm = () => {
     setIsDeleteConfirmOpen(false);
+    setDeletingReview(null);
   };
 
-  const confirmDeleteMyReview = () => {
-    setLocalReviews((currentReviews) =>
-      currentReviews.filter((review) => !review.isMine),
-    );
-    closeDeleteConfirm();
+  // 추가: 리뷰 ID가 있으면 백엔드 삭제 API를 호출하고, ID가 없으면 로컬 상태만 정리합니다.
+  const confirmDeleteMyReview = async () => {
+    const targetReview = deletingReview || myReview;
+    const targetReviewId = targetReview?.reviewId;
+
+    try {
+      if (targetReviewId && targetReviewId !== "mine") {
+        await AxiosApi.deleteReview(targetReviewId);
+      }
+
+      setLocalReviews((currentReviews) =>
+        currentReviews.filter((review) => review.id !== targetReview?.id),
+      );
+      setActionMessage("");
+      closeDeleteConfirm();
+    } catch (error) {
+      console.error("FestaDetail review delete error:", error);
+      setActionMessage("리뷰 삭제 중 오류가 발생했습니다.");
+    }
   };
 
   const handleLoadMoreReviews = () => {
@@ -285,13 +483,16 @@ function FestaDetail({
     );
   };
 
+  // 추가: ReviewModal에서 저장된 리뷰를 받아 백엔드/로컬 필드명을 화면용으로 정규화합니다.
   const handleSubmitReview = (reviewValue) => {
+    const normalizedReview = normalizeReview(reviewValue, currentUserId);
     const savedReview = {
-      id: reviewValue.id || "mine",
-      author: reviewValue.author || "김페스",
-      time: reviewValue.id ? reviewValue.time : "방금 전",
-      rating: reviewValue.rating,
-      text: reviewValue.text,
+      ...normalizedReview,
+      id: normalizedReview.id || "mine",
+      author: normalizedReview.author || "김페스",
+      time: normalizedReview.id ? normalizedReview.time || "방금 전" : "방금 전",
+      rating: normalizedReview.rating,
+      text: normalizedReview.text,
       isMine: true,
     };
 
@@ -309,10 +510,68 @@ function FestaDetail({
     closeReviewModal();
   };
 
+  // 추가: 찜 버튼 클릭 시 로그인/API/Null ID 상황을 모두 방어하며 상태를 토글합니다.
+  const toggleFavorite = async () => {
+    if (!requestedFestivalId) {
+      setIsFavorite((value) => !value);
+      return;
+    }
+
+    if (!isLoggedIn) {
+      setActionMessage("로그인 후 찜할 수 있습니다.");
+      return;
+    }
+
+    const nextFavorite = !isFavorite;
+    setIsFavorite(nextFavorite);
+    setActionMessage("");
+
+    try {
+      if (nextFavorite) {
+        await AxiosApi.createFavorite(requestedFestivalId);
+      } else {
+        await AxiosApi.deleteFavorite(requestedFestivalId);
+      }
+    } catch (error) {
+      console.error("FestaDetail favorite toggle error:", error);
+      setIsFavorite(!nextFavorite);
+      setActionMessage("찜 상태 변경 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 추가: 좋아요 버튼 클릭 시 로그인/API/Null ID 상황을 모두 방어하며 상태를 토글합니다.
+  const toggleLike = async () => {
+    if (!requestedFestivalId) {
+      setIsLiked((value) => !value);
+      return;
+    }
+
+    if (!isLoggedIn) {
+      setActionMessage("로그인 후 좋아요를 누를 수 있습니다.");
+      return;
+    }
+
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    setActionMessage("");
+
+    try {
+      if (nextLiked) {
+        await AxiosApi.createLike(requestedFestivalId);
+      } else {
+        await AxiosApi.deleteLike(requestedFestivalId);
+      }
+    } catch (error) {
+      console.error("FestaDetail like toggle error:", error);
+      setIsLiked(!nextLiked);
+      setActionMessage("좋아요 상태 변경 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <Page>
       <Hero>
-        <HeroImage alt="" src={festival.image} />
+        {festival.image && <HeroImage alt="" src={festival.image} />}
         <HeroOverlay />
         <HeroContent>
           <TagRow>
@@ -331,7 +590,7 @@ function FestaDetail({
             <ActionButton
               $active={isFavorite}
               aria-pressed={isFavorite}
-              onClick={() => setIsFavorite((value) => !value)}
+              onClick={toggleFavorite}
               type="button"
             >
               <Heart fill={isFavorite ? "currentColor" : "none"} size={18} />
@@ -340,7 +599,7 @@ function FestaDetail({
             <ActionButton
               $active={isLiked}
               aria-pressed={isLiked}
-              onClick={() => setIsLiked((value) => !value)}
+              onClick={toggleLike}
               type="button"
             >
               <ThumbsUp fill={isLiked ? "currentColor" : "none"} size={18} />
@@ -360,6 +619,10 @@ function FestaDetail({
                 15분 간격으로 운행 중입니다.
               </AiMarqueeContent>
             </AiMarquee>
+          )}
+          {/* 추가: API 실패/로그인 필요 안내를 기존 디자인을 해치지 않는 작은 문구로 표시합니다. */}
+          {(detailError || actionMessage) && (
+            <MetaText role="status">{actionMessage || detailError}</MetaText>
           )}
         </HeroContent>
       </Hero>
@@ -386,8 +649,8 @@ function FestaDetail({
           <Section>
             <SectionTitle $tone="primary">축제 상세 정보</SectionTitle>
             <DetailText>
-              {festival.description.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
+              {festival.description.map((paragraph, index) => (
+                <p key={`${paragraph}-${index}`}>{paragraph}</p>
               ))}
             </DetailText>
           </Section>
@@ -430,8 +693,10 @@ function FestaDetail({
             <ReviewHeader>
               <div>
                 <SectionTitle $tone="tertiary">리뷰</SectionTitle>
+                {/* 추가: 리뷰 API 실패 시에도 화면은 유지하고 안내 문구만 표시합니다. */}
+                {reviewError && <MetaText role="status">{reviewError}</MetaText>}
                 <RatingLine>
-                  <strong>{hasReviews ? festival.rating : "0.0"}</strong>
+                  <strong>{hasReviews ? festival.rating.toFixed(1) : "0.0"}</strong>
                   <span>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
@@ -483,7 +748,7 @@ function FestaDetail({
                       </div>
                       <span>{review.time}</span>
                     </ReviewActions>
-                    <p>{review.text}</p>
+                    <p>{review.text || "작성된 리뷰 내용이 없습니다."}</p>
                     {review.isMine && (
                       <ReviewActions $right>
                         <TextButton
@@ -494,7 +759,7 @@ function FestaDetail({
                         </TextButton>
                         <TextButton
                           $danger
-                          onClick={openDeleteConfirm}
+                          onClick={() => openDeleteConfirm(review)}
                           type="button"
                         >
                           삭제
@@ -556,12 +821,9 @@ function FestaDetail({
           {isTalkExpanded ? (
             <>
               <FloatingTalkBody>
-                {LIVE_MESSAGES.map((message) => (
-                  <FloatingTalkMessage $mine={message.mine} key={message.id}>
-                    {!message.mine && <strong>{message.author}</strong>}
-                    <span>{message.text}</span>
-                  </FloatingTalkMessage>
-                ))}
+                <FloatingTalkMessage>
+                  <span>아직 실시간 톡 메시지가 없습니다.</span>
+                </FloatingTalkMessage>
               </FloatingTalkBody>
               <TalkComposer onSubmit={handleTalkSubmit}>
                 <FloatingTalkInput
@@ -580,8 +842,7 @@ function FestaDetail({
               type="button"
             >
               <TalkMiniLine>
-                <strong>지니_DJ</strong>
-                지금 입구 쪽 입장 원활해요!! 빨리 오세요!
+                아직 실시간 톡 메시지가 없습니다.
               </TalkMiniLine>
             </FloatingTalkPreview>
           )}

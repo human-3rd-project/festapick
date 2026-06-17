@@ -48,6 +48,11 @@ export const Hero = styled.section`
   position: relative;
   min-height: 512px;
   overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(23, 31, 51, 0.94), rgba(6, 14, 32, 0.96)),
+    radial-gradient(circle at 18% 18%, rgba(221, 183, 255, 0.2), transparent 30%),
+    radial-gradient(circle at 84% 26%, rgba(255, 176, 205, 0.14), transparent 32%),
+    #0b1326;
 
   @media (max-width: 680px) {
     min-height: 470px;
@@ -66,8 +71,8 @@ export const HeroOverlay = styled.div`
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(11, 19, 38, 0.08) 0%, rgba(11, 19, 38, 0.92) 100%),
-    linear-gradient(90deg, rgba(6, 14, 32, 0.76), rgba(6, 14, 32, 0.08));
+    linear-gradient(180deg, rgba(11, 19, 38, 0.28) 0%, rgba(11, 19, 38, 0.92) 100%),
+    linear-gradient(90deg, rgba(6, 14, 32, 0.82), rgba(6, 14, 32, 0.18));
 `;
 
 export const HeroContent = styled.div`
@@ -312,6 +317,7 @@ export const SectionTitle = styled.h2`
 export const DetailText = styled.div`
   display: flex;
   flex-direction: column;
+  min-height: 72px;
   gap: 14px;
   color: #cfc2d6;
   font-size: 17px;
@@ -351,6 +357,7 @@ export const MapPinBadge = styled.div`
   }
 
   span {
+    max-width: min(280px, calc(100vw - 72px));
     padding: 7px 12px;
     border: 1px solid rgba(221, 183, 255, 0.32);
     border-radius: 8px;
@@ -358,6 +365,9 @@ export const MapPinBadge = styled.div`
     color: #ddb7ff;
     font-size: 12px;
     font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     backdrop-filter: blur(14px);
   }
 `;
@@ -745,7 +755,7 @@ export const FloatingTalk = styled.aside`
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 80;
+  z-index: 900;
   width: ${({ $expanded }) => ($expanded ? "320px" : "320px")};
   overflow: hidden;
   border: 1px solid rgba(221, 183, 255, 0.3);

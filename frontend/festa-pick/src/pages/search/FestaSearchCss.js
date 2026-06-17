@@ -317,9 +317,27 @@ export const ImageWrap = styled.div`
   position: relative;
   height: 240px;
   overflow: hidden;
-  background: var(--surface-container-highest);
+  background:
+    linear-gradient(135deg, rgba(34, 42, 61, 0.94), rgba(11, 19, 38, 0.96)),
+    radial-gradient(circle at 24% 24%, rgba(221, 183, 255, 0.18), transparent 30%),
+    var(--surface-container-highest);
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(207, 194, 214, 0.56);
+    content: "이미지 없음";
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
 
   img {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     display: block;
@@ -334,6 +352,7 @@ export const ImageWrap = styled.div`
 
 export const LiveBadge = styled.span`
   position: absolute;
+  z-index: 3;
   top: 12px;
   left: 12px;
   border-radius: 999px;
@@ -347,6 +366,7 @@ export const LiveBadge = styled.span`
 
 export const HeartButton = styled.button`
   position: absolute;
+  z-index: 3;
   top: 12px;
   right: 12px;
   display: inline-flex;
@@ -381,6 +401,7 @@ export const HeartButton = styled.button`
 
 export const ImageOverlay = styled.div`
   position: absolute;
+  z-index: 2;
   right: 0;
   bottom: 0;
   left: 0;
@@ -428,6 +449,11 @@ export const MetaItem = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+
+  svg {
+    flex: 0 0 auto;
+  }
 `;
 
 export const CardFooter = styled.div`
