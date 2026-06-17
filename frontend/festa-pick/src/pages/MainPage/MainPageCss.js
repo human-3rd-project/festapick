@@ -25,8 +25,16 @@ const fadeIn = keyframes`
 export const MainPageWrapper = styled.div`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 6%, rgba(255, 176, 205, 0.16), transparent 30%),
-    radial-gradient(circle at 88% 16%, rgba(221, 183, 255, 0.18), transparent 32%),
+    radial-gradient(
+      circle at 12% 6%,
+      rgba(255, 176, 205, 0.16),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 88% 16%,
+      rgba(221, 183, 255, 0.18),
+      transparent 32%
+    ),
     #0b1326;
   color: #dae2fd;
   font-family: "Plus Jakarta Sans", "Pretendard", "Noto Sans KR", sans-serif;
@@ -63,7 +71,12 @@ export const HeroImageLayer = styled.div`
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(90deg, #0b1326 0%, rgba(11, 19, 38, 0.76) 44%, rgba(11, 19, 38, 0.16) 100%),
+    linear-gradient(
+      90deg,
+      #0b1326 0%,
+      rgba(11, 19, 38, 0.76) 44%,
+      rgba(11, 19, 38, 0.16) 100%
+    ),
     url(${({ $image }) => $image});
   background-position: center;
   background-size: cover;
@@ -117,7 +130,8 @@ export const HeroContent = styled.div`
 export const HeroNavButton = styled.button`
   position: absolute;
   top: 50%;
-  ${({ $direction }) => ($direction === "prev" ? "left: 18px;" : "right: 18px;")}
+  ${({ $direction }) =>
+    $direction === "prev" ? "left: 18px;" : "right: 18px;"}
   z-index: 2;
   width: 44px;
   height: 44px;
@@ -131,7 +145,8 @@ export const HeroNavButton = styled.button`
   cursor: pointer;
   backdrop-filter: blur(12px);
   transform: translateY(-50%)
-    ${({ $direction }) => ($direction === "prev" ? "rotate(180deg)" : "rotate(0deg)")};
+    ${({ $direction }) =>
+      $direction === "prev" ? "rotate(180deg)" : "rotate(0deg)"};
   transition:
     opacity 180ms ease,
     background 180ms ease,
@@ -242,7 +257,8 @@ export const Indicator = styled.span`
   width: ${({ $active }) => ($active ? "32px" : "8px")};
   height: 6px;
   border-radius: 999px;
-  background: ${({ $active }) => ($active ? "#ddb7ff" : "rgba(255, 255, 255, 0.32)")};
+  background: ${({ $active }) =>
+    $active ? "#ddb7ff" : "rgba(255, 255, 255, 0.32)"};
 `;
 
 export const HeroPlaybackButton = styled.button`
@@ -372,6 +388,7 @@ export const TextButton = styled(BaseButton)`
   border: 1px solid rgba(221, 183, 255, 0.36);
   background: #222a3d;
   color: #ddb7ff;
+  text-decoration: none;
 
   &:hover {
     background: #ddb7ff;
@@ -646,7 +663,11 @@ export const RankingFeatured = styled.button`
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(0deg, rgba(11, 19, 38, 0.95), rgba(11, 19, 38, 0.12));
+    background: linear-gradient(
+      0deg,
+      rgba(11, 19, 38, 0.95),
+      rgba(11, 19, 38, 0.12)
+    );
   }
 
   > strong {
@@ -720,7 +741,8 @@ export const RankingList = styled.div`
 export const RankingItem = styled.button`
   min-height: 80px;
   border: 1px solid
-    ${({ $active }) => ($active ? "rgba(221, 183, 255, 0.55)" : "rgba(255, 255, 255, 0.1)")};
+    ${({ $active }) =>
+      $active ? "rgba(221, 183, 255, 0.55)" : "rgba(255, 255, 255, 0.1)"};
   border-radius: 12px;
   padding: 14px 16px;
   display: grid;
@@ -774,7 +796,8 @@ export const RankingItem = styled.button`
   }
 
   svg {
-    color: ${({ $active, $muted }) => ($active || !$muted ? "#ffb0cd" : "#cfc2d6")};
+    color: ${({ $active, $muted }) =>
+      $active || !$muted ? "#ffb0cd" : "#cfc2d6"};
     opacity: ${({ $active, $muted }) => ($active || !$muted ? 1 : 0.5)};
   }
 
