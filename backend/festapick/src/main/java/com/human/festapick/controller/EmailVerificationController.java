@@ -25,7 +25,7 @@ public class EmailVerificationController {
             @RequestParam String email
     ) {
         emailVerificationService.sendVerificationCode(email);
-        return ApiResponse.ok("Verification code sent.", null);
+        return ApiResponse.ok("인증코드를 발송했습니다.", null);
     }
 
     // 사용자가 입력한 인증 코드를 검증하고, 성공하면 이후 회원가입에서 인증 완료로 판단한다.
@@ -34,6 +34,6 @@ public class EmailVerificationController {
             @Valid @RequestBody EmailVerificationRequestDto request
     ) {
         emailVerificationService.verifyEmail(request);
-        return ApiResponse.ok("Email verified.", null);
+        return ApiResponse.ok("인증 완료!", null);
     }
 }

@@ -1,40 +1,119 @@
-import { createContext, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useContext,
+} from "react";
+import AxiosInstance from "../api/AxiosInstance";
+import Common from "../utils/Common";
 
 const AuthContext = createContext(null);
 
+const getResponseData = (response) =>
+  response?.data?.data ?? response?.data ?? response;
+
+const removeAuthTokens = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+};
+
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(
-    localStorage.getItem("accessToken") !== null,
+    Common.getAccessToken() !== null,
   );
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // 새로고침 후에도 name/email 유지: localStorage에서 복원
-  const [user, setUser] = useState(() => {
-    const name = localStorage.getItem("userName");
-    const email = localStorage.getItem("userEmail");
-    return name ? { name, email } : null;
-  });
-
-  // 로그인 성공 시 호출
-  const login = (userData) => {
-    // localStorage에도 저장 → 새로고침 시 복원 가능
-    if (userData.name) localStorage.setItem("userName", userData.name);
-    if (userData.email) localStorage.setItem("userEmail", userData.email);
-    setIsLoggedIn(true);
-    setUser(userData);
-  };
-
-  // 로그아웃 시 호출
-  const logout = () => {
-    localStorage.clear();
+  const clearAuth = useCallback(() => {
+    removeAuthTokens();
     setIsLoggedIn(false);
     setUser(null);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const fetchCurrentUser = useCallback(async () => {
+    const response = await AxiosInstance.get("/users/me");
+    const profile = getResponseData(response);
+
+    setUser(profile);
+    setIsLoggedIn(true);
+    return profile;
+  }, []);
+
+  useEffect(() => {
+    const restoreAuth = async () => {
+      if (!Common.getAccessToken()) {
+        clearAuth();
+        setIsAuthLoading(false);
+        return;
+      }
+
+      try {
+        await fetchCurrentUser();
+      } catch (error) {
+        clearAuth();
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    restoreAuth();
+  }, [clearAuth, fetchCurrentUser]);
+
+  // 로그인 성공 응답을 받아 토큰을 저장하고, 현재 사용자 정보를 다시 조회한다.
+  const login = useCallback(
+    async (loginResponse) => {
+      const loginData = getResponseData(loginResponse);
+
+      if (loginData?.accessToken) {
+        Common.setAccessToken(loginData.accessToken);
+      }
+
+      if (loginData?.refreshToken) {
+        Common.setRefreshToken(loginData.refreshToken);
+      }
+
+      setIsLoggedIn(true);
+
+      if (loginData?.nickname || loginData?.profileImageUrl) {
+        setUser({
+          nickname: loginData.nickname,
+          profileImageUrl: loginData.profileImageUrl,
+        });
+      }
+
+      if (Common.getAccessToken()) {
+        try {
+          return await fetchCurrentUser();
+        } catch (error) {
+          return getResponseData(loginResponse);
+        }
+      }
+
+      return loginData;
+    },
+    [fetchCurrentUser],
   );
+
+  // 로그아웃 시 호출
+  const logout = useCallback(() => {
+    clearAuth();
+  }, [clearAuth]);
+
+  const value = useMemo(
+    () => ({
+      isLoggedIn,
+      isAuthLoading,
+      user,
+      login,
+      logout,
+      fetchCurrentUser,
+    }),
+    [fetchCurrentUser, isAuthLoading, isLoggedIn, login, logout, user],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);
