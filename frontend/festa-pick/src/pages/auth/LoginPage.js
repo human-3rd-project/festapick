@@ -1,67 +1,16 @@
-import React, { useState } from "react";
-import { Lock, MessageCircle, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import React from "react";
+import { Lock, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import Styles from "./LoginPageCss";
 
-const MOCK_LOGIN_ACCOUNT = {
-  userId: "test",
-  password: "1234",
-};
-
 const LoginPage = () => {
-  const navigate = useNavigate();
-  const [status, setStatus] = useState({ visible: false, type: "", text: "" });
+  const status = { visible: false, type: "", text: "" };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const userId = e.target.userId?.value || "";
-    const pass = e.target.password?.value || "";
-
-    if (!userId || !pass) {
-      setStatus({
-        visible: true,
-        type: "error",
-        text: "아이디와 비밀번호를 입력해주세요.",
-      });
-      return;
-    }
-
-    // TODO: 백엔드 로그인 API 연결 후 실제 응답에 따라 성공/실패 처리를 분기하세요.
-    const isLoginSuccess =
-      userId === MOCK_LOGIN_ACCOUNT.userId &&
-      pass === MOCK_LOGIN_ACCOUNT.password;
-
-    if (isLoginSuccess) {
-      setStatus({ visible: false, type: "", text: "" });
-      navigate("/", { replace: true });
-    } else {
-      setStatus({
-        visible: true,
-        type: "error",
-        text: "아이디와 비밀번호를 확인해주세요.",
-      });
-    }
   };
 
-  const handleSocialLogin = (provider) => {
-    // TODO: 백엔드 소셜 로그인 API 연결 후 신규 가입자일 때 추가정보 입력 페이지로 이동하세요.
-
-    const kakaoRestApiKey = process.env.REACT_APP_KAKAO_REST_API_KEY;
-    const redirectUri = process.env.REACT_APP_KAKAO_REDIRECT_URI;
-
-    const kakaoUrl =
-      "https://kauth.kakao.com/oauth/authorize" +
-      `?client_id=${kakaoRestApiKey}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      "&response_type=code";
-
-    window.open(
-      kakaoUrl,
-      "kakaoLogin",
-      "width=500,height=600,top=100,left=100"
-    );
-  };
-
+  const handleSocialLogin = () => {};
   return (
     <Styles.Page>
       <Styles.BackgroundGradient />

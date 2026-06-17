@@ -216,6 +216,8 @@ export const FieldMessage = styled.p`
 	font-size: 11px;
 	line-height: 13px;
 	font-weight: 500;
+	word-break: keep-all;
+	overflow-wrap: anywhere;
 
 	&.empty {
 		visibility: hidden;
@@ -259,6 +261,17 @@ export const GlassButton = styled.button`
 
 	&:active {
 		transform: scale(0.95);
+	}
+
+	&:disabled {
+		opacity: 0.55;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	&:disabled:hover {
+		background: rgba(255, 255, 255, 0.05);
+		border-color: rgba(255, 255, 255, 0.2);
 	}
 
 	@media (max-width: 380px) {
@@ -350,6 +363,18 @@ export const NeonButton = styled.button`
 
 	&:active {
 		transform: scale(0.98);
+	}
+
+	&:disabled {
+		opacity: 0.65;
+		cursor: not-allowed;
+		transform: none;
+		filter: grayscale(0.15);
+	}
+
+	&:disabled:hover {
+		box-shadow: 0 4px 15px rgba(183, 109, 255, 0.3);
+		filter: grayscale(0.15);
 	}
 `;
 
