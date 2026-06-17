@@ -6,12 +6,8 @@ import com.human.festapick.dto.response.ApiResponse;
 import com.human.festapick.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,34 +19,34 @@ public class AccountController {
 
     // 가입 이메일로 로그인 ID를 찾고, 서비스에서 마스킹된 값을 반환한다.
     @GetMapping("/login-id")
-    public ApiResponse<String> findLoginIdByEmail(
+    public ResponseEntity<ApiResponse<String>> findLoginIdByEmail(
             @RequestParam String email
     ) {
-        return ApiResponse.ok(accountService.findLoginIdByEmail(email));
+        return ResponseEntity.ok(ApiResponse.ok(accountService.findLoginIdByEmail(email)));
     }
 
     // 비밀번호 재설정은 메일 발송 -> 토큰 검증 -> 새 비밀번호 저장 순서로 호출된다.
     @PostMapping("/password-reset/request")
-    public ApiResponse<Void> requestPasswordReset(
+    public ResponseEntity<ApiResponse<Void>> requestPasswordReset(
             @Valid @RequestBody PasswordResetLinkRequestDto request
     ) {
         accountService.requestPasswordReset(request);
-        return ApiResponse.ok("메일이 발송되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("메일이 발송되었습니다.", null));
     }
 
     @GetMapping("/password-reset/validate")
-    public ApiResponse<Void> validateResetToken(
+    public ResponseEntity<ApiResponse<Void>> validateResetToken(
             @RequestParam String token
     ) {
         accountService.validateResetToken(token);
-        return ApiResponse.ok("비밀번호 재설정 토큰 검증이 완료되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("비밀번호 재설정 토큰 검증이 완료되었습니다.", null));
     }
 
     @PostMapping("/password-reset")
-    public ApiResponse<Void> resetPassword(
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
             @Valid @RequestBody PasswordResetRequestDto request
     ) {
         accountService.resetPassword(request);
-        return ApiResponse.ok("비밀번호 재설정이 완료되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("비밀번호 재설정이 완료되었습니다.", null));
     }
 }

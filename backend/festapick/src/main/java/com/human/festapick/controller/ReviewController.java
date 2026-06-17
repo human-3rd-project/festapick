@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,7 +29,7 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @GetMapping("/festivals/{festivalId}/reviews")
-    public ApiResponse<Page<ReviewResDto>> getReviewList(
+    public ResponseEntity<ApiResponse<Page<ReviewResDto>>> getReviewList(
             @PathVariable Long festivalId,
             Pageable pageable
     ) {
@@ -36,11 +37,11 @@ public class ReviewController {
         Page<ReviewResDto> reviews = reviewService.getReviewList(festivalId, pageable);
 
         // 조회된 Page 결과를 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok(reviews);
+        return ResponseEntity.ok(ApiResponse.ok(reviews));
     }
 
     @PostMapping("/reviews")
-    public ApiResponse<ReviewResDto> createReview(
+    public ResponseEntity<ApiResponse<ReviewResDto>> createReview(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody ReviewReqDto request
     ) {
@@ -48,11 +49,11 @@ public class ReviewController {
         ReviewResDto review = reviewService.createReview(userDetail.getUserId(), request);
 
         // 생성된 리뷰 DTO를 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok("리뷰가 작성되었습니다.", review);
+        return ResponseEntity.ok(ApiResponse.ok("리뷰가 작성되었습니다.", review));
     }
 
     @PutMapping("/reviews/{reviewId}")
-    public ApiResponse<ReviewResDto> updateReview(
+    public ResponseEntity<ApiResponse<ReviewResDto>> updateReview(
             @PathVariable Long reviewId,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody ReviewReqDto request
@@ -61,11 +62,11 @@ public class ReviewController {
         ReviewResDto review = reviewService.updateReview(userDetail.getUserId(), reviewId, request);
 
         // 수정된 리뷰 DTO를 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok("리뷰가 수정되었습니다.", review);
+        return ResponseEntity.ok(ApiResponse.ok("리뷰가 수정되었습니다.", review));
     }
 
     @DeleteMapping("/reviews/{reviewId}")
-    public ApiResponse<Void> deleteReview(
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
             @PathVariable Long reviewId,
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
@@ -73,11 +74,11 @@ public class ReviewController {
         reviewService.deleteReview(userDetail.getUserId(), reviewId);
 
         // 삭제 성공 여부는 공통 응답 형식으로 반환합니다.
-        return ApiResponse.ok("리뷰가 삭제되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("리뷰가 삭제되었습니다.", null));
     }
 
     @GetMapping("/me/reviews")
-    public ApiResponse<Page<MyReviewResDto>> getMyReviewList(
+    public ResponseEntity<ApiResponse<Page<MyReviewResDto>>> getMyReviewList(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             Pageable pageable
     ) {
@@ -85,15 +86,15 @@ public class ReviewController {
         Page<MyReviewResDto> reviews = reviewService.getMyReviewList(userDetail.getUserId(), pageable);
 
         // Page 결과를 공통 응답 data에 담아 반환합니다.
-        return ApiResponse.ok(reviews);
+        return ResponseEntity.ok(ApiResponse.ok(reviews));
     }
 
     @GetMapping("/festivals/{festivalId}/reviews/count")
-    public ApiResponse<Long> getReviewCount(@PathVariable Long festivalId) {
+    public ResponseEntity<ApiResponse<Long>> getReviewCount(@PathVariable Long festivalId) {
         // 특정 축제의 활성 리뷰 개수를 조회합니다.
         long reviewCount = reviewService.getReviewCount(festivalId);
 
         // primitive long 값을 Long data로 감싸 반환합니다.
-        return ApiResponse.ok(reviewCount);
+        return ResponseEntity.ok(ApiResponse.ok(reviewCount));
     }
 }

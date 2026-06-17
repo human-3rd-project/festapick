@@ -55,12 +55,13 @@ public class SecurityConfig {
 
                 // URL 별 권한 설정 (위에서 아래 순서로 첫 번째 매칭 적용)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()                            // 로그인/회원가입 허용
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()  // Swagger 허용
-                        .requestMatchers("/ws/**").permitAll()  // WebSocket handshake는 JwtHandshakeInterceptor에서 인증
-                        .requestMatchers(HttpMethod.POST,   "/api/inventory/**").hasRole("ADMIN") // 재고 등록
-                        .requestMatchers(HttpMethod.PUT,    "/api/inventory/**").hasRole("ADMIN") // 재고 수정
-                        .requestMatchers(HttpMethod.DELETE, "/api/inventory/**").hasRole("ADMIN") // 재고 삭제
+                        .requestMatchers("/auth/**", "/chat/rooms/*/messages", "/festivals/*/favorites/count").permitAll()                            // 로그인/회원가입 허용
+                        .requestMatchers("/festivals/*/likes/count", "/festivals/*/reviews", "/festivals/*/reviews/count").permitAll()  // Swagger 허용
+                        .requestMatchers("/api/ai/question", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes").permitAll()
+                        .requestMatchers("/festivals/**", "/main/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,   "/admin/**").hasRole("ADMIN") // 재고 등록
+                        .requestMatchers(HttpMethod.PUT,    "/admin/**").hasRole("ADMIN") // 재고 수정
+                        .requestMatchers(HttpMethod.DELETE, "/admin/**").hasRole("ADMIN") // 재고 삭제
                         .anyRequest().authenticated()                                      // 나머지는 인증 필요
                 )
 

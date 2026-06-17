@@ -12,6 +12,7 @@ import com.human.festapick.service.KakaoAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,68 +33,67 @@ public class AuthController {
 
     // 회원가입 화면에서 사용하는 중복 확인 API들이다.
     @GetMapping("/check-login-id")
-    public ApiResponse<Boolean> checkLoginIdDuplicate(
+    public ResponseEntity<ApiResponse<Boolean>> checkLoginIdDuplicate(
             @RequestParam String loginId
     ) {
-        return ApiResponse.ok(authService.checkLoginIdDuplicate(loginId));
+        return ResponseEntity.ok(ApiResponse.ok(authService.checkLoginIdDuplicate(loginId)));
     }
 
     @GetMapping("/check-nickname")
-    public ApiResponse<Boolean> checkNicknameDuplicate(
+    public ResponseEntity<ApiResponse<Boolean>> checkNicknameDuplicate(
             @RequestParam String nickname
     ) {
-        return ApiResponse.ok(authService.checkNicknameDuplicate(nickname));
+        return ResponseEntity.ok(ApiResponse.ok(authService.checkNicknameDuplicate(nickname)));
     }
 
     @GetMapping("/check-email")
-    public ApiResponse<Boolean> checkEmailDuplicate(
+    public ResponseEntity<ApiResponse<Boolean>> checkEmailDuplicate(
             @RequestParam String email
     ) {
-        return ApiResponse.ok(authService.checkEmailDuplicate(email));
+        return ResponseEntity.ok(ApiResponse.ok(authService.checkEmailDuplicate(email)));
     }
 
-    // 일반 회원가입/로그인은 입력 DTO를 받아 서비스에 넘기고, 결과만 ApiResponse로 감싼다.
     @PostMapping("/signup")
-    public ApiResponse<Void> signup(
+    public ResponseEntity<ApiResponse<Void>> signup(
             @Valid @RequestBody SignupRequestDto request
     ) {
         authService.signup(request);
-        return ApiResponse.ok("회원가입이 완료되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("회원가입이 완료되었습니다.", null));
     }
 
     @PostMapping("/login")
-    public ApiResponse<LoginResponseDto> login(
+    public ResponseEntity<ApiResponse<LoginResponseDto>> login(
             @Valid @RequestBody LoginRequestDto request
     ) {
-        return ApiResponse.ok(authService.login(request));
+        return ResponseEntity.ok(ApiResponse.ok(authService.login(request)));
     }
 
     // 카카오 인가 코드 로그인은 기존 회원이면 토큰을, 신규 회원이면 추가 가입 정보를 반환한다.
     @GetMapping("/kakao/login")
-    public ApiResponse<Object> kakaoLogin(
+    public ResponseEntity<ApiResponse<Object>> kakaoLogin(
             @RequestParam String code
     ) {
-        return ApiResponse.ok(kakaoAuthService.loginWithKakaoCode(code));
+        return ResponseEntity.ok(ApiResponse.ok(kakaoAuthService.loginWithKakaoCode(code)));
     }
 
     @PostMapping("/social/signup")
-    public ApiResponse<LoginResponseDto> socialSignup(
+    public ResponseEntity<ApiResponse<LoginResponseDto>> socialSignup(
             @RequestHeader("Temporary-Token") String temporaryToken,
             @Valid @RequestBody SocialSignupRequestDto request
     ) {
-        return ApiResponse.ok(kakaoAuthService.completeSocialSignup(temporaryToken, request));
+        return ResponseEntity.ok(ApiResponse.ok(kakaoAuthService.completeSocialSignup(temporaryToken, request)));
     }
 
     // 토큰 재발급/로그아웃은 저장된 Refresh Token 상태를 기준으로 서비스에서 처리한다.
     @PostMapping("/reissue")
-    public ApiResponse<LoginResponseDto> reissue(
+    public ResponseEntity<ApiResponse<LoginResponseDto>> reissue(
             @RequestHeader("Refresh-Token") String refreshToken
     ) {
-        return ApiResponse.ok(authService.reissueAccessToken(refreshToken));
+        return ResponseEntity.ok(ApiResponse.ok(authService.reissueAccessToken(refreshToken)));
     }
 
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(
+    public ResponseEntity<ApiResponse<Void>> logout(
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
         // 로그아웃 대상 사용자는 JWT 파싱 대신 SecurityContext에 주입된 principal에서 가져온다.
@@ -102,6 +102,6 @@ public class AuthController {
         }
 
         authService.logout(userDetail.getUserId());
-        return ApiResponse.ok("로그아웃이 완료되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("로그아웃이 완료되었습니다.", null));
     }
 }

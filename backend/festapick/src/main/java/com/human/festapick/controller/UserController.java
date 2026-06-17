@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,23 +34,23 @@ public class UserController {
 
     // 프로필 조회/수정: 현재 로그인 사용자를 기준으로 처리한다.
     @GetMapping
-    public ApiResponse<ProfileResDto> getMyProfile(
+    public ResponseEntity<ApiResponse<ProfileResDto>> getMyProfile(
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
-        return ApiResponse.ok(userService.getMyProfile(getUserId(userDetail)));
+        return ResponseEntity.ok(ApiResponse.ok(userService.getMyProfile(getUserId(userDetail))));
     }
 
     @PatchMapping
-    public ApiResponse<ProfileResDto> updateMyProfile(
+    public ResponseEntity<ApiResponse<ProfileResDto>> updateMyProfile(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody ProfileReqDto request
     ) {
-        return ApiResponse.ok(userService.updateMyProfile(getUserId(userDetail), request));
+        return ResponseEntity.ok(ApiResponse.ok(userService.updateMyProfile(getUserId(userDetail), request)));
     }
 
     // 비밀번호 변경과 회원 탈퇴도 현재 로그인 사용자의 userId를 기준으로만 처리한다.
     @PostMapping("/password")
-    public ApiResponse<Void> changeMyPassword(
+    public ResponseEntity<ApiResponse<Void>> changeMyPassword(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody PasswordChangeRequest request
     ) {
@@ -58,31 +59,31 @@ public class UserController {
                 request.getCurrentPassword(),
                 request.getNewPassword()
         );
-        return ApiResponse.ok("비밀번호가 변경되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("비밀번호가 변경되었습니다.", null));
     }
 
     @DeleteMapping
-    public ApiResponse<Void> deleteMyAccount(
+    public ResponseEntity<ApiResponse<Void>> deleteMyAccount(
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
         userService.deleteMyAccount(getUserId(userDetail));
-        return ApiResponse.ok("계정이 삭제되었습니다.", null);
+        return ResponseEntity.ok(ApiResponse.ok("계정이 삭제되었습니다.", null));
     }
 
     @GetMapping("/region")
-    public ApiResponse<MyRegionResDto> getMyRegion(
+    public ResponseEntity<ApiResponse<MyRegionResDto>> getMyRegion(
             @AuthenticationPrincipal CustomUserDetail userDetail
     ) {
-        return ApiResponse.ok(userService.getMyRegion(getUserId(userDetail)));
+        return ResponseEntity.ok(ApiResponse.ok(userService.getMyRegion(getUserId(userDetail))));
     }
 
     // 관심 지역 조회/수정은 법정동 코드 검증까지 서비스에 위임한다.
     @PatchMapping("/region")
-    public ApiResponse<MyRegionResDto> updateMyRegion(
+    public ResponseEntity<ApiResponse<MyRegionResDto>> updateMyRegion(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody MyRegionReqDto request
     ) {
-        return ApiResponse.ok(userService.updateMyRegion(getUserId(userDetail), request));
+        return ResponseEntity.ok(ApiResponse.ok(userService.updateMyRegion(getUserId(userDetail), request)));
     }
 
     private Long getUserId(CustomUserDetail userDetail) {
