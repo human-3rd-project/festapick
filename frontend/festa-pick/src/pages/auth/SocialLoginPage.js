@@ -43,6 +43,7 @@ const SocialLoginPage = () => {
 
   const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
+  const [checkedEmail, setCheckedEmail] = useState("");
   const [checkedNickname, setCheckedNickname] = useState("");
   const [agreements, setAgreements] = useState({
     all: false,
@@ -50,6 +51,7 @@ const SocialLoginPage = () => {
     privacy: false,
   });
   const [message, setMessage] = useState({ field: "", type: "", text: "" });
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -77,7 +79,12 @@ const SocialLoginPage = () => {
   };
 
   const handleEmailChange = (e) => {
-    setEmail(e.currentTarget.value);
+    const nextEmail = e.currentTarget.value;
+    setEmail(nextEmail);
+
+    if (checkedEmail && checkedEmail !== nextEmail.trim()) {
+      setCheckedEmail("");
+    }
 
     if (message.field === "email") {
       setMessage({ field: "", type: "", text: "" });
@@ -131,6 +138,49 @@ const SocialLoginPage = () => {
     }
   };
 
+  const handleEmailCheck = async () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setFieldMessage("email", "error", "이메일을 입력해 주세요.");
+      return;
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      setFieldMessage("email", "error", "이메일 형식에 맞게 입력해 주세요.");
+      return;
+    }
+
+    setIsCheckingEmail(true);
+
+    try {
+      const response = await AxiosApi.checkEmail(trimmedEmail);
+      const isDuplicated = response.data?.data === true;
+
+      if (email.trim() !== trimmedEmail) {
+        return;
+      }
+
+      if (isDuplicated) {
+        setCheckedEmail("");
+        setFieldMessage("email", "error", "이미 사용 중인 이메일입니다.");
+        return;
+      }
+
+      setCheckedEmail(trimmedEmail);
+      setFieldMessage("email", "success", "사용 가능한 이메일입니다.");
+    } catch (error) {
+      setCheckedEmail("");
+      setFieldMessage(
+        "email",
+        "error",
+        getApiMessage(error, "이메일 중복 확인에 실패했습니다."),
+      );
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   const handleNicknameCheck = async () => {
     const trimmedNickname = nickname.trim();
 
@@ -181,7 +231,7 @@ const SocialLoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (isSubmitting) {
+    if (isSubmitting || isCheckingEmail || isCheckingNickname) {
       return;
     }
 
@@ -200,6 +250,11 @@ const SocialLoginPage = () => {
 
     if (!isValidEmail(trimmedEmail)) {
       setFieldMessage("email", "error", "이메일 형식에 맞게 입력해 주세요.");
+      return;
+    }
+
+    if (checkedEmail !== trimmedEmail) {
+      setFieldMessage("email", "error", "이메일 중복 확인을 완료해 주세요.");
       return;
     }
 
@@ -277,16 +332,27 @@ const SocialLoginPage = () => {
           <Styles.Form onSubmit={handleSubmit} noValidate>
             <Styles.Field>
               <label htmlFor="socialEmail">이메일</label>
-              <Styles.Input
-                id="socialEmail"
-                name="socialEmail"
-                type="email"
-                value={email}
-                placeholder="example@festapick.com"
-                inputMode="email"
-                aria-invalid={message.field === "email" && message.type === "error"}
-                onChange={handleEmailChange}
-              />
+              <Styles.FieldWithButton>
+                <Styles.InputGroup>
+                  <Styles.Input
+                    id="socialEmail"
+                    name="socialEmail"
+                    type="email"
+                    value={email}
+                    placeholder="example@festapick.com"
+                    inputMode="email"
+                    aria-invalid={message.field === "email" && message.type === "error"}
+                    onChange={handleEmailChange}
+                  />
+                </Styles.InputGroup>
+                <Styles.GlassButton
+                  type="button"
+                  disabled={isCheckingEmail}
+                  onClick={handleEmailCheck}
+                >
+                  {isCheckingEmail ? "확인 중" : "중복 확인"}
+                </Styles.GlassButton>
+              </Styles.FieldWithButton>
               {renderFieldMessage("email")}
             </Styles.Field>
 
@@ -385,7 +451,10 @@ const SocialLoginPage = () => {
 
             {renderFieldMessage("form")}
 
-            <Styles.SubmitButton type="submit" disabled={isSubmitting || isCheckingNickname}>
+            <Styles.SubmitButton
+              type="submit"
+              disabled={isSubmitting || isCheckingEmail || isCheckingNickname}
+            >
               {isSubmitting && <Loader2 size={18} aria-hidden="true" />}
               {isSubmitting ? "처리 중..." : "가입 완료"}
             </Styles.SubmitButton>

@@ -70,7 +70,6 @@ function KakaoPopupCallbackPage() {
 
         if (kakaoData?.signupRequired) {
           deliverToParent("KAKAO_SIGNUP_REQUIRED", kakaoData);
-          moveOpener("/social-login");
           closePopup();
           return;
         }
@@ -85,8 +84,6 @@ function KakaoPopupCallbackPage() {
         if (kakaoData.refreshToken) {
           localStorage.setItem("refreshToken", kakaoData.refreshToken);
         }
-
-        moveOpener("/");
       } catch (callbackError) {
         deliverToParent("KAKAO_AUTH_ERROR", {
           message:
