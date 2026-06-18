@@ -10,6 +10,7 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import AxiosApi from "../../api/AxiosApi";
 import {
   Badge,
   CardImage,
@@ -183,25 +184,124 @@ const fallbackPopularFestivals = [
   },
 ];
 
+//백엔드에서 온 축제 데이터 지금 축제 카드형태에 맞게 바꿔줌
+//API 실패했을 때 보여줄 기본 데이터 묶음
+const fallbackMainData = {
+  nearbyFestivals: fallbackNearbyFestivals,
+  monthlyFestivals: fallbackMonthlyFestivals,
+  popularFestivals: fallbackPopularFestivals,
+};
+
+//날짜를 화면용으로 바꿔주는 함수
+const formatDateText = (date) => {
+  if (!date) {
+    return "";
+  }
+
+  const [, month, day] = String(date).split("-");
+  return month && day ? `${month}.${day}` : String(date);
+};
+
+// 축제 기간을 화면용 텍스트로 변환
+const formatFestivalPeriod = (festival) => {
+  const startText = formatDateText(festival.eventStartDate);
+  const endText = formatDateText(festival.eventEndDate);
+
+  if (startText && endText) {
+    return `${startText} - ${endText}`;
+  }
+
+  return startText || endText || "";
+};
+
+//지역/장소 텍스트를 만드는 함수
+const getFestivalRegion = (festival) => {
+  return [festival.addr1, festival.addr2].filter(Boolean).join(" ");
+};
+
+//heroImage 이미지가 없을 때도 기본 이미지라도 보이게 함
+const getFestivalImage = (festival) => {
+  return festival.firstImage || heroImage;
+};
+
+//축제 하나를 카드에서 쓸 수 있는 형태로 바꾸는 함수
+const normalizeFestivalCard = (festival, index, options = {}) => {
+  const id = festival.festivalId || `${options.prefix || "festival"}-${index}`;
+  const title = festival.title || "축제 정보";
+  const region = getFestivalRegion(festival);
+  const date = formatFestivalPeriod(festival);
+
+  return {
+    ...festival,
+    id,
+    festivalId: id,
+    rank: index + 1,
+    title,
+    name: title,
+    region,
+    location: region,
+    venue: region,
+    date,
+    image: getFestivalImage(festival),
+    category: festival.categoryName || "축제",
+    meta: `실시간 ${festival.liveCount || 0} · 찜 ${
+      festival.favoriteCount || 0
+    } · 좋아요 ${festival.likeCount || 0}`,
+    description: `평점 ${festival.averageRating || 0} · 리뷰 ${
+      festival.reviewCount || 0
+    }개`,
+    distance: "",
+  };
+};
+
+//메인페이지 전체 API 응답을 정리하는 함수
+const normalizeMainData = (rawData) => {
+  const data = rawData || {};
+
+  return {
+    nearbyFestivals: (data.nearbyFestivals || []).map((festival, index) =>
+      normalizeFestivalCard(festival, index, { prefix: "nearby" }),
+    ),
+    monthlyFestivals: (data.monthlyFestivals || []).map((festival, index) =>
+      normalizeFestivalCard(festival, index, { prefix: "monthly" }),
+    ),
+    popularFestivals: (data.popularFestivals || []).map((festival, index) =>
+      normalizeFestivalCard(festival, index, { prefix: "popular" }),
+    ),
+  };
+};
+
 function MainPage() {
   const auth = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHeroPlaying, setIsHeroPlaying] = useState(true);
   const [selectedPopularRank, setSelectedPopularRank] = useState(1);
-  const isMainLoading = false;
+  const [mainData, setMainData] = useState(fallbackMainData);
+  //isMainLoading API 요청 중인지 아닌지 표시하는 상태
+  const [isMainLoading, setIsMainLoading] = useState(false);
   const user = auth?.user || {};
+  const storedLdongRegnCd =
+    typeof window !== "undefined" ? localStorage.getItem("ldongRegnCd") : null;
+
+  const storedLdongSignguCd =
+    typeof window !== "undefined"
+      ? localStorage.getItem("ldongSignguCd")
+      : null;
   const storedUserRegion =
     typeof window !== "undefined"
       ? localStorage.getItem("userRegion") ||
         localStorage.getItem("region") ||
         localStorage.getItem("address") ||
-        localStorage.getItem("ldongRegnCd") ||
-        localStorage.getItem("ldongSignguCd")
+        storedLdongRegnCd ||
+        storedLdongSignguCd
       : null;
   const isLoggedIn =
     Boolean(auth?.isLoggedIn) ||
     (typeof window !== "undefined" &&
       Boolean(localStorage.getItem("accessToken")));
+  const ldongRegnCd = user.ldongRegnCd || storedLdongRegnCd || "";
+  const ldongSignguCd = user.ldongSignguCd || storedLdongSignguCd || "";
+
   // TODO: 사용자 지역 저장 필드 확정 후 ldongRegnCd/ldongSignguCd 기준으로 정리 필요
   const hasUserRegion = Boolean(
     user.ldongRegnCd ||
@@ -214,11 +314,25 @@ function MainPage() {
     storedUserRegion,
   );
   const shouldShowLocationGuide = !isLoggedIn || !hasUserRegion;
-  const locationSettingPath = isLoggedIn ? "/mypage/region" : "/signup";
+  const locationSettingPath = isLoggedIn ? "/mypage/region" : "/login";
+
+  //배너 기존의 더미 데이터 유지
   const displayHeroSlides = fallbackHeroSlides;
-  const displayRegionFestivals = fallbackNearbyFestivals;
-  const displayMonthlyFestivals = fallbackMonthlyFestivals;
-  const displayPopularFestivals = fallbackPopularFestivals;
+
+  const displayRegionFestivals =
+    mainData.nearbyFestivals?.length > 0
+      ? mainData.nearbyFestivals
+      : fallbackNearbyFestivals;
+
+  const displayMonthlyFestivals =
+    mainData.monthlyFestivals?.length > 0
+      ? mainData.monthlyFestivals
+      : fallbackMonthlyFestivals;
+
+  const displayPopularFestivals =
+    mainData.popularFestivals?.length > 0
+      ? mainData.popularFestivals
+      : fallbackPopularFestivals;
   const selectedPopularFestival =
     displayPopularFestivals.find(
       (festival) => festival.rank === selectedPopularRank,
@@ -226,12 +340,38 @@ function MainPage() {
   const rankingItems = displayPopularFestivals;
 
   useEffect(() => {
-    // TODO: AxiosApi 함수명 확정 후 연결 필요
-    // AxiosApi.getBannerFestivals()
-    // AxiosApi.getNearbyFestivalRecommendations()
-    // AxiosApi.getMonthlyNationalFestivals()
-    // AxiosApi.getRealtimePopularFestivals()
-  }, []);
+    const fetchMainPage = async () => {
+      setIsMainLoading(true);
+
+      try {
+        const response = await AxiosApi.getMainPage(ldongRegnCd, ldongSignguCd);
+        const responseData = response.data?.data || response.data;
+        const normalizedData = normalizeMainData(responseData);
+
+        setMainData({
+          nearbyFestivals:
+            normalizedData.nearbyFestivals.length > 0
+              ? normalizedData.nearbyFestivals
+              : fallbackMainData.nearbyFestivals,
+          monthlyFestivals:
+            normalizedData.monthlyFestivals.length > 0
+              ? normalizedData.monthlyFestivals
+              : fallbackMainData.monthlyFestivals,
+          popularFestivals:
+            normalizedData.popularFestivals.length > 0
+              ? normalizedData.popularFestivals
+              : fallbackMainData.popularFestivals,
+        });
+      } catch (error) {
+        console.error("메인 페이지 조회 실패:", error);
+        setMainData(fallbackMainData);
+      } finally {
+        setIsMainLoading(false);
+      }
+    };
+
+    fetchMainPage();
+  }, [ldongRegnCd, ldongSignguCd]);
 
   useEffect(() => {
     if (!isHeroPlaying) {
@@ -260,7 +400,7 @@ function MainPage() {
 
   const getFestivalLink = (festival) => {
     const festivalId =
-      festival.id || festival.rank || festival.title || festival.name;
+      festival.festivalId || festival.id || festival.title || festival.name;
 
     return {
       to: `/festivals/${encodeURIComponent(festivalId)}`,
@@ -268,6 +408,7 @@ function MainPage() {
         festival: {
           ...festival,
           id: festivalId,
+          festivalId,
           title: festival.title || festival.name,
           name: festival.name || festival.title,
           location: festival.location || festival.region,
@@ -358,7 +499,9 @@ function MainPage() {
             </SectionLink>
           </SectionHeader>
           <NearbySectionLead>
-            서울 은평구 근처 추천 축제를 가까운 순서대로 골랐어요.
+            {hasUserRegion
+              ? "설정한 위치 근처 추천 축제를 가까운 순서대로 골랐어요."
+              : "내 위치를 설정하면 주변의 핫한 축제를 추천받을 수 있어요."}
           </NearbySectionLead>
           {shouldShowLocationGuide ? (
             <LocationCard $image={heroImage}>
@@ -382,7 +525,7 @@ function MainPage() {
                         <MapPin size={15} aria-hidden="true" />
                         {festival.region}
                       </span>
-                      <span>{festival.distance}</span>
+                      {festival.distance && <span>{festival.distance}</span>}
                       <span>
                         <CalendarDays size={15} aria-hidden="true" />
                         {festival.date}

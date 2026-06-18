@@ -242,8 +242,10 @@ function Header() {
 
   const handleLogout = () => {
     closeMenus();
-    navigate("/login");
+    navigate("/");
   };
+
+  //로그아웃 시 메인으로 이동
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
