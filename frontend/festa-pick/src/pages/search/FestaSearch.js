@@ -303,6 +303,14 @@ function Search() {
     setAppliedFilterValues(null);
   };
 
+  const openFilterModal = () => {
+    setIsFilterOpen(true);
+  };
+
+  const closeFilterModal = () => {
+    setIsFilterOpen(false);
+  };
+
   const removeFilter = (targetFilter) => {
     setFilters((currentFilters) =>
       currentFilters.filter((filter) => filter !== targetFilter),
@@ -365,7 +373,7 @@ function Search() {
       ].filter(Boolean),
     );
     setHasSearched(true);
-    setIsFilterOpen(false);
+    closeFilterModal();
     setVisibleResultCount(INITIAL_RESULT_COUNT);
   };
 
@@ -465,7 +473,7 @@ function Search() {
               <ButtonGroup>
                 <IconButton
                   aria-label="필터 설정"
-                  onClick={() => setIsFilterOpen(true)}
+                  onClick={openFilterModal}
                   title="필터 설정"
                   type="button"
                 >
@@ -664,7 +672,7 @@ function Search() {
         <FilterModal
           isOpen={isFilterOpen}
           onApply={handleApplyFilters}
-          onClose={() => setIsFilterOpen(false)}
+          onClose={closeFilterModal}
           onReset={handleResetFilters}
           values={draftFilterValues}
         />

@@ -334,11 +334,20 @@ export const MapCanvas = styled.div`
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  background:
-    linear-gradient(rgba(11, 19, 38, 0.24), rgba(11, 19, 38, 0.42)),
-    url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1200&q=80")
-      center / cover;
+  background: ${({ $disabled }) =>
+    $disabled
+      ? `linear-gradient(rgba(11, 19, 38, 0.24), rgba(11, 19, 38, 0.42)),
+        url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1200&q=80")
+          center / cover`
+      : "#171f33"};
   filter: ${({ $disabled }) => ($disabled ? "grayscale(1)" : "none")};
+`;
+
+export const MapViewport = styled.div`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 `;
 
 export const MapPinBadge = styled.div`
@@ -431,6 +440,13 @@ export const CtaButton = styled.button`
   &:hover {
     filter: ${({ disabled }) => (disabled ? "none" : "brightness(1.06)")};
   }
+`;
+
+export const MapDirectionButton = styled(CtaButton)`
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
 `;
 
 export const DisabledOverlay = styled.div`
