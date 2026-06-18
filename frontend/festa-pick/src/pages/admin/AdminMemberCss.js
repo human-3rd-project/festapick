@@ -460,7 +460,7 @@ export const StatusBadge = styled.span`
   line-height: 16px;
 
   ${({ $status }) => {
-    if ($status === "active" || $status === "활성") {
+    if ($status === "ACTIVE" || $status === "active" || $status === "활성") {
       return `
         color: #4ade80;
         background: rgba(34, 197, 94, 0.1);
@@ -468,7 +468,7 @@ export const StatusBadge = styled.span`
       `;
     }
 
-    if ($status === "blocked" || $status === "차단됨") {
+    if ($status === "SUSPENDED" || $status === "suspended" || $status === "정지") {
       return `
         color: #ffb4ab;
         background: #93000a;

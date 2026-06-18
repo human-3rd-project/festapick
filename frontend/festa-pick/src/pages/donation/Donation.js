@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
 import {
   BadgeCheck,
   Heart,
@@ -6,6 +7,9 @@ import {
   Stars,
   Users,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import AxiosApi from "../../api/AxiosApi";
+import { useAuth } from "../../context/AuthContext";
 import {
   ActionArea,
   BackgroundLayer,
@@ -35,6 +39,9 @@ import {
   Title,
 } from "./DonationCss";
 
+const DONATION_AMOUNT = 10000;
+const TOSS_CLIENT_KEY = process.env.REACT_APP_TOSS_CLIENT_KEY;
+
 const benefits = [
   {
     icon: Stars,
@@ -59,7 +66,94 @@ const benefits = [
   },
 ];
 
+const getResponseData = (response) =>
+  response?.data?.data ?? response?.data ?? response;
+
+const getDonationId = (response) => {
+  const data = getResponseData(response);
+  return typeof data === "object" && data !== null
+    ? data.donationId || data.id
+    : data;
+};
+
+const generateOrderId = () => {
+  const random = Math.random().toString(36).slice(2, 12);
+  return `don_${Date.now()}_${random}`.slice(0, 64);
+};
+
+const getCustomerKey = (user) => {
+  const userId = user?.userId ?? user?.id ?? user?.memberId;
+  return userId ? `festa_user_${userId}` : "";
+};
+
+const getApiErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
+
 function Donation() {
+  const navigate = useNavigate();
+  const { isLoggedIn, isAuthLoading, user } = useAuth() || {};
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+
+  const handleDonate = async () => {
+    if (isProcessing || isAuthLoading) {
+      return;
+    }
+
+    if (!isLoggedIn) {
+      navigate("/login", { state: { redirectTo: "/donation" } });
+      return;
+    }
+
+    if (!TOSS_CLIENT_KEY) {
+      setStatusMessage("결제 설정이 필요합니다. Toss client key를 확인해주세요.");
+      return;
+    }
+
+    const customerKey = getCustomerKey(user);
+    if (!customerKey) {
+      setStatusMessage("사용자 정보를 확인할 수 없습니다. 다시 로그인해주세요.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setStatusMessage("결제창을 준비하고 있습니다.");
+
+    try {
+      const applyResponse = await AxiosApi.donationApply(DONATION_AMOUNT);
+      const donationId = getDonationId(applyResponse);
+
+      if (!donationId) {
+        throw new Error("후원 신청 번호를 확인할 수 없습니다.");
+      }
+
+      const orderId = generateOrderId();
+      await AxiosApi.donationPayments(donationId, orderId);
+
+      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+      const payment = tossPayments.payment({ customerKey });
+
+      await payment.requestPayment({
+        method: "CARD",
+        amount: {
+          value: DONATION_AMOUNT,
+          currency: "KRW",
+        },
+        orderId,
+        orderName: "FestaPick 후원",
+        customerName: user?.nickname || undefined,
+        customerEmail: user?.email || undefined,
+        successUrl: `${window.location.origin}/donation/success`,
+        failUrl: `${window.location.origin}/donation/fail`,
+      });
+    } catch (error) {
+      setStatusMessage(
+        getApiErrorMessage(error, "결제 요청을 시작하지 못했습니다."),
+      );
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <DonationPage>
       <BackgroundLayer aria-hidden="true">
@@ -93,10 +187,20 @@ function Donation() {
             </Lead>
 
             <ActionArea>
-              <DonateButton type="button" aria-label="축제 후원하기 10000원">
-                <DonateButtonText>축제 후원하기 (10,000원)</DonateButtonText>
+              <DonateButton
+                type="button"
+                aria-busy={isProcessing}
+                aria-label="축제 후원하기 10000원"
+                disabled={isProcessing || isAuthLoading}
+                onClick={handleDonate}
+              >
+                <DonateButtonText>
+                  {isProcessing ? "결제창 준비 중" : "축제 후원하기 (10,000원)"}
+                </DonateButtonText>
                 <Heart />
               </DonateButton>
+
+              {statusMessage && <Lead role="status">{statusMessage}</Lead>}
 
               <Stats aria-label="후원 현황">
                 <StatItem>

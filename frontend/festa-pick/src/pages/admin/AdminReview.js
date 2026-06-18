@@ -1,10 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { MessageSquareText, Search, SearchX, Star, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import AdminNav from "./AdminNav";
 import AdminPageNation from "./AdminPageNation";
+import AxiosApi from "../../api/AxiosApi";
 import {
   ActionCell,
+  CategoryButton,
+  CategoryFilter,
   ConfirmDelete,
   ContentArea,
   EmptyBadge,
@@ -22,10 +26,12 @@ import {
   PageTitle,
   RatingStars,
   ReviewContent,
+  ReviewStatusBadge,
   ReviewerAvatar,
   ReviewerIdentity,
   ReviewerMeta,
   ReviewerName,
+  FestivalLink,
   SearchBox,
   SearchIcon,
   SearchInput,
@@ -33,10 +39,14 @@ import {
   Table,
   TableCard,
   TableScroll,
-  TextButton,
 } from "./AdminReviewCss";
 
 const PAGE_SIZE = 10;
+const REVIEW_STATUS_OPTIONS = [
+  { value: "ALL", label: "전체" },
+  { value: "ACTIVE", label: "활성" },
+  { value: "DELETED", label: "삭제됨" },
+];
 
 function getDeletePopoverPosition(target) {
   const rect = target.getBoundingClientRect();
@@ -51,47 +61,25 @@ function getDeletePopoverPosition(target) {
   return { left, top };
 }
 
-const sampleReviews = [
-  {
-    id: 1,
-    reviewerName: "조던 데이비스",
-    email: "jordan@example.com",
-    festivalName: "네온 펄스 2024",
-    rating: 5,
-    content: "정말 놀라운 경험이었습니다. 비주얼 매핑이 환상적이었어요. 내년이 너무 기대됩니다!",
-    createdAt: "2024-10-12",
-  },
-  {
-    id: 2,
-    reviewerName: "사라 리아오",
-    email: "sarah@example.com",
-    festivalName: "문라이트 재즈",
-    rating: 4,
-    content: "분위기는 좋았지만 주차 문제는 약간 혼란스러웠습니다. 음악은 최고였어요.",
-    createdAt: "2024-10-11",
-  },
-  {
-    id: 3,
-    reviewerName: "마커스 쏜",
-    email: "marcus@example.com",
-    festivalName: "사이버 펑크 페스트",
-    rating: 3,
-    content: "괜찮은 공연이었지만 음료 가격이 제공된 것에 비해 조금 높았습니다.",
-    createdAt: "2024-10-09",
-  },
-  {
-    id: 4,
-    reviewerName: "엘레나 K.",
-    email: "elena@example.com",
-    festivalName: "레트로 웨이브 80s",
-    rating: 5,
-    content: "신스웨이브 세트는 마법 같았습니다. 1984년 네온 꿈속을 걷는 기분이었어요!",
-    createdAt: "2024-10-08",
-  },
-];
+function readPageResponse(response) {
+  const page = response?.data?.data || {};
+
+  return {
+    content: Array.isArray(page.content) ? page.content : [],
+    totalElements: Number(page.totalElements || 0),
+  };
+}
+
+function getAdminErrorMessage(error, fallbackMessage) {
+  if (error?.response?.status === 403) {
+    return "관리자 권한이 필요합니다.";
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
+}
 
 function getReviewKey(review, index) {
-  return review.id || review.reviewId || review.uuid || index;
+  return review.reviewId || review.id || review.uuid || index;
 }
 
 function getReviewerName(review) {
@@ -103,11 +91,32 @@ function getReviewerEmail(review) {
 }
 
 function getFestivalName(review) {
-  return review.festivalName || review.festivalTitle || review.title || review.festival || "-";
+  const festivalId = getFestivalId(review);
+  return (
+    review.festivalName ||
+    review.festivalTitle ||
+    review.title ||
+    review.festival?.title ||
+    review.festival?.name ||
+    (festivalId ? `축제 #${festivalId}` : "-")
+  );
 }
 
 function getReviewText(review) {
   return review.content || review.reviewContent || review.comment || review.text || "-";
+}
+
+function getFestivalId(review) {
+  return review.festivalId || review.festival?.festivalId || review.festival?.id || null;
+}
+
+function getReviewStatus(review) {
+  const status = String(review.status || review.reviewStatus || "ACTIVE").toUpperCase();
+  return status === "DELETED" ? "DELETED" : "ACTIVE";
+}
+
+function getReviewStatusLabel(status) {
+  return status === "DELETED" ? "삭제됨" : "활성";
 }
 
 function getInitials(name = "") {
@@ -149,78 +158,89 @@ function formatDate(value) {
   return `${year}.${month}.${day}`;
 }
 
-function AdminReview({
-  currentPage = 1,
-  onDeleteReview,
-  onPageChange,
-  onSearchChange,
-  reviews = [],
-  totalItems,
-}) {
+function AdminReview() {
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [reviews, setReviews] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deletedIds, setDeletedIds] = useState([]);
-  // 임시 확인 버튼: 리뷰 데이터 있음/없음 디자인 확인용, 실제 기능 연결 시 제거
-  const [showSampleReviews, setShowSampleReviews] = useState(false);
-  // 임시 확인 버튼 끝
+  const [totalItems, setTotalItems] = useState(0);
 
-  // 임시 확인 버튼: 리뷰 데이터 있음/없음 디자인 확인용, 실제 기능 연결 시 제거
-  const displayReviews = showSampleReviews ? sampleReviews : reviews;
-  // 임시 확인 버튼 끝
+  const fetchReviews = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
 
-  const visibleReviews = useMemo(
-    () =>
-      displayReviews.filter((review, index) => !deletedIds.includes(getReviewKey(review, index))),
-    [deletedIds, displayReviews],
-  );
+    try {
+      const response = await AxiosApi.adminReviewSearch(
+        debouncedSearchTerm,
+        currentPage - 1,
+        PAGE_SIZE,
+      );
+      const page = readPageResponse(response);
+
+      setReviews(page.content);
+      setTotalItems(page.totalElements);
+    } catch (fetchError) {
+      setReviews([]);
+      setTotalItems(0);
+      setError(getAdminErrorMessage(fetchError, "리뷰 목록을 불러오지 못했습니다."));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, debouncedSearchTerm]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const filteredReviews = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
+    return reviews.filter((review) => {
+      const reviewStatus = getReviewStatus(review);
 
-    if (!keyword) {
-      return visibleReviews;
-    }
+      if (selectedStatus !== "ALL" && reviewStatus !== selectedStatus) {
+        return false;
+      }
 
-    return visibleReviews.filter((review) => {
-      const searchableText = [
-        getReviewerName(review),
-        getReviewerEmail(review),
-        getFestivalName(review),
-        getReviewText(review),
-        review.rating,
-        review.score,
-        review.createdAt,
-        review.reviewDate,
-        review.id,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(keyword);
+      return true;
     });
-  }, [searchTerm, visibleReviews]);
+  }, [reviews, selectedStatus]);
 
   const hasReviews = filteredReviews.length > 0;
-  const totalCount = totalItems || visibleReviews.length;
 
   const handleSearchChange = (event) => {
-    const value = event.target.value;
-    setSearchTerm(value);
-
-    if (onSearchChange) {
-      onSearchChange(value);
-    }
+    setSearchTerm(event.target.value);
+    setCurrentPage(1);
   };
 
-  const confirmDelete = (review, index) => {
-    if (onDeleteReview) {
-      onDeleteReview(review);
-    } else {
-      setDeletedIds((prev) => [...prev, getReviewKey(review, index)]);
+  const confirmDelete = async (review) => {
+    const reviewId = review.reviewId || review.id;
+
+    if (!reviewId) {
+      setError("삭제할 리뷰 ID가 없습니다.");
+      setDeleteTarget(null);
+      return;
     }
 
-    setDeleteTarget(null);
+    try {
+      await AxiosApi.adminReviewDelete(reviewId);
+      setDeleteTarget(null);
+      await fetchReviews();
+    } catch (deleteError) {
+      setError(getAdminErrorMessage(deleteError, "리뷰를 삭제하지 못했습니다."));
+      setDeleteTarget(null);
+    }
   };
 
   const toggleDeleteTarget = (id, target) => {
@@ -234,6 +254,14 @@ function AdminReview({
         ...getDeletePopoverPosition(target),
       };
     });
+  };
+
+  const goFestivalDetail = (review) => {
+    const festivalId = getFestivalId(review);
+
+    if (festivalId) {
+      navigate(`/detail/${festivalId}`);
+    }
   };
 
   return (
@@ -264,19 +292,23 @@ function AdminReview({
                 />
               </SearchBox>
 
+              <CategoryFilter aria-label="리뷰 상태 카테고리">
+                {REVIEW_STATUS_OPTIONS.map((option) => (
+                  <CategoryButton
+                    key={option.value}
+                    type="button"
+                    $active={selectedStatus === option.value}
+                    onClick={() => setSelectedStatus(option.value)}
+                  >
+                    {option.label}
+                  </CategoryButton>
+                ))}
+              </CategoryFilter>
+
               <StatPill>
-                <strong>{totalCount.toLocaleString("ko-KR")}</strong>
+                <strong>{totalItems.toLocaleString("ko-KR")}</strong>
                 <span>총 리뷰 수</span>
               </StatPill>
-
-              {/* 임시 확인 버튼: 리뷰 데이터 있음/없음 디자인 확인용, 실제 기능 연결 시 제거 */}
-              <TextButton
-                type="button"
-                onClick={() => setShowSampleReviews((prev) => !prev)}
-              >
-                {showSampleReviews ? "빈 상태 보기" : "목록 상태 보기"}
-              </TextButton>
-              {/* 임시 확인 버튼 끝 */}
             </HeaderActions>
           </PageHeader>
 
@@ -289,6 +321,7 @@ function AdminReview({
                       <th>리뷰어</th>
                       <th>페스티벌</th>
                       <th>평점</th>
+                      <th>상태</th>
                       <th>리뷰 내용</th>
                       <th>날짜</th>
                       <th>작업</th>
@@ -299,6 +332,8 @@ function AdminReview({
                       const key = getReviewKey(review, index);
                       const reviewerName = getReviewerName(review);
                       const rating = getRating(review);
+                      const festivalId = getFestivalId(review);
+                      const reviewStatus = getReviewStatus(review);
 
                       return (
                         <tr key={key}>
@@ -320,13 +355,26 @@ function AdminReview({
                               </div>
                             </ReviewerIdentity>
                           </td>
-                          <td>{getFestivalName(review)}</td>
+                          <td>
+                            <FestivalLink
+                              type="button"
+                              disabled={!festivalId}
+                              onClick={() => goFestivalDetail(review)}
+                            >
+                              {getFestivalName(review)}
+                            </FestivalLink>
+                          </td>
                           <td>
                             <RatingStars aria-label={`${rating}점`}>
                               {Array.from({ length: 5 }, (_, starIndex) => (
                                 <Star key={starIndex} data-filled={starIndex < rating} />
                               ))}
                             </RatingStars>
+                          </td>
+                          <td>
+                            <ReviewStatusBadge $status={reviewStatus}>
+                              {getReviewStatusLabel(reviewStatus)}
+                            </ReviewStatusBadge>
                           </td>
                           <td>
                             <ReviewContent>{getReviewText(review)}</ReviewContent>
@@ -348,7 +396,7 @@ function AdminReview({
                                   type="button"
                                   $left={deleteTarget.left}
                                   $top={deleteTarget.top}
-                                  onClick={() => confirmDelete(review, index)}
+                                  onClick={() => confirmDelete(review)}
                                 >
                                   삭제 확인
                                 </ConfirmDelete>,
@@ -367,9 +415,9 @@ function AdminReview({
                 currentPage={currentPage}
                 itemLabel="개"
                 itemNoun="리뷰"
-                onPageChange={onPageChange}
+                onPageChange={setCurrentPage}
                 pageSize={PAGE_SIZE}
-                totalItems={totalCount}
+                totalItems={totalItems}
                 visibleItems={filteredReviews.length}
               />
             </TableCard>
@@ -385,12 +433,18 @@ function AdminReview({
 
               <EmptyCopy>
                 <EmptyTitle>
-                  {searchTerm ? "검색 결과가 없습니다" : "아직 리뷰가 없습니다"}
+                  {isLoading
+                    ? "리뷰 목록을 불러오는 중입니다"
+                    : error || (searchTerm ? "검색 결과가 없습니다" : "아직 리뷰가 없습니다")}
                 </EmptyTitle>
                 <p>
-                  {searchTerm
-                    ? "입력한 검색어와 일치하는 리뷰를 찾을 수 없습니다."
-                    : "페스티벌 시즌이 이제 막 시작되었습니다. 사용자들이 경험을 공유하기 시작하면, 여기에 그들의 리뷰와 평점이 표시되어 관리할 수 있습니다."}
+                  {isLoading
+                    ? "잠시만 기다려 주세요."
+                    : error
+                      ? "로그인 상태와 관리자 권한을 확인해 주세요."
+                      : searchTerm
+                        ? "입력한 검색어와 일치하는 리뷰를 찾을 수 없습니다."
+                        : "페스티벌 시즌이 이제 막 시작되었습니다. 사용자들이 경험을 공유하기 시작하면, 여기에 그들의 리뷰와 평점이 표시되어 관리할 수 있습니다."}
                 </p>
               </EmptyCopy>
             </EmptyState>

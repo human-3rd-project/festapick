@@ -7,48 +7,59 @@ const publicApi = axios.create({ baseURL: Common.HM_DOMAIN });
 
 const AxiosApi = {
   // 관리자 사용자 검색 API
-  adminUserSearch: (keyword) =>
-    // RequestParam 로 keyword를 전달하여 관리자 검색 API 호출
-    AxiosInstance.get("/admin/users/search", { params: { keyword } }),
+  adminUserSearch: (keyword, page = 0, size = 10) =>
+    AxiosInstance.get("/admin/users/search", {
+      params: { keyword, page, size },
+    }),
 
   // 관리자 사용자 상태 업데이트 API
-  adminUserUpdate: (userId, state) =>
-    AxiosInstance.patch(`/admin/users/${userId}`, { state }),
+  adminUserUpdate: (userId, status) =>
+    AxiosInstance.patch("/admin/users/status", { userId, status }),
 
   // 관리자 리뷰 검색 API
-  adminReviewSearch: (keyword) =>
-    // RequestParam 로 keyword를 전달하여 리뷰 검색 API 호출
-    AxiosInstance.get("/admin/reviews/search", { params: { keyword } }),
+  adminReviewSearch: (keyword, page = 0, size = 10) =>
+    AxiosInstance.get("/admin/reviews/search", {
+      params: { keyword, page, size },
+    }),
 
   // 관리자 리뷰 삭제 API
   adminReviewDelete: (reviewId) =>
     AxiosInstance.delete(`/admin/reviews/${reviewId}`),
 
   // 관리자 축제 검색 API
-  adminFestivalSearch: (keyword) =>
-    // RequestParam 로 keyword를 전달하여 축제 검색 API 호출
-    AxiosInstance.get("/admin/festivals/search", { params: { keyword } }),
+  adminFestivalSearch: (keyword, page = 0, size = 10) =>
+    AxiosInstance.get("/admin/festivals/search", {
+      params: { keyword, page, size },
+    }),
 
   // 관리자 축제 삭제 API
   adminFestivalDelete: (festivalId) =>
     AxiosInstance.delete(`/admin/festivals/${festivalId}`),
 
   // 관리자 후원 검색 API
-  adminSponsorshipSearch: (keyword) =>
-    // RequestParam 로 keyword를 전달하여 후원 검색 API 호출
-    AxiosInstance.get("/admin/sponsorships/search", { params: { keyword } }),
+  adminDonationSearch: (keyword, page = 0, size = 10) =>
+    AxiosInstance.get("/admin/donations/search", {
+      params: { keyword, page, size },
+    }),
+
+  adminSponsorshipSearch: (keyword, page = 0, size = 10) =>
+    AxiosInstance.get("/admin/donations/search", {
+      params: { keyword, page, size },
+    }),
 
   // 채팅방 채팅 기록 조회 API
   getChatHistory: (chatRoomId) =>
     publicApi.get(`/chat/rooms/${chatRoomId}/messages`),
 
-  // 후원 승인 API
+  // 후원 신청 생성
   donationApply: (amount = 10000) =>
-    AxiosInstance.post(`/donations`, { param: { amount } }),
+    AxiosInstance.post("/donations", null, {
+      params: { amount },
+    }),
 
-  // 후원 기록 API
+  // 후원 결제 요청 생성
   donationPayments: (donationId, orderId) =>
-    AxiosInstance.get(`/donations/${donationId}/payments`, {
+    AxiosInstance.post(`/donations/${donationId}/payments`, null, {
       params: { orderId },
     }),
 
@@ -56,10 +67,22 @@ const AxiosApi = {
   donationApprove: (data) =>
     AxiosInstance.post(`/donations/payments/confirm`, data),
 
-  // 후원 실패 API
+  // 후원 실패 저장
   donationFail: (orderId, failReason) =>
-    AxiosInstance.post(`/donations/payments/failure`, {
+    AxiosInstance.post("/donations/payments/failure", null, {
       params: { orderId, failReason },
+    }),
+
+  // 후원 성공 정보 조회
+  donationSuccessInfo: (orderId) =>
+    AxiosInstance.get("/donations/payments/success", {
+      params: { orderId },
+    }),
+
+  // 후원 실패 정보 조회
+  donationFailureInfo: (orderId) =>
+    AxiosInstance.get("/donations/payments/failure", {
+      params: { orderId },
     }),
 
   // 후원 통계 API

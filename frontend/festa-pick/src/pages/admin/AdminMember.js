@@ -1,18 +1,16 @@
-import React, { useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Pencil,
   Search,
-  Trash2,
   UserX,
   X,
 } from "lucide-react";
 import AdminNav from "./AdminNav";
 import AdminPageNation from "./AdminPageNation";
+import AxiosApi from "../../api/AxiosApi";
 import {
   ActionButton,
   ActionGroup,
-  ConfirmDelete,
   ContentShell,
   EmptyChip,
   EmptyDescription,
@@ -57,17 +55,21 @@ const emptyImageUrl =
 
 const PAGE_SIZE = 10;
 
-function getDeletePopoverPosition(target) {
-  const rect = target.getBoundingClientRect();
-  const width = 128;
-  const height = 44;
-  const gap = 8;
-  const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
-  const bottomTop = rect.bottom + gap;
-  const top =
-    bottomTop + height > window.innerHeight - 12 ? rect.top - height - gap : bottomTop;
+function readPageResponse(response) {
+  const page = response?.data?.data || {};
 
-  return { left, top };
+  return {
+    content: Array.isArray(page.content) ? page.content : [],
+    totalElements: Number(page.totalElements || 0),
+  };
+}
+
+function getAdminErrorMessage(error, fallbackMessage) {
+  if (error?.response?.status === 403) {
+    return "관리자 권한이 필요합니다.";
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
 }
 
 function getInitials(name = "") {
@@ -80,128 +82,122 @@ function getInitials(name = "") {
     .toUpperCase();
 }
 
-function AdminMember({
-  members = [],
-  onSearchChange,
-  onEditMember,
-  onDeleteMember,
-  onSaveStatus,
-}) {
+function getMemberName(member) {
+  return member.name || member.nickname || member.loginId || "이름 없음";
+}
+
+function getMemberId(member, index) {
+  return member.userId || member.id || index + 1;
+}
+
+function normalizeMemberStatus(status) {
+  const value = String(status || "").toUpperCase();
+  return value === "SUSPENDED" ? "SUSPENDED" : "ACTIVE";
+}
+
+function getMemberStatusLabel(status) {
+  return normalizeMemberStatus(status) === "SUSPENDED" ? "정지" : "활성";
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}.${month}.${day}`;
+}
+
+function AdminMember() {
+  const [members, setMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [editingMember, setEditingMember] = useState(null);
-  const [selectedStatus, setSelectedStatus] = useState("active");
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [showSampleMembers, setShowSampleMembers] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("ACTIVE");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const sampleMembers = useMemo(
-    () => [
-      {
-        id: 1,
-        name: "Alex Rivera",
-        email: "arivera.studio@gmail.com",
-        joinedAt: "Nov 02, 2023",
-        status: "blocked",
-        statusLabel: "차단됨",
-        plan: "무료",
-      },
-      {
-        id: 2,
-        name: "Sarah Miller",
-        email: "sarah.m@lifestyle.com",
-        joinedAt: "Nov 15, 2023",
-        status: "active",
-        statusLabel: "활성",
-        plan: "프리미엄",
-      },
-      {
-        id: 3,
-        name: "Kevin White",
-        email: "k.white@techcorp.com",
-        joinedAt: "Dec 12, 2023",
-        status: "pending",
-        statusLabel: "대기중",
-        plan: "무료",
-      },
-    ],
-    [],
-  );
+  const fetchMembers = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
 
-  const displayMembers = showSampleMembers ? sampleMembers : members;
+    try {
+      const response = await AxiosApi.adminUserSearch(
+        debouncedSearchTerm,
+        currentPage - 1,
+        PAGE_SIZE,
+      );
+      const page = readPageResponse(response);
 
-  const filteredMembers = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-
-    if (!keyword) {
-      return displayMembers;
+      setMembers(page.content);
+      setTotalItems(page.totalElements);
+    } catch (fetchError) {
+      setMembers([]);
+      setTotalItems(0);
+      setError(getAdminErrorMessage(fetchError, "회원 목록을 불러오지 못했습니다."));
+    } finally {
+      setIsLoading(false);
     }
+  }, [currentPage, debouncedSearchTerm]);
 
-    return displayMembers.filter((member) => {
-      const searchableText = [
-        member.id,
-        member.name,
-        member.email,
-        member.status,
-        member.plan,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
 
-      return searchableText.includes(keyword);
-    });
-  }, [displayMembers, searchTerm]);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
 
-  const hasMembers = filteredMembers.length > 0;
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
+  const hasMembers = members.length > 0;
 
   const handleSearchChange = (event) => {
-    const value = event.target.value;
-    setSearchTerm(value);
-
-    if (onSearchChange) {
-      onSearchChange(value);
-    }
+    setSearchTerm(event.target.value);
+    setCurrentPage(1);
   };
 
   const openStatusModal = (member) => {
     setEditingMember(member);
-    setSelectedStatus(member.status || "active");
-
-    if (onEditMember) {
-      onEditMember(member);
-    }
+    setSelectedStatus(normalizeMemberStatus(member.status));
   };
 
   const closeStatusModal = () => {
     setEditingMember(null);
   };
 
-  const saveStatus = () => {
-    if (onSaveStatus && editingMember) {
-      onSaveStatus(editingMember, selectedStatus);
+  const saveStatus = async () => {
+    if (!editingMember) {
+      return;
     }
 
-    closeStatusModal();
-  };
+    const userId = editingMember.userId || editingMember.id;
 
-  const confirmDelete = (member) => {
-    if (onDeleteMember) {
-      onDeleteMember(member);
+    if (!userId) {
+      setError("상태를 변경할 회원 ID가 없습니다.");
+      return;
     }
 
-    setDeleteTarget(null);
-  };
-
-  const toggleDeleteTarget = (id, target) => {
-    setDeleteTarget((prev) => {
-      if (prev?.id === id) {
-        return null;
-      }
-
-      return {
-        id,
-        ...getDeletePopoverPosition(target),
-      };
-    });
+    try {
+      await AxiosApi.adminUserUpdate(userId, selectedStatus);
+      closeStatusModal();
+      await fetchMembers();
+    } catch (updateError) {
+      setError(getAdminErrorMessage(updateError, "회원 상태를 변경하지 못했습니다."));
+    }
   };
 
   return (
@@ -233,17 +229,9 @@ function AdminMember({
               </SearchBox>
 
               <StatPill>
-                <strong>{displayMembers.length.toLocaleString()}</strong>
+                <strong>{totalItems.toLocaleString()}</strong>
                 <span>총 회원 수</span>
               </StatPill>
-
-              {/* 임시 확인 버튼: 회원 있음/없음 디자인 확인용, 실제 기능 연결 시 제거 */}
-              <TextButton
-                type="button"
-                onClick={() => setShowSampleMembers((prev) => !prev)}
-              >
-                {showSampleMembers ? "빈 상태 보기" : "목록 상태 보기"}
-              </TextButton>
             </HeaderActions>
           </HeaderRow>
 
@@ -262,36 +250,37 @@ function AdminMember({
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredMembers.map((member, index) => {
-                      const key = member.id || member.email || index;
+                    {members.map((member, index) => {
+                      const key = member.userId || member.id || member.email || index;
+                      const memberName = getMemberName(member);
 
                       return (
                       <tr key={key}>
-                        <td>{member.id || index + 1}</td>
+                        <td>{getMemberId(member, index)}</td>
                         <td>
                           <MemberIdentity>
                             <MemberAvatar $tone={index % 3}>
                               {member.avatar ? (
-                                <img src={member.avatar} alt={member.name} />
+                                <img src={member.avatar} alt={memberName} />
                               ) : (
-                                getInitials(member.name || member.email)
+                                getInitials(memberName || member.email)
                               )}
                             </MemberAvatar>
                             <div>
-                              <MemberName>{member.name || "이름 없음"}</MemberName>
+                              <MemberName>{memberName}</MemberName>
                               <MemberMeta>{member.email || "이메일 없음"}</MemberMeta>
                             </div>
                           </MemberIdentity>
                         </td>
-                        <td>{member.joinedAt || "-"}</td>
+                        <td>{formatDate(member.joinedAt || member.createdAt)}</td>
                         <td>
-                          <StatusBadge $status={member.status}>
-                            {member.statusLabel || member.status || "대기중"}
+                          <StatusBadge $status={normalizeMemberStatus(member.status)}>
+                            {getMemberStatusLabel(member.status)}
                           </StatusBadge>
                         </td>
                         <td>
-                          <PlanBadge $premium={member.plan === "프리미엄"}>
-                            {member.plan || "무료"}
+                          <PlanBadge $premium={member.plan === "프리미엄" || member.role === "PREMIUM"}>
+                            {member.plan || member.role || "무료"}
                           </PlanBadge>
                         </td>
                         <td>
@@ -303,26 +292,6 @@ function AdminMember({
                             >
                               <Pencil />
                             </ActionButton>
-                            <ActionButton
-                              type="button"
-                              aria-label="회원 삭제"
-                              $danger
-                              onClick={(event) => toggleDeleteTarget(key, event.currentTarget)}
-                            >
-                              <Trash2 />
-                            </ActionButton>
-                            {deleteTarget?.id === key &&
-                              createPortal(
-                              <ConfirmDelete
-                                type="button"
-                                $left={deleteTarget.left}
-                                $top={deleteTarget.top}
-                                onClick={() => confirmDelete(member)}
-                              >
-                                삭제 확인
-                              </ConfirmDelete>,
-                              document.body,
-                            )}
                           </ActionGroup>
                         </td>
                       </tr>
@@ -333,12 +302,13 @@ function AdminMember({
               </TableScroll>
 
               <AdminPageNation
-                currentPage={1}
+                currentPage={currentPage}
                 itemLabel="명"
                 itemNoun=""
+                onPageChange={setCurrentPage}
                 pageSize={PAGE_SIZE}
-                totalItems={displayMembers.length}
-                visibleItems={filteredMembers.length}
+                totalItems={totalItems}
+                visibleItems={members.length}
               />
             </TableCard>
           ) : (
@@ -352,10 +322,16 @@ function AdminMember({
               </EmptyIllustration>
 
               <EmptyTitle>
-                {searchTerm ? "검색 결과가 없습니다" : "가입된 회원이 없습니다"}
+                {isLoading
+                  ? "회원 목록을 불러오는 중입니다"
+                  : error || (searchTerm ? "검색 결과가 없습니다" : "가입된 회원이 없습니다")}
               </EmptyTitle>
               <EmptyDescription>
-                {searchTerm
+                {isLoading
+                  ? "잠시만 기다려 주세요."
+                  : error
+                    ? "로그인 상태와 관리자 권한을 확인해 주세요."
+                    : searchTerm
                   ? "입력한 검색어와 일치하는 회원을 찾을 수 없습니다."
                   : "회원 목록이 비어 있습니다. 관리자, 스태프 또는 주요 페스티벌 게스트를 초대하여 커뮤니티를 성장시켜 보세요."}
               </EmptyDescription>
@@ -381,9 +357,8 @@ function AdminMember({
             <ModalBody>
               <p>이 회원의 새로운 상태를 선택하세요:</p>
               {[
-                ["active", "활성 (Active)", "회원이 플랫폼에 대한 전체 액세스 권한을 가집니다."],
-                ["blocked", "차단 (Blocked)", "회원이 자신의 계정에 액세스할 수 없습니다."],
-                ["suspended", "정지 (Suspended)", "계정 액세스가 일시적으로 제한됩니다."],
+                ["ACTIVE", "활성", "회원이 플랫폼에 대한 전체 액세스 권한을 가집니다."],
+                ["SUSPENDED", "정지", "계정 액세스가 제한됩니다."],
               ].map(([value, label, description]) => (
                 <ModalOption key={value}>
                   <input
