@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Baby,
@@ -82,38 +82,22 @@ const formatDateText = (date) => {
 };
 
 const formatFestivalPeriod = (festival) => {
-  const startDate =
-    festival.eventStartDate || festival.startDate || festival.startedAt;
-  const endDate = festival.eventEndDate || festival.endDate || festival.endedAt;
-
-  const startText = formatDateText(startDate);
-  const endText = formatDateText(endDate);
+  const startText = formatDateText(festival.eventStartDate);
+  const endText = formatDateText(festival.eventEndDate);
 
   if (startText && endText) {
     return `${startText} - ${endText}`;
   }
 
-  return startText || endText || festival.date || festival.period || "";
+  return startText || endText || "";
 };
 
 const getFestivalRegion = (festival) => {
-  const regionParts = [festival.addr1, festival.addr2].filter(Boolean);
-
-  return (
-    regionParts.join(" ") ||
-    festival.region ||
-    festival.location ||
-    festival.venue ||
-    ""
-  );
+  return [festival.addr1, festival.addr2].filter(Boolean).join(" ");
 };
 
 const normalizeFestival = (festival, index) => {
-  const id =
-    festival.festivalId ||
-    festival.id ||
-    festival.contentId ||
-    `ai-festival-${index}`;
+  const id = festival.festivalId || `ai-festival-${index}`;
 
   const title = festival.title || festival.name || "축제 정보";
   const location = getFestivalRegion(festival);
@@ -129,7 +113,7 @@ const normalizeFestival = (festival, index) => {
     venue: location,
     date,
     period: date,
-    image: festival.firstImage || festival.image || fallbackImage,
+    image: festival.firstImage || fallbackImage,
     reason:
       festival.reason ||
       festival.recommendReason ||
@@ -146,10 +130,7 @@ function AiRecommendPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const hasMessages = messages.length > 0;
-  const placeholder = useMemo(
-    () => "예: 이번 주말 서울에서 갈만한 축제 추천해줘",
-    [],
-  );
+  const placeholder = "예: 이번 주말 서울에서 갈만한 축제 추천해줘";
 
   const getFestivalLink = (festival) => ({
     to: `/festivals/${festival.festivalId || festival.id}`,
