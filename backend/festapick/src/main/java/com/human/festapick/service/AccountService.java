@@ -116,6 +116,11 @@ public class AccountService {
         PasswordResetTokens resetToken = getValidPasswordResetToken(request.getToken());
         Users user = resetToken.getUsers();
 
+        // 현재 db 비밀번호 다른것만 통과 되도록 아니면 CustomException
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "새 비밀번호는 현재 비밀번호와 달라야 합니다.");
+        }
+
         String encodedPassword = passwordEncoder.encode(request.getNewPassword());
 
         user.setPassword(encodedPassword);

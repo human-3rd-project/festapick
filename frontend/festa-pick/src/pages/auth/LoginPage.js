@@ -1,22 +1,30 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Lock, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import AxiosApi from "../../api/AxiosApi";
-import Common from "../../utils/Common";
+import { useAuth } from "../../context/AuthContext";
 import Styles from "./LoginPageCss";
 
 const KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize";
+const KAKAO_MESSAGE_SOURCE = "festapick-kakao";
+const KAKAO_STORAGE_KEY = "festapick:kakao-auth-result";
+const KAKAO_POPUP_NAME = "festapickKakaoLogin";
+const KAKAO_POPUP_FEATURES =
+  "width=480,height=500,top=80,left=120,resizable=yes,scrollbars=yes,status=no";
 
 /*
  * 로그인 페이지 흐름
  * 1. 사용자가 아이디와 비밀번호를 입력합니다.
  * 2. 제출 전에 빈 값 여부를 먼저 검사해서 불필요한 API 호출을 막습니다.
  * 3. 백엔드 LoginRequestDto 필드명에 맞춰 { loginId, password }로 /auth/login을 호출합니다.
- * 4. 성공하면 accessToken, refreshToken을 저장하고 성공 메시지를 보여준 뒤 메인 화면으로 이동합니다.
+ * 4. 성공하면 AuthContext에 로그인 응답을 전달하고 성공 메시지를 보여준 뒤 메인 화면으로 이동합니다.
  * 5. 실패하면 백엔드 ApiResponse.message 또는 화면 기본 문구를 상태 메시지 영역에 표시합니다.
  */
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth() || {};
+  const kakaoPopupRef = useRef(null);
+  const kakaoPollTimerRef = useRef(null);
 
   // 로그인 폼의 실제 입력값입니다.
   // input의 value와 연결된 controlled component 방식이라,
@@ -36,11 +44,132 @@ const LoginPage = () => {
   // true일 때는 버튼을 비활성화하고, 같은 요청이 여러 번 전송되는 것을 막습니다.
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const setStatusMessage = (type, text) => {
+  const setStatusMessage = useCallback((type, text) => {
     // text가 빈 문자열이면 Boolean(text)는 false입니다.
     // 즉 보여줄 문구가 있을 때만 visible을 true로 만들어 메시지 영역을 노출합니다.
     setStatus({ visible: Boolean(text), type, text });
-  };
+  }, []);
+
+  const clearKakaoPolling = useCallback(() => {
+    if (kakaoPollTimerRef.current) {
+      window.clearInterval(kakaoPollTimerRef.current);
+      kakaoPollTimerRef.current = null;
+    }
+  }, []);
+
+  const consumeKakaoAuthResult = useCallback(
+    async (message) => {
+      if (message?.source !== KAKAO_MESSAGE_SOURCE) {
+        return false;
+      }
+
+      const payload = message.payload || {};
+      localStorage.removeItem(KAKAO_STORAGE_KEY);
+      clearKakaoPolling();
+
+      if (message.type === "KAKAO_AUTH_ERROR") {
+        setStatusMessage(
+          "error",
+          payload.message || "카카오 로그인 처리에 실패했습니다.",
+        );
+        return true;
+      }
+
+      if (message.type === "KAKAO_SIGNUP_REQUIRED") {
+        if (!payload.temporaryToken) {
+          setStatusMessage(
+            "error",
+            "카카오 추가 가입을 위한 임시 토큰이 없습니다.",
+          );
+          return true;
+        }
+
+        navigate("/social-login", {
+          replace: true,
+          state: {
+            temporaryToken: payload.temporaryToken,
+            userId: payload.userId,
+            provider: payload.provider,
+            providerId: payload.providerId,
+            temporaryTokenExpiredAt: payload.temporaryTokenExpiredAt,
+          },
+        });
+        return true;
+      }
+
+      if (message.type === "KAKAO_LOGIN_SUCCESS") {
+        try {
+          if (!payload.accessToken) {
+            throw new Error("카카오 로그인 토큰이 응답에 포함되지 않았습니다.");
+          }
+
+          if (!login) {
+            throw new Error("인증 컨텍스트를 사용할 수 없습니다.");
+          }
+
+          await login({ data: { data: payload } });
+          setStatusMessage(
+            "success",
+            "카카오 로그인에 성공했습니다. 메인 페이지로 이동합니다.",
+          );
+          navigate("/", { replace: true });
+        } catch (error) {
+          setStatusMessage(
+            "error",
+            error.message || "카카오 로그인 처리에 실패했습니다.",
+          );
+        }
+
+        return true;
+      }
+
+      return false;
+    },
+    [clearKakaoPolling, login, navigate, setStatusMessage],
+  );
+
+  const readStoredKakaoAuthResult = useCallback(async () => {
+    const storedResult = localStorage.getItem(KAKAO_STORAGE_KEY);
+
+    if (!storedResult) {
+      return false;
+    }
+
+    try {
+      return await consumeKakaoAuthResult(JSON.parse(storedResult));
+    } catch (error) {
+      localStorage.removeItem(KAKAO_STORAGE_KEY);
+      clearKakaoPolling();
+      setStatusMessage("error", "카카오 로그인 결과를 처리하지 못했습니다.");
+      return true;
+    }
+  }, [clearKakaoPolling, consumeKakaoAuthResult, setStatusMessage]);
+
+  useEffect(() => {
+    const handleKakaoMessage = async (event) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      const message = event.data;
+      await consumeKakaoAuthResult(message);
+    };
+
+    const handleKakaoStorage = async (event) => {
+      if (event.key === KAKAO_STORAGE_KEY) {
+        await readStoredKakaoAuthResult();
+      }
+    };
+
+    window.addEventListener("message", handleKakaoMessage);
+    window.addEventListener("storage", handleKakaoStorage);
+
+    return () => {
+      window.removeEventListener("message", handleKakaoMessage);
+      window.removeEventListener("storage", handleKakaoStorage);
+      clearKakaoPolling();
+    };
+  }, [clearKakaoPolling, consumeKakaoAuthResult, readStoredKakaoAuthResult]);
 
   // 서버 메시지가 없거나 인코딩이 깨진 경우 로그인 화면의 안정적인 기본 문구를 사용합니다.
   const getApiMessage = (error, fallbackMessage) => {
@@ -141,20 +270,17 @@ const LoginPage = () => {
       // data 안에 LoginResponseDto가 들어오지만, 혹시 data 래핑이 없는 경우도 대비합니다.
       const loginData = response.data?.data || response.data;
 
-      // AuthService.login 응답의 토큰을 기존 Common 유틸 저장 방식에 맞춰 보관합니다.
-      if (loginData?.accessToken) {
-        Common.setAccessToken(loginData.accessToken);
-      }
-
-      if (loginData?.refreshToken) {
-        Common.setRefreshToken(loginData.refreshToken);
-      }
-
       // 로그인 성공 응답인데 accessToken이 없다면 이후 인증 요청을 할 수 없습니다.
       // 이 경우 정상 로그인으로 볼 수 없으므로 catch로 보내 실패 메시지를 보여줍니다.
       if (!loginData?.accessToken) {
         throw new Error("로그인 토큰이 응답에 포함되지 않았습니다.");
       }
+
+      if (!login) {
+        throw new Error("인증 컨텍스트를 사용할 수 없습니다.");
+      }
+
+      await login(response);
 
       setStatusMessage(
         "success",
@@ -206,7 +332,48 @@ const LoginPage = () => {
         response_type: "code",
       });
 
-      window.location.href = `${KAKAO_AUTH_URL}?${searchParams.toString()}`;
+      localStorage.removeItem(KAKAO_STORAGE_KEY);
+      clearKakaoPolling();
+
+      const popup = window.open(
+        `${KAKAO_AUTH_URL}?${searchParams.toString()}`,
+        KAKAO_POPUP_NAME,
+        KAKAO_POPUP_FEATURES,
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === "undefined") {
+        setStatusMessage(
+          "error",
+          "팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해 주세요.",
+        );
+        return;
+      }
+
+      kakaoPopupRef.current = popup;
+      popup.focus();
+      setStatusMessage("success", "카카오 로그인 창에서 인증을 진행해 주세요.");
+
+      kakaoPollTimerRef.current = window.setInterval(async () => {
+        const consumed = await readStoredKakaoAuthResult();
+
+        if (consumed) {
+          return;
+        }
+
+        if (kakaoPopupRef.current?.closed) {
+          const resultAfterClose = await readStoredKakaoAuthResult();
+
+          if (resultAfterClose) {
+            return;
+          }
+
+          clearKakaoPolling();
+          setStatusMessage(
+            "error",
+            "카카오 로그인 창이 닫혔습니다. 인증을 다시 시도해 주세요.",
+          );
+        }
+      }, 500);
       return;
     }
 

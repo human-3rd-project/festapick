@@ -396,6 +396,56 @@ export const TextButton = styled(BaseButton)`
   }
 `;
 
+export const EmptyState = styled.div`
+  min-height: 240px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background:
+    linear-gradient(135deg, rgba(221, 183, 255, 0.08), transparent 38%),
+    rgba(255, 255, 255, 0.045);
+  color: #dae2fd;
+  text-align: center;
+  backdrop-filter: blur(12px);
+
+  h3 {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.35;
+    font-weight: 850;
+    letter-spacing: 0;
+  }
+
+  p {
+    max-width: 520px;
+    margin: 0;
+    color: #cfc2d6;
+    font-size: 15px;
+    line-height: 1.55;
+    font-weight: 500;
+  }
+
+  ${TextButton} {
+    margin-top: 8px;
+  }
+`;
+
+export const EmptyStateIcon = styled.div`
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 176, 205, 0.14);
+  color: #ffb0cd;
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 205, 0.2);
+`;
+
 export const NearbySectionLead = styled.p`
   margin: -10px 0 0;
   color: #cfc2d6;

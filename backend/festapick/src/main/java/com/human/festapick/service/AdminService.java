@@ -48,6 +48,7 @@ public class AdminService {
     private final ChatRoomRepository chatRoomRepository;
     private final DonationService donationService;
     private final EntityManager entityManager;
+    private Pageable pageable;
 
     public Page<UserManageResDto> getUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
@@ -100,6 +101,7 @@ public class AdminService {
     }
 
     public Page<ReviewResDto> getReviews(Pageable pageable) {
+        this.pageable = pageable;
         return reviewRepository.findAll(pageable)
                 .map(ReviewResDto::of);
     }

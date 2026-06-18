@@ -92,7 +92,7 @@ const AxiosApi = {
   getAlarms: () => AxiosInstance.get(`/notifications/festival-start`),
 
   // 알람 읽지 않은 개수 조회 API
-  getUnreadAlarmsCount: () => AxiosInstance.get(`/notifications//unread-count`),
+  getUnreadAlarmsCount: () => AxiosInstance.get(`/notifications/unread-count`),
 
   // 알람 읽음 처리 API
   markAlarmAsRead: (notificationId) =>

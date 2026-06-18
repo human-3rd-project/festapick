@@ -15,7 +15,9 @@ const getResponseData = (response) =>
   response?.data?.data ?? response?.data ?? response;
 
 const removeAuthTokens = () => {
-  localStorage.clear();
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("token");
 };
 
 export const AuthProvider = ({ children }) => {

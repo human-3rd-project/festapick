@@ -120,7 +120,16 @@ public class AuthService {
     public LoginResponseDto login(LoginRequestDto dto) {
         // Spring Security 인증 매니저에 로그인 ID/비밀번호 인증을 위임합니다.
         UsernamePasswordAuthenticationToken authToken = dto.toAuthenticationToken();
-        Authentication authentication = managerBuilder.getObject().authenticate(authToken);
+
+        Authentication authentication;
+        try {
+            authentication = managerBuilder.getObject().authenticate(authToken);
+        } catch (Exception e) {
+            throw new CustomException(
+                    HttpStatus.UNAUTHORIZED,
+                    "아이디 또는 비밀번호가 올바르지 않습니다."
+            );
+        }
 
         // 인증된 사용자 정보를 기준으로 access token과 refresh token을 생성합니다.
         LoginResponseDto tokenDto = tokenProvider.generateTokenDto(authentication);
