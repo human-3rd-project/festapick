@@ -181,6 +181,11 @@ export const Input = styled.input`
       0 0 0 3px rgba(221, 183, 255, 0.12),
       0 0 16px rgba(221, 183, 255, 0.24);
   }
+
+  &[aria-invalid="true"] {
+    border-color: rgba(255, 180, 171, 0.76);
+    box-shadow: 0 0 0 3px rgba(255, 180, 171, 0.12);
+  }
 `;
 
 export const StatusMessage = styled.div`
@@ -201,6 +206,10 @@ export const StatusMessage = styled.div`
 
   &.success {
     color: #ddb7ff;
+  }
+
+  &.error {
+    color: #ffb4ab;
   }
 `;
 
@@ -236,6 +245,15 @@ export const NeonButton = styled.button`
 
   &:active {
     transform: scale(0.95);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.64;
+    transform: none;
+    box-shadow:
+      0 8px 18px rgba(255, 2, 141, 0.14),
+      0 6px 16px rgba(183, 109, 255, 0.14);
   }
 `;
 
@@ -356,6 +374,13 @@ export const SocialButton = styled.button`
 
   &:active {
     transform: scale(0.95);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.25);
+    opacity: 0.68;
+    transform: none;
   }
 `;
 

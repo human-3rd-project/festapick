@@ -194,6 +194,11 @@ export const Input = styled.input`
   &.error {
     border-color: #ffb4ab;
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+  }
 `;
 
 export const ErrorMessage = styled.p`
@@ -230,6 +235,12 @@ export const StatusMessage = styled.div`
     border-color: rgba(255, 180, 171, 0.2);
     color: #ffb4ab;
   }
+
+  &.success {
+    border-color: rgba(105, 255, 184, 0.24);
+    background: rgba(105, 255, 184, 0.08);
+    color: #69ffb8;
+  }
 `;
 
 export const NeonButton = styled.button`
@@ -260,6 +271,13 @@ export const NeonButton = styled.button`
 
   &:active {
     transform: scale(0.95);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+    box-shadow: none;
+    transform: none;
   }
 `;
 
