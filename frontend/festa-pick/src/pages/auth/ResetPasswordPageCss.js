@@ -162,6 +162,11 @@ export const Input = styled.input`
 	&.error {
 		border-color: #ffb4ab;
 	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.7;
+	}
 `;
 
 export const VisibilityButton = styled.button`
@@ -189,6 +194,11 @@ export const VisibilityButton = styled.button`
 	&:focus-visible {
 		outline: 3px solid rgba(221, 183, 255, 0.32);
 		outline-offset: 2px;
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.55;
 	}
 `;
 
@@ -255,6 +265,13 @@ export const NeonButton = styled.button`
 	&:active {
 		transform: scale(0.95);
 	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.65;
+		transform: none;
+		box-shadow: none;
+	}
 `;
 
 export const ResultArea = styled.div`
@@ -284,6 +301,22 @@ export const ResultIcon = styled.div`
 	background: rgba(221, 183, 255, 0.1);
 	border: 1px solid rgba(221, 183, 255, 0.2);
 	color: #ddb7ff;
+
+	&.error {
+		border-color: rgba(255, 180, 171, 0.24);
+		background: rgba(255, 180, 171, 0.1);
+		color: #ffb4ab;
+	}
+
+	&.loading svg {
+		animation: reset-password-spin 0.9s linear infinite;
+	}
+
+	@keyframes reset-password-spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 `;
 
 export const ResultTitle = styled.p`
@@ -293,6 +326,10 @@ export const ResultTitle = styled.p`
 	line-height: 20px;
 	font-weight: 600;
 	letter-spacing: 0;
+
+	&.error {
+		color: #ffb4ab;
+	}
 `;
 
 export const ResultDescription = styled.p`

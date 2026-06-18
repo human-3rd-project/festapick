@@ -177,6 +177,11 @@ export const Input = styled.input`
 	&.error {
 		border-color: #ffb4ab;
 	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.72;
+	}
 `;
 
 export const ErrorMessage = styled.p`
@@ -189,6 +194,36 @@ export const ErrorMessage = styled.p`
 
 	&.visible {
 		display: block;
+	}
+`;
+
+export const StatusMessage = styled.p`
+	display: none;
+	margin: -8px 0 0;
+	border-radius: 8px;
+	padding: 10px 12px;
+	background: rgba(221, 183, 255, 0.08);
+	color: #dae2fd;
+	font-size: 13px;
+	line-height: 18px;
+	font-weight: 600;
+	letter-spacing: 0;
+	text-align: center;
+
+	&.visible {
+		display: block;
+	}
+
+	&.success {
+		border: 1px solid rgba(105, 255, 184, 0.2);
+		background: rgba(105, 255, 184, 0.08);
+		color: #bfffe0;
+	}
+
+	&.error {
+		border: 1px solid rgba(255, 180, 171, 0.28);
+		background: rgba(255, 180, 171, 0.08);
+		color: #ffcec8;
 	}
 `;
 
@@ -218,6 +253,13 @@ export const NeonButton = styled.button`
 
 	&:active {
 		transform: scale(0.95);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.7;
+		box-shadow: none;
+		transform: none;
 	}
 `;
 
@@ -404,6 +446,7 @@ const Styles = {
 	Icon,
 	Input,
 	ErrorMessage,
+	StatusMessage,
 	NeonButton,
 	ResultArea,
 	ResultBox,
