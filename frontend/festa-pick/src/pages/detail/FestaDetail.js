@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import {
   ChevronDown,
@@ -8,9 +8,7 @@ import {
   Maximize2,
   MessageCircle,
   Navigation,
-  RefreshCw,
   Send,
-  Share2,
   Star,
   ThumbsUp,
 } from "lucide-react";
@@ -29,7 +27,6 @@ import {
   ConfirmBackdrop,
   ConfirmButton,
   ConfirmDialog,
-  CtaButton,
   DetailText,
   DisabledOverlay,
   EmptyIcon,
@@ -52,7 +49,9 @@ import {
   MainColumn,
   MapCanvas,
   MapControls,
+  MapDirectionButton,
   MapPinBadge,
+  MapViewport,
   MetaText,
   Page,
   RatingLine,
@@ -72,6 +71,54 @@ import {
 } from "./FestaDetailCss";
 
 const REVIEW_PAGE_SIZE = 3;
+const KAKAO_MAP_SDK_ID = "kakao-map-sdk";
+
+let kakaoMapLoaderPromise = null;
+
+const loadKakaoMapSdk = () => {
+  if (window.kakao?.maps) {
+    return Promise.resolve(window.kakao);
+  }
+
+  const appKey = process.env.REACT_APP_KAKAO_JAVASCRIPT_KEY;
+
+  if (!appKey) {
+    return Promise.reject(new Error("Kakao Maps JavaScript key is missing."));
+  }
+
+  if (!kakaoMapLoaderPromise) {
+    kakaoMapLoaderPromise = new Promise((resolve, reject) => {
+      const existingScript = document.getElementById(KAKAO_MAP_SDK_ID);
+
+      const handleLoad = () => {
+        if (!window.kakao?.maps) {
+          reject(new Error("Kakao Maps SDK failed to initialize."));
+          return;
+        }
+
+        window.kakao.maps.load(() => resolve(window.kakao));
+      };
+
+      if (existingScript) {
+        existingScript.addEventListener("load", handleLoad, { once: true });
+        existingScript.addEventListener("error", reject, { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = KAKAO_MAP_SDK_ID;
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(
+        appKey,
+      )}&autoload=false`;
+      script.async = true;
+      script.addEventListener("load", handleLoad, { once: true });
+      script.addEventListener("error", reject, { once: true });
+      document.head.appendChild(script);
+    });
+  }
+
+  return kakaoMapLoaderPromise;
+};
 
 const EMPTY_FESTIVAL = {
   festivalId: null,
@@ -265,6 +312,9 @@ function FestaDetail({
   const [isFavorite, setIsFavorite] = useState(Boolean(festivalProp?.favorite));
   const [isLiked, setIsLiked] = useState(Boolean(festivalProp?.liked));
   const [visibleReviewCount, setVisibleReviewCount] = useState(REVIEW_PAGE_SIZE);
+  const [mapMessage, setMapMessage] = useState("");
+  const mapContainerRef = useRef(null);
+  const kakaoMapRef = useRef(null);
 
   // 라우터 state에서 넘어온 축제 정보가 있으면 API 로딩 전 초기 화면에 사용합니다.
   const routedFestival = location.state?.festival;
@@ -284,6 +334,17 @@ function FestaDetail({
     (typeof festival.live === "boolean" ? festival.live : true);
   const resolvedHasMap =
     hasMapProp ?? (typeof festival.hasMap === "boolean" ? festival.hasMap : true);
+  const mapCoordinates = useMemo(() => {
+    const longitude = Number(festival.mapX);
+    const latitude = Number(festival.mapY);
+
+    if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  }, [festival.mapX, festival.mapY]);
+  const canRenderKakaoMap = resolvedHasMap && Boolean(mapCoordinates);
   const resolvedReviews = useMemo(() => {
     if (reviewsProp) {
       return reviewsProp.map((review) => normalizeReview(review, currentUserId));
@@ -379,6 +440,65 @@ function FestaDetail({
     setIsLiked(Boolean(festival.liked));
   }, [festival.favorite, festival.liked]);
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!canRenderKakaoMap) {
+      kakaoMapRef.current = null;
+      setMapMessage(
+        resolvedHasMap ? "지도 좌표 정보가 없어 위치를 표시할 수 없습니다." : "",
+      );
+      return undefined;
+    }
+
+    setMapMessage("지도를 불러오는 중입니다.");
+
+    loadKakaoMapSdk()
+      .then((kakao) => {
+        if (isCancelled || !mapContainerRef.current) {
+          return;
+        }
+
+        const center = new kakao.maps.LatLng(
+          mapCoordinates.latitude,
+          mapCoordinates.longitude,
+        );
+        const level = Number(festival.mapLevel) || 4;
+        const map = new kakao.maps.Map(mapContainerRef.current, {
+          center,
+          level,
+        });
+
+        new kakao.maps.Marker({
+          map,
+          position: center,
+          title: festival.title,
+        });
+
+        kakaoMapRef.current = map;
+        setMapMessage("");
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error("FestaDetail Kakao map load error:", error);
+        kakaoMapRef.current = null;
+        setMapMessage("지도를 불러오지 못했습니다. 카카오맵 설정을 확인해주세요.");
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    canRenderKakaoMap,
+    festival.mapLevel,
+    festival.title,
+    mapCoordinates,
+    resolvedHasMap,
+  ]);
+
   // 추가: 로그인 상태에서만 현재 사용자의 찜/좋아요 여부를 백엔드와 동기화합니다.
   useEffect(() => {
     let isMounted = true;
@@ -431,6 +551,14 @@ function FestaDetail({
     setTalkMessage("");
   };
 
+  const openTalkModal = () => {
+    setIsTalkModalOpen(true);
+  };
+
+  const closeTalkModal = () => {
+    setIsTalkModalOpen(false);
+  };
+
   const openCreateReviewModal = () => {
     setEditingReview(null);
     setIsReviewModalOpen(true);
@@ -481,6 +609,32 @@ function FestaDetail({
     setVisibleReviewCount((currentCount) =>
       Math.min(currentCount + REVIEW_PAGE_SIZE, localReviews.length),
     );
+  };
+
+  const handleMapZoomIn = () => {
+    const map = kakaoMapRef.current;
+
+    if (map) {
+      map.setLevel(Math.max(1, map.getLevel() - 1));
+    }
+  };
+
+  const handleMapZoomOut = () => {
+    const map = kakaoMapRef.current;
+
+    if (map) {
+      map.setLevel(Math.min(14, map.getLevel() + 1));
+    }
+  };
+
+  const openKakaoDirections = () => {
+    if (!mapCoordinates) {
+      return;
+    }
+
+    const destination = encodeURIComponent(festival.venue || festival.title);
+    const url = `https://map.kakao.com/link/to/${destination},${mapCoordinates.latitude},${mapCoordinates.longitude}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   // 추가: ReviewModal에서 저장된 리뷰를 받아 백엔드/로컬 필드명을 화면용으로 정규화합니다.
@@ -605,10 +759,6 @@ function FestaDetail({
               <ThumbsUp fill={isLiked ? "currentColor" : "none"} size={18} />
               {isLiked ? "좋아요 완료" : "좋아요"}
             </ActionButton>
-            <ActionButton type="button">
-              <Share2 size={18} />
-              공유
-            </ActionButton>
           </HeroActions>
 
           {resolvedIsFestivalActive && (
@@ -657,33 +807,46 @@ function FestaDetail({
 
           <Section>
             <SectionTitle $tone="secondary">찾아오시는 길</SectionTitle>
-            <MapCanvas $disabled={!resolvedHasMap}>
-              {resolvedHasMap ? (
+            <MapCanvas $disabled={!canRenderKakaoMap}>
+              {canRenderKakaoMap ? (
                 <>
-                  <MapPinBadge>
-                    <MapPin size={42} />
-                    <span>{festival.venue}</span>
-                  </MapPinBadge>
+                  <MapViewport ref={mapContainerRef} />
+                  {mapMessage && (
+                    <MapPinBadge>
+                      <MapPin size={42} />
+                      <span>{mapMessage}</span>
+                    </MapPinBadge>
+                  )}
                   <MapControls>
-                    <SmallIconButton type="button">+</SmallIconButton>
-                    <SmallIconButton type="button">-</SmallIconButton>
+                    <SmallIconButton
+                      aria-label="지도 확대"
+                      onClick={handleMapZoomIn}
+                      type="button"
+                    >
+                      +
+                    </SmallIconButton>
+                    <SmallIconButton
+                      aria-label="지도 축소"
+                      onClick={handleMapZoomOut}
+                      type="button"
+                    >
+                      -
+                    </SmallIconButton>
                   </MapControls>
-                  <CtaButton $compact type="button">
+                  <MapDirectionButton
+                    $compact
+                    onClick={openKakaoDirections}
+                    type="button"
+                  >
                     <Navigation size={18} />
                     길찾기
-                  </CtaButton>
+                  </MapDirectionButton>
                 </>
               ) : (
                 <DisabledOverlay>
                   <MapPin size={48} />
-                  <strong>지도 정보를 불러올 수 없습니다</strong>
-                  <span>
-                    네트워크 연결 상태를 확인하거나 잠시 후 다시 시도해 주세요.
-                  </span>
-                  <TextButton type="button">
-                    <RefreshCw size={16} />
-                    다시 시도
-                  </TextButton>
+                  <strong>지도 정보를 표시할 수 없습니다</strong>
+                  <span>{mapMessage || "축제 위치 좌표가 준비되지 않았습니다."}</span>
                 </DisabledOverlay>
               )}
             </MapCanvas>
@@ -810,7 +973,7 @@ function FestaDetail({
               </SmallIconButton>
               <SmallIconButton
                 aria-label="실시간 톡 최대화"
-                onClick={() => setIsTalkModalOpen(true)}
+                onClick={openTalkModal}
                 type="button"
               >
                 <Maximize2 size={16} />
@@ -851,7 +1014,7 @@ function FestaDetail({
 
       <RealTimeTalkModal
         isOpen={isTalkModalOpen}
-        onClose={() => setIsTalkModalOpen(false)}
+        onClose={closeTalkModal}
       />
       <ReviewModal
         festival={festival}
