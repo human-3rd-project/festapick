@@ -2,6 +2,8 @@ import styled from "styled-components";
 
 export const Sidebar = styled.aside`
   align-self: start;
+  position: sticky;
+  top: 24px;
   border: 1px solid rgba(143, 157, 255, 0.24);
   border-radius: 8px;
   background:
@@ -11,6 +13,10 @@ export const Sidebar = styled.aside`
     0 18px 48px rgba(0, 0, 0, 0.34),
     0 0 34px rgba(155, 92, 255, 0.1);
   overflow: hidden;
+
+  @media (max-width: 900px) {
+    position: static;
+  }
 `;
 
 export const ProfileBox = styled.div`

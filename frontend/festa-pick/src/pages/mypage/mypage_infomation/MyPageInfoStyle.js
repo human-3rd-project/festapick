@@ -14,6 +14,7 @@ export const Container = styled.div`
   grid-template-columns: 240px minmax(0, 1fr);
   gap: 32px;
   width: min(1120px, calc(100% - 40px));
+  min-height: calc(100vh - 64px);
   margin: 0 auto;
   padding: 48px 0 72px;
 
@@ -21,6 +22,7 @@ export const Container = styled.div`
     grid-template-columns: 1fr;
     gap: 20px;
     width: min(100% - 32px, 680px);
+    min-height: auto;
     padding: 28px 0 56px;
   }
 `;
@@ -73,6 +75,11 @@ export const AvatarColumn = styled.div`
   gap: 14px;
 `;
 
+export const AvatarUploadLabel = styled.label`
+  display: block;
+  cursor: pointer;
+`;
+
 export const AvatarImage = styled.img`
   width: 112px;
   height: 112px;
@@ -82,6 +89,17 @@ export const AvatarImage = styled.img`
   box-shadow:
     0 0 0 4px rgba(255, 45, 117, 0.16),
     0 0 34px rgba(155, 92, 255, 0.26);
+`;
+
+export const AvatarFileInput = styled.input`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
 `;
 
 export const AvatarCaption = styled.p`

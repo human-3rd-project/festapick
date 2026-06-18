@@ -221,6 +221,15 @@ const AxiosApi = {
     AxiosInstance.post("/users/me/password", { currentPassword, newPassword }),
   deleteMyAccount: () => AxiosInstance.delete("/users/me"),
 
+  // 이미지 업로드 - 로그인 필요, multipart/form-data의 file 파라미터로 전달
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // multipart boundary는 브라우저/axios가 자동으로 붙이도록 헤더를 직접 지정하지 않습니다.
+    return AxiosInstance.post("/uploads/images", formData);
+  },
+
   // 마이페이지 - 관심 지역
   getMyRegion: () => AxiosInstance.get("/users/me/region"),
   updateMyRegion: (data) => AxiosInstance.patch("/users/me/region", data),

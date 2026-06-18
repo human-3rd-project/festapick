@@ -70,6 +70,7 @@ function MyPageRecord() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [draft, setDraft] = useState({
     title: "",
@@ -188,7 +189,7 @@ function MyPageRecord() {
     });
   };
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
 
     if (!file) {
@@ -197,10 +198,32 @@ function MyPageRecord() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      // Firebase 업로드가 붙기 전까지는 파일을 미리보기로만 보관합니다.
+      // 업로드 응답이 오기 전에도 선택한 이미지를 바로 확인할 수 있게 미리보기를 먼저 표시합니다.
       setDraft((current) => ({ ...current, imagePreview: reader.result }));
     };
     reader.readAsDataURL(file);
+
+    setIsUploadingImage(true);
+    setErrorMessage("");
+
+    try {
+      // ImageUploadController가 반환한 URL을 방문 기록 저장 payload의 imageUrls에 넣습니다.
+      const response = await AxiosApi.uploadImage(file);
+      const uploadedImageUrl = getResponseData(response);
+
+      setDraft((current) => ({
+        ...current,
+        imagePreview: uploadedImageUrl || current.imagePreview,
+        imageUrls: uploadedImageUrl ? [uploadedImageUrl] : current.imageUrls,
+      }));
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message || "이미지 업로드에 실패했습니다.",
+      );
+    } finally {
+      setIsUploadingImage(false);
+      event.target.value = "";
+    }
   };
 
   const saveRecord = async () => {
@@ -211,7 +234,7 @@ function MyPageRecord() {
       return;
     }
 
-    // 백엔드는 Firebase 업로드가 끝난 이미지 URL 배열을 imageUrls로 받습니다.
+    // 백엔드는 ImageUploadController 업로드가 끝난 이미지 URL 배열을 imageUrls로 받습니다.
     const payload = {
       historyTitle: title,
       visitDate: recordDate,
@@ -263,7 +286,7 @@ function MyPageRecord() {
           {errorMessage && <S.ModalDescription>{errorMessage}</S.ModalDescription>}
           {isLoading && <S.ModalDescription>방문 기록을 불러오는 중입니다.</S.ModalDescription>}
 
-          <S.RecordLayout $hasSelectedDate={Boolean(selectedDate)}>
+          <S.RecordLayout>
             <S.CalendarPanel>
               <S.CalendarHeader>
                 <S.MonthTitle>
@@ -397,8 +420,9 @@ function MyPageRecord() {
                       <S.FileInput
                         id="record-image"
                         type="file"
-                        accept="image/png,image/jpeg"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
                         onChange={handleImageUpload}
+                        disabled={isUploadingImage}
                       />
                       <S.UploadLabel htmlFor="record-image">
                         {draft.imagePreview ? (
@@ -407,9 +431,11 @@ function MyPageRecord() {
                           <>
                             <ImagePlus size={27} aria-hidden="true" />
                             <S.UploadText>
-                              클릭하여 이미지를 추가하세요
+                              {isUploadingImage
+                                ? "이미지를 업로드하는 중입니다"
+                                : "클릭하여 이미지를 추가하세요"}
                             </S.UploadText>
-                            <S.UploadHint>JPG, PNG (최대 5MB)</S.UploadHint>
+                            <S.UploadHint>JPG, PNG, GIF, WEBP (최대 10MB)</S.UploadHint>
                           </>
                         )}
                       </S.UploadLabel>
@@ -466,7 +492,11 @@ function MyPageRecord() {
                   <S.GhostButton type="button" onClick={cancelDraft}>
                     취소
                   </S.GhostButton>
-                  <S.SaveButton type="button" onClick={saveRecord}>
+                  <S.SaveButton
+                    type="button"
+                    onClick={saveRecord}
+                    disabled={isUploadingImage}
+                  >
                     <Save size={15} aria-hidden="true" />
                     저장하기
                   </S.SaveButton>

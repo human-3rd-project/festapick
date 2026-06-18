@@ -43,6 +43,7 @@ function MyPageInfo() {
   const [isEditing, setIsEditing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const nicknameChanged = useMemo(
     () => nickname.trim() !== profile.nickname,
@@ -114,6 +115,34 @@ function MyPageInfo() {
     setIsEditing(false);
   };
 
+  const handleProfileImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setIsEditing(true);
+    setIsUploadingImage(true);
+    setStatusMessage("프로필 이미지를 업로드하는 중입니다.");
+
+    try {
+      // ImageUploadController는 multipart/form-data의 file 파라미터를 받고 이미지 URL을 반환합니다.
+      const response = await AxiosApi.uploadImage(file);
+      const uploadedImageUrl = getResponseData(response);
+
+      setProfileImageUrl(uploadedImageUrl || fallbackUser.profileImageUrl);
+      setStatusMessage("프로필 이미지가 업로드되었습니다. 저장하기를 눌러 반영하세요.");
+    } catch (error) {
+      setStatusMessage(
+        error.response?.data?.message || "프로필 이미지 업로드에 실패했습니다.",
+      );
+    } finally {
+      setIsUploadingImage(false);
+      event.target.value = "";
+    }
+  };
+
   const editProfile = async () => {
     if (!isEditing) {
       setIsEditing(true);
@@ -165,9 +194,23 @@ function MyPageInfo() {
 
             <S.ProfileBody>
               <S.AvatarColumn>
-                <S.AvatarImage src={profileImageUrl} alt="" onClick={startImageUpload} />
+                <S.AvatarUploadLabel>
+                  <S.AvatarImage
+                    src={profileImageUrl}
+                    alt=""
+                    onClick={startImageUpload}
+                  />
+                  <S.AvatarFileInput
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleProfileImageUpload}
+                    disabled={isUploadingImage}
+                  />
+                </S.AvatarUploadLabel>
                 <S.AvatarCaption>
-                  프로필 사진은 Firebase 업로드 URL로 저장됩니다
+                  {isUploadingImage
+                    ? "프로필 사진을 업로드하는 중입니다"
+                    : "프로필 사진은 Firebase 업로드 URL로 저장됩니다"}
                 </S.AvatarCaption>
               </S.AvatarColumn>
 
