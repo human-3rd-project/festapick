@@ -47,7 +47,8 @@ public class UserService {
                 user.getUserId(),
                 user.getEmail(),
                 user.getNickname(),
-                user.getProfileImageUrl()
+                user.getProfileImageUrl(),
+                user.getRole()
         );
     }
 
@@ -92,7 +93,8 @@ public class UserService {
                 user.getUserId(),
                 user.getEmail(),
                 user.getNickname(),
-                user.getProfileImageUrl()
+                user.getProfileImageUrl(),
+                user.getRole()
         );
     }
 

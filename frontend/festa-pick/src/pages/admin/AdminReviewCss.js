@@ -213,6 +213,46 @@ export const SearchInput = styled.input`
   }
 `;
 
+export const CategoryFilter = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 42px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(19, 27, 46, 0.82);
+
+  @media (max-width: 560px) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+`;
+
+export const CategoryButton = styled.button`
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 6px;
+  color: ${({ $active }) => ($active ? "#490080" : "#cfc2d6")};
+  background: ${({ $active }) => ($active ? "#ddb7ff" : "transparent")};
+  box-shadow: ${({ $active }) =>
+    $active ? "0 0 12px rgba(183, 109, 255, 0.35)" : "none"};
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    background: ${({ $active }) => ($active ? "#ddb7ff" : "rgba(255, 255, 255, 0.08)")};
+  }
+`;
+
 export const StatPill = styled.div`
   display: inline-flex;
   align-items: center;
@@ -333,8 +373,10 @@ export const Table = styled.table`
 
   th:nth-child(3),
   td:nth-child(3),
-  th:nth-child(5),
-  td:nth-child(5),
+  th:nth-child(4),
+  td:nth-child(4),
+  th:nth-child(6),
+  td:nth-child(6),
   th:last-child,
   td:last-child {
     text-align: center;
@@ -394,6 +436,54 @@ export const ReviewerMeta = styled.p`
   font-size: 13px;
   font-weight: 500;
   line-height: 18px;
+`;
+
+export const FestivalLink = styled.button`
+  display: inline;
+  max-width: 180px;
+  padding: 0;
+  border: 0;
+  color: #dae2fd;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 160ms ease;
+
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    color: #ddb7ff;
+    outline: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:disabled {
+    color: #cfc2d6;
+    cursor: default;
+  }
+`;
+
+export const ReviewStatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: ${({ $status }) => ($status === "DELETED" ? "#ffb4ab" : "#4ade80")};
+  background: ${({ $status }) =>
+    $status === "DELETED" ? "rgba(255, 180, 171, 0.12)" : "rgba(34, 197, 94, 0.1)"};
+  border: 1px solid
+    ${({ $status }) =>
+      $status === "DELETED" ? "rgba(255, 180, 171, 0.2)" : "rgba(34, 197, 94, 0.2)"};
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
 `;
 
 export const RatingStars = styled.div`

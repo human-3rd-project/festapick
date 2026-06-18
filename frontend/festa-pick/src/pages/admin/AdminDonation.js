@@ -1,12 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { Search, Trash2 } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import AdminNav from "./AdminNav";
 import AdminPageNation from "./AdminPageNation";
+import AxiosApi from "../../api/AxiosApi";
 import {
-  ActionCell,
   AmountText,
-  ConfirmDelete,
   ContentArea,
   DonationAvatar,
   DonationIdentity,
@@ -26,8 +24,6 @@ import {
   PageHeader,
   PageSubtitle,
   PageTitle,
-  PreviewButton,
-  PreviewControls,
   SearchBox,
   SearchIcon,
   SearchInput,
@@ -41,114 +37,35 @@ import {
 const emptyImageUrl =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCIN_OlegOczpy-pNUzLFy8yqLyZaiEEM3pd6QZnEatB0e88Be0WUaLVeSvYRG58UHFig6fYPXGho-9nTXb5KNK2U5i7VN5JvgvNt-5FLKLjIaA3B4NFpU4hA38CMtJeAw7calJR0Qs80WbpVleuiy4EM3pDY1CPd0iBzhr-2SSmPmPGEor7KPg843lH4iSSKUm3XI_T9hCkI8qP5kkaqwEo4dGvBQntEui0gEDKEVR48CdWJS8sGJ12Ic6RT360UQ7GawOHxVSXAcM";
 
-const sampleDonations = [
-  {
-    id: 1,
-    donorName: "축제요정",
-    email: "jiminh@gmail.com",
-    amount: 10000,
-    donatedAt: "2024.05.12 14:32",
-    transactionId: "1",
-  },
-  {
-    id: 2,
-    donorName: "밤하늘",
-    email: "sk_official@kakao.com",
-    amount: 10000,
-    donatedAt: "2024.05.11 09:15",
-    transactionId: "2",
-  },
-  {
-    id: 3,
-    donorName: "흥부자",
-    email: "leeya@naver.com",
-    amount: 10000,
-    donatedAt: "2024.05.10 22:45",
-    transactionId: "3",
-  },
-  {
-    id: 4,
-    donorName: "행운아",
-    email: "jwsung@daum.net",
-    amount: 10000,
-    donatedAt: "2024.05.10 18:20",
-    transactionId: "4",
-  },
-  {
-    id: 5,
-    donorName: "꽃사슴",
-    email: "bogum@gmail.com",
-    amount: 10000,
-    donatedAt: "2024.05.09 11:50",
-    transactionId: "5",
-  },
-  {
-    id: 6,
-    donorName: "서울러버",
-    email: "seoul_festa@gmail.com",
-    amount: 10000,
-    donatedAt: "2024.05.09 08:24",
-    transactionId: "6",
-  },
-  {
-    id: 7,
-    donorName: "뮤직페어리",
-    email: "musicfairy@naver.com",
-    amount: 10000,
-    donatedAt: "2024.05.08 20:18",
-    transactionId: "7",
-  },
-  {
-    id: 8,
-    donorName: "페스티벌러",
-    email: "festivaler@kakao.com",
-    amount: 10000,
-    donatedAt: "2024.05.08 17:04",
-    transactionId: "8",
-  },
-  {
-    id: 9,
-    donorName: "봄나들이",
-    email: "springday@gmail.com",
-    amount: 10000,
-    donatedAt: "2024.05.07 13:36",
-    transactionId: "9",
-  },
-  {
-    id: 10,
-    donorName: "무대앞자리",
-    email: "frontrow@daum.net",
-    amount: 10000,
-    donatedAt: "2024.05.07 10:10",
-    transactionId: "10",
-  },
-];
-
 const PAGE_SIZE = 10;
 
-function getDeletePopoverPosition(target) {
-  const rect = target.getBoundingClientRect();
-  const width = 128;
-  const height = 44;
-  const gap = 8;
-  const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
-  const bottomTop = rect.bottom + gap;
-  const top =
-    bottomTop + height > window.innerHeight - 12 ? rect.top - height - gap : bottomTop;
+function readPageResponse(response) {
+  const page = response?.data?.data || {};
 
-  return { left, top };
+  return {
+    content: Array.isArray(page.content) ? page.content : [],
+    totalElements: Number(page.totalElements || 0),
+  };
+}
+
+function getAdminErrorMessage(error, fallbackMessage) {
+  if (error?.response?.status === 403) {
+    return "관리자 권한이 필요합니다.";
+  }
+
+  return error?.response?.data?.message || fallbackMessage;
 }
 
 function getDonationKey(donation, index) {
-  return donation.id || donation.transactionId || donation.orderId || index;
+  return donation.donationId || donation.id || donation.transactionId || donation.orderId || index;
 }
 
 function getDonorName(donation) {
   return (
+    donation.nickname ||
     donation.donorName ||
     donation.name ||
     donation.memberName ||
-    donation.nickname ||
     "익명 후원자"
   );
 }
@@ -199,102 +116,55 @@ function formatDate(value) {
   return `${year}.${month}.${day} ${hours}:${minutes}`;
 }
 
-function AdminDonation({
-  donations,
-  onSearchChange,
-  onDeleteDonation,
-  onPageChange,
-  currentPage = 1,
-  totalItems,
-}) {
+function AdminDonation() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [donations, setDonations] = useState([]);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deletedIds, setDeletedIds] = useState([]);
-  const [previewMode, setPreviewMode] = useState("list");
+  const [totalItems, setTotalItems] = useState(0);
 
-  const hasProvidedDonations = Array.isArray(donations);
-  const isPreviewingSample =
-    previewMode === "list" && (!hasProvidedDonations || donations.length === 0);
+  const fetchDonations = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
 
-  const donationSource = useMemo(() => {
-    if (previewMode === "empty") {
-      return [];
+    try {
+      const response = await AxiosApi.adminDonationSearch(
+        debouncedSearchTerm,
+        currentPage - 1,
+        PAGE_SIZE,
+      );
+      const page = readPageResponse(response);
+
+      setDonations(page.content);
+      setTotalItems(page.totalElements);
+    } catch (fetchError) {
+      setDonations([]);
+      setTotalItems(0);
+      setError(getAdminErrorMessage(fetchError, "후원 내역을 불러오지 못했습니다."));
+    } finally {
+      setIsLoading(false);
     }
+  }, [currentPage, debouncedSearchTerm]);
 
-    if (isPreviewingSample) {
-      return sampleDonations;
-    }
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
 
-    return donations;
-  }, [donations, isPreviewingSample, previewMode]);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
 
-  const visibleDonations = useMemo(
-    () =>
-      donationSource.filter(
-        (donation, index) => !deletedIds.includes(getDonationKey(donation, index)),
-      ),
-    [deletedIds, donationSource],
-  );
+  useEffect(() => {
+    fetchDonations();
+  }, [fetchDonations]);
 
-  const filteredDonations = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-
-    if (!keyword) {
-      return visibleDonations;
-    }
-
-    return visibleDonations.filter((donation) => {
-      const searchableText = [
-        getDonorName(donation),
-        getDonorEmail(donation),
-        donation.amount,
-        donation.donatedAt,
-        donation.createdAt,
-        donation.transactionId,
-        donation.orderId,
-        donation.id,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(keyword);
-    });
-  }, [searchTerm, visibleDonations]);
-
-  const hasDonations = filteredDonations.length > 0;
-  const totalCount = totalItems || visibleDonations.length;
+  const hasDonations = donations.length > 0;
 
   const handleSearchChange = (event) => {
-    const value = event.target.value;
-    setSearchTerm(value);
-
-    if (onSearchChange) {
-      onSearchChange(value);
-    }
-  };
-
-  const confirmDelete = (donation, index) => {
-    if (onDeleteDonation) {
-      onDeleteDonation(donation);
-    } else {
-      setDeletedIds((prev) => [...prev, getDonationKey(donation, index)]);
-    }
-
-    setDeleteTarget(null);
-  };
-
-  const toggleDeleteTarget = (id, target) => {
-    setDeleteTarget((prev) => {
-      if (prev?.id === id) {
-        return null;
-      }
-
-      return {
-        id,
-        ...getDeletePopoverPosition(target),
-      };
-    });
+    setSearchTerm(event.target.value);
+    setCurrentPage(1);
   };
 
   return (
@@ -326,28 +196,9 @@ function AdminDonation({
               </SearchBox>
 
               <StatPill>
-                <strong>{totalCount.toLocaleString("ko-KR")}</strong>
+                <strong>{totalItems.toLocaleString("ko-KR")}</strong>
                 <span>총 후원 수</span>
               </StatPill>
-
-              {/* 임시 확인 버튼: 후원 데이터 있음/없음 디자인 확인용, 실제 기능 연결 시 제거 */}
-              <PreviewControls aria-label="후원 데이터 화면 상태 전환">
-                <PreviewButton
-                  type="button"
-                  $active={previewMode === "list"}
-                  onClick={() => setPreviewMode("list")}
-                >
-                  데이터 있음
-                </PreviewButton>
-                <PreviewButton
-                  type="button"
-                  $active={previewMode === "empty"}
-                  onClick={() => setPreviewMode("empty")}
-                >
-                  데이터 없음
-                </PreviewButton>
-              </PreviewControls>
-              {/* 임시 확인 버튼 끝 */}
             </HeaderActions>
           </PageHeader>
 
@@ -365,11 +216,10 @@ function AdminDonation({
                       <th>금액 (KRW)</th>
                       <th>날짜</th>
                       <th>거래 ID</th>
-                      <th>작업</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDonations.map((donation, index) => {
+                    {donations.map((donation, index) => {
                       const key = getDonationKey(donation, index);
                       const donorName = getDonorName(donation);
 
@@ -391,35 +241,11 @@ function AdminDonation({
                               {formatAmount(donation.amount || donation.price)}
                             </AmountText>
                           </td>
-                          <td>{formatDate(donation.donatedAt || donation.createdAt)}</td>
+                          <td>{formatDate(donation.approvedAt || donation.donatedAt || donation.createdAt)}</td>
                           <td>
                             <TransactionText>
-                              {donation.transactionId || donation.orderId || donation.id || "-"}
+                              {donation.orderId || donation.transactionId || donation.donationId || donation.id || "-"}
                             </TransactionText>
-                          </td>
-                          <td>
-                            <ActionCell>
-                              <button
-                                type="button"
-                                aria-label={`${donorName} 후원 내역 삭제`}
-                                onClick={(event) => toggleDeleteTarget(key, event.currentTarget)}
-                              >
-                                <Trash2 aria-hidden="true" />
-                              </button>
-
-                              {deleteTarget?.id === key &&
-                                createPortal(
-                                <ConfirmDelete
-                                  type="button"
-                                  $left={deleteTarget.left}
-                                  $top={deleteTarget.top}
-                                  onClick={() => confirmDelete(donation, index)}
-                                >
-                                  삭제 확인
-                                </ConfirmDelete>,
-                                document.body,
-                              )}
-                            </ActionCell>
                           </td>
                         </tr>
                       );
@@ -431,10 +257,10 @@ function AdminDonation({
               <AdminPageNation
                 currentPage={currentPage}
                 itemLabel="개"
-                onPageChange={onPageChange}
+                onPageChange={setCurrentPage}
                 pageSize={PAGE_SIZE}
-                totalItems={totalCount}
-                visibleItems={filteredDonations.length}
+                totalItems={totalItems}
+                visibleItems={donations.length}
               />
             </TableCard>
           ) : (
@@ -447,12 +273,18 @@ function AdminDonation({
 
               <EmptyCopy>
                 <EmptyTitle>
-                  {searchTerm ? "검색 결과가 없습니다" : "아직 기부 내역이 없습니다"}
+                  {isLoading
+                    ? "후원 내역을 불러오는 중입니다"
+                    : error || (searchTerm ? "검색 결과가 없습니다" : "아직 기부 내역이 없습니다")}
                 </EmptyTitle>
                 <p>
-                  {searchTerm
-                    ? "입력한 검색어와 일치하는 후원 기록을 찾을 수 없습니다."
-                    : "귀하의 축제 커뮤니티에서 아직 기부를 시작하지 않았습니다. 첫 번째 기부가 이루어지면 실시간으로 여기에 표시됩니다."}
+                  {isLoading
+                    ? "잠시만 기다려 주세요."
+                    : error
+                      ? "로그인 상태와 관리자 권한을 확인해 주세요."
+                      : searchTerm
+                        ? "입력한 검색어와 일치하는 후원 기록을 찾을 수 없습니다."
+                        : "귀하의 축제 커뮤니티에서 아직 기부를 시작하지 않았습니다. 첫 번째 기부가 이루어지면 실시간으로 여기에 표시됩니다."}
                 </p>
               </EmptyCopy>
             </EmptyState>

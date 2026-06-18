@@ -14,16 +14,18 @@ const Common = {
 
   // 401 에러 시 자동 토큰 재발급
   handleUnauthorized: async () => {
-    const tokenRequestDto = {
-      accessToken: Common.getAccessToken(),
-      refreshToken: Common.getRefreshToken(),
-    };
+    const refreshToken = Common.getRefreshToken();
+
+    if (!refreshToken) {
+      localStorage.clear();
+      return false;
+    }
+
     try {
       // 재발급 엔드포인트: POST /auth/reissue
-      const res = await axios.post(
-        `${Common.HM_DOMAIN}/auth/reissue`,
-        tokenRequestDto,
-      );
+      const res = await axios.post(`${Common.HM_DOMAIN}/auth/reissue`, null, {
+        headers: { "Refresh-Token": refreshToken },
+      });
       // 백엔드 ApiResponse 구조: { status, message, data: { accessToken, ... } }
       Common.setAccessToken(res.data.data.accessToken);
       Common.setRefreshToken(res.data.data.refreshToken);

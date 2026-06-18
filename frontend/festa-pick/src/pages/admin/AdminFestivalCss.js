@@ -382,6 +382,33 @@ export const FestivalName = styled.p`
   }
 `;
 
+export const FestivalLink = styled.button`
+  display: inline;
+  padding: 0;
+  border: 0;
+  color: #dae2fd;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 160ms ease;
+
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    color: #ddb7ff;
+    outline: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+`;
+
 export const FestivalMeta = styled.p`
   margin: 2px 0 0;
   color: rgba(207, 194, 214, 0.72);
