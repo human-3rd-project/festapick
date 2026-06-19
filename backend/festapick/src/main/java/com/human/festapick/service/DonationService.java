@@ -164,37 +164,42 @@ public class DonationService {
 
         if (donationId != null) {
             return donationRepository.findById(donationId)
+                    .filter(this::isCompletedDonation)
                     .filter(donation -> matchesKeyword(donation, normalizedKeyword))
                     .map(donation -> new PageImpl<>(List.of(toDonationManageResDto(donation)), pageable, 1))
                     .orElseGet(() -> new PageImpl<>(List.of(), pageable, 0));
         }
 
         if (normalizedKeyword == null) {
-            return donationRepository.findAll(pageable)
+            return donationRepository.findAdminCompletedDonations(
+                            DonationStatus.DONE,
+                            PaymentStatus.DONE,
+                            pageable
+                    )
                     .map(this::toDonationManageResDto);
         }
 
-        List<DonationManageResDto> filteredDonations = donationRepository.findAll()
-                .stream()
-                .filter(donation -> matchesKeyword(donation, normalizedKeyword))
-                .map(this::toDonationManageResDto)
-                .toList();
-
-        return toPage(filteredDonations, pageable);
+        return searchDonationHistory(normalizedKeyword, pageable);
     }
 
     public Page<DonationManageResDto> searchDonationHistory(String keyword, Pageable pageable) {
         String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
 
         if (normalizedKeyword == null) {
-            return donationRepository.findAll(pageable)
+            return donationRepository.findAdminCompletedDonations(
+                            DonationStatus.DONE,
+                            PaymentStatus.DONE,
+                            pageable
+                    )
                     .map(this::toDonationManageResDto);
         }
 
-        return donationRepository.searchAdminDonations(
+        return donationRepository.searchAdminCompletedDonations(
                         toLikePattern(normalizedKeyword),
                         parseLong(normalizedKeyword),
                         parseInteger(normalizedKeyword),
+                        DonationStatus.DONE,
+                        PaymentStatus.DONE,
                         pageable
                 )
                 .map(this::toDonationManageResDto);
@@ -342,6 +347,16 @@ public class DonationService {
                 .approvedAt(payment.getApprovedAt())
                 .orderId(payment.getOrderId())
                 .build();
+    }
+
+    private boolean isCompletedDonation(Donations donation) {
+        if (donation.getDonationStatus() != DonationStatus.DONE) {
+            return false;
+        }
+
+        return donationPaymentRepository.findByDonations_DonationId(donation.getDonationId())
+                .map(payment -> payment.getPaymentStatus() == PaymentStatus.DONE)
+                .orElse(false);
     }
 
     private boolean matchesKeyword(Donations donation, String keyword) {

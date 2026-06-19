@@ -133,7 +133,7 @@ public class AdminService {
     }
 
     public Page<FestivalInfoResponseDto> getFestivals(Pageable pageable) {
-        return festivalRepository.findAll(pageable)
+        return festivalRepository.findByStatusNot(FestivalStatus.HIDDEN, pageable)
                 .map(this::toFestivalInfoResponseDto);
     }
 
@@ -148,6 +148,7 @@ public class AdminService {
                         toLikePattern(normalizedKeyword),
                         parseLong(normalizedKeyword),
                         parseFestivalStatus(normalizedKeyword),
+                        FestivalStatus.HIDDEN,
                         pageable
                 )
                 .map(this::toFestivalInfoResponseDto);
@@ -161,7 +162,7 @@ public class AdminService {
     @Transactional
     public void deleteFestival(Long festivalId) {
         Festivals festival = getFestivalEntity(festivalId);
-        festivalRepository.delete(festival);
+        festival.hide();
     }
 
     public Page<DonationManageResDto> getDonations(Long donationId, String keyword, Pageable pageable) {

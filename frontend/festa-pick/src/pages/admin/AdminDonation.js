@@ -241,7 +241,7 @@ function AdminDonation() {
                               {formatAmount(donation.amount || donation.price)}
                             </AmountText>
                           </td>
-                          <td>{formatDate(donation.approvedAt || donation.donatedAt || donation.createdAt)}</td>
+                          <td>{formatDate(donation.approvedAt || donation.donatedAt)}</td>
                           <td>
                             <TransactionText>
                               {donation.orderId || donation.transactionId || donation.donationId || donation.id || "-"}

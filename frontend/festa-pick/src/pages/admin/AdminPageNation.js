@@ -8,13 +8,18 @@ import {
 } from "./AdminPageNationCss";
 
 const DEFAULT_PAGE_SIZE = 10;
+const SIBLING_PAGE_COUNT = 2;
 
 function getPageNumbers(currentPage, totalPages) {
-  const pages = [1, 2, 3, currentPage, totalPages].filter(
-    (page) => page >= 1 && page <= totalPages,
-  );
+  const startPage = Math.max(1, currentPage - SIBLING_PAGE_COUNT);
+  const endPage = Math.min(totalPages, currentPage + SIBLING_PAGE_COUNT);
+  const pages = [1, totalPages];
 
-  return pages.filter((page, index) => pages.indexOf(page) === index).sort((a, b) => a - b);
+  for (let page = startPage; page <= endPage; page += 1) {
+    pages.push(page);
+  }
+
+  return [...new Set(pages)].sort((a, b) => a - b);
 }
 
 function AdminPageNation({

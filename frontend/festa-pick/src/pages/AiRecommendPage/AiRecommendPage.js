@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import AxiosApi from "../../api/AxiosApi";
+import { useAuth } from "../../context/AuthContext";
 import {
   AiAvatar,
   ChatArea,
@@ -45,6 +46,8 @@ const quickPrompts = [
   "음식 축제 추천",
   "야간 축제 추천",
 ];
+
+const nearbyKeywords = ["내 주변", "주변", "근처", "가까운"];
 
 const examplePrompts = [
   {
@@ -124,7 +127,15 @@ const normalizeFestival = (festival, index) => {
 const getResponseData = (response) =>
   response?.data?.data ?? response?.data ?? {};
 
+const isNearbyPrompt = (prompt) =>
+  nearbyKeywords.some((keyword) => prompt.includes(keyword));
+
+const hasRegionCode = (regionContext) =>
+  Boolean(regionContext.ldongRegnCd || regionContext.ldongSignguCd);
+
 function AiRecommendPage() {
+  const auth = useAuth() || {};
+  const user = auth.user || {};
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,6 +156,45 @@ function AiRecommendPage() {
     },
   });
 
+  const getStoredValue = (key) => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return localStorage.getItem(key) || "";
+  };
+
+  const getRegionContext = () => ({
+    ldongRegnCd: user.ldongRegnCd || getStoredValue("ldongRegnCd"),
+    ldongSignguCd: user.ldongSignguCd || getStoredValue("ldongSignguCd"),
+    regionName:
+      user.regionName ||
+      user.region ||
+      user.userRegion ||
+      user.address ||
+      getStoredValue("userRegion") ||
+      getStoredValue("region") ||
+      getStoredValue("address"),
+  });
+
+  const insertAiMessageAfter = (userMessageId, aiMessageData) => {
+    setMessages((prevMessages) => {
+      const userMessageIndex = prevMessages.findIndex(
+        (message) => message.id === userMessageId,
+      );
+
+      if (userMessageIndex < 0) {
+        return [aiMessageData, ...prevMessages];
+      }
+
+      return [
+        ...prevMessages.slice(0, userMessageIndex + 1),
+        aiMessageData,
+        ...prevMessages.slice(userMessageIndex + 1),
+      ];
+    });
+  };
+
   const addRecommendation = async (prompt) => {
     const trimmedPrompt = prompt.trim();
 
@@ -164,10 +214,23 @@ function AiRecommendPage() {
     ]);
 
     setInputValue("");
+
+    const regionContext = getRegionContext();
+
+    if (isNearbyPrompt(trimmedPrompt) && !hasRegionCode(regionContext)) {
+      insertAiMessageAfter(userMessageId, {
+        id: Date.now() + 1,
+        type: "ai",
+        text: "관심 지역을 설정하면 주변 축제를 추천받을 수 있어요.",
+        festivals: [],
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await AxiosApi.sendQuestion(trimmedPrompt);
+      const response = await AxiosApi.sendQuestion(trimmedPrompt, regionContext);
       const data = getResponseData(response);
 
       const aiMessage =
@@ -179,52 +242,22 @@ function AiRecommendPage() {
         ? data.festivals.map(normalizeFestival)
         : [];
 
-      setMessages((prevMessages) => {
-        const userMessageIndex = prevMessages.findIndex(
-          (message) => message.id === userMessageId,
-        );
-        const aiMessageData = {
-          id: Date.now() + 1,
-          type: "ai",
-          text: aiMessage,
-          festivals,
-        };
-
-        if (userMessageIndex < 0) {
-          return [aiMessageData, ...prevMessages];
-        }
-
-        return [
-          ...prevMessages.slice(0, userMessageIndex + 1),
-          aiMessageData,
-          ...prevMessages.slice(userMessageIndex + 1),
-        ];
+      insertAiMessageAfter(userMessageId, {
+        id: Date.now() + 1,
+        type: "ai",
+        text: aiMessage,
+        festivals,
       });
     } catch (error) {
       console.error("AI 축제 추천 요청 실패:", error);
 
-      setMessages((prevMessages) => {
-        const userMessageIndex = prevMessages.findIndex(
-          (message) => message.id === userMessageId,
-        );
-        const errorMessageData = {
-          id: Date.now() + 1,
-          type: "ai",
-          text:
-            error.response?.data?.message ||
-            "AI 추천을 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
-          festivals: [],
-        };
-
-        if (userMessageIndex < 0) {
-          return [errorMessageData, ...prevMessages];
-        }
-
-        return [
-          ...prevMessages.slice(0, userMessageIndex + 1),
-          errorMessageData,
-          ...prevMessages.slice(userMessageIndex + 1),
-        ];
+      insertAiMessageAfter(userMessageId, {
+        id: Date.now() + 1,
+        type: "ai",
+        text:
+          error.response?.data?.message ||
+          "AI 추천을 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
+        festivals: [],
       });
     } finally {
       setIsLoading(false);

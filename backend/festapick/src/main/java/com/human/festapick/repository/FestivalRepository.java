@@ -21,6 +21,8 @@ public interface FestivalRepository extends JpaRepository<Festivals, Long> {
 
     Page<Festivals> findByStatus(FestivalStatus status, Pageable pageable);
 
+    Page<Festivals> findByStatusNot(FestivalStatus status, Pageable pageable);
+
     Page<Festivals> findByTitleContainingAndStatus(String keyword, FestivalStatus status, Pageable pageable);
 
     Page<Festivals> findByLdongRegnCdAndLdongSignguCdAndStatus(
@@ -83,38 +85,45 @@ public interface FestivalRepository extends JpaRepository<Festivals, Long> {
             value = """
                     SELECT festival
                     FROM Festivals festival
-                    WHERE (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
-                       OR (:status IS NOT NULL AND festival.status = :status)
-                       OR LOWER(festival.contentId) LIKE :keyword
-                       OR LOWER(festival.title) LIKE :keyword
-                       OR LOWER(festival.addr1) LIKE :keyword
-                       OR LOWER(festival.addr2) LIKE :keyword
-                       OR LOWER(festival.festivalType) LIKE :keyword
-                       OR LOWER(festival.progressType) LIKE :keyword
-                       OR LOWER(festival.lclsSystm1) LIKE :keyword
-                       OR LOWER(festival.lclsSystm2) LIKE :keyword
-                       OR LOWER(festival.lclsSystm3) LIKE :keyword
+                    WHERE festival.status <> :excludedStatus
+                      AND (
+                           (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
+                        OR (:status IS NOT NULL AND festival.status = :status)
+                        OR LOWER(festival.contentId) LIKE :keyword
+                        OR LOWER(festival.title) LIKE :keyword
+                        OR LOWER(festival.addr1) LIKE :keyword
+                        OR LOWER(festival.addr2) LIKE :keyword
+                        OR LOWER(festival.festivalType) LIKE :keyword
+                        OR LOWER(festival.progressType) LIKE :keyword
+                        OR LOWER(festival.lclsSystm1) LIKE :keyword
+                        OR LOWER(festival.lclsSystm2) LIKE :keyword
+                        OR LOWER(festival.lclsSystm3) LIKE :keyword
+                      )
                     """,
             countQuery = """
                     SELECT COUNT(festival)
                     FROM Festivals festival
-                    WHERE (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
-                       OR (:status IS NOT NULL AND festival.status = :status)
-                       OR LOWER(festival.contentId) LIKE :keyword
-                       OR LOWER(festival.title) LIKE :keyword
-                       OR LOWER(festival.addr1) LIKE :keyword
-                       OR LOWER(festival.addr2) LIKE :keyword
-                       OR LOWER(festival.festivalType) LIKE :keyword
-                       OR LOWER(festival.progressType) LIKE :keyword
-                       OR LOWER(festival.lclsSystm1) LIKE :keyword
-                       OR LOWER(festival.lclsSystm2) LIKE :keyword
-                       OR LOWER(festival.lclsSystm3) LIKE :keyword
+                    WHERE festival.status <> :excludedStatus
+                      AND (
+                           (:numericKeyword IS NOT NULL AND festival.festivalId = :numericKeyword)
+                        OR (:status IS NOT NULL AND festival.status = :status)
+                        OR LOWER(festival.contentId) LIKE :keyword
+                        OR LOWER(festival.title) LIKE :keyword
+                        OR LOWER(festival.addr1) LIKE :keyword
+                        OR LOWER(festival.addr2) LIKE :keyword
+                        OR LOWER(festival.festivalType) LIKE :keyword
+                        OR LOWER(festival.progressType) LIKE :keyword
+                        OR LOWER(festival.lclsSystm1) LIKE :keyword
+                        OR LOWER(festival.lclsSystm2) LIKE :keyword
+                        OR LOWER(festival.lclsSystm3) LIKE :keyword
+                      )
                     """
     )
     Page<Festivals> searchAdminFestivals(
             @Param("keyword") String keyword,
             @Param("numericKeyword") Long numericKeyword,
             @Param("status") FestivalStatus status,
+            @Param("excludedStatus") FestivalStatus excludedStatus,
             Pageable pageable
     );
 }

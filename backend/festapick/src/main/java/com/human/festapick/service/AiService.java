@@ -10,6 +10,7 @@ import com.human.festapick.constant.FestivalStatus;
 import com.human.festapick.constant.OAuthProvider;
 import com.human.festapick.constant.UserRole;
 import com.human.festapick.constant.UserStatus;
+import com.human.festapick.dto.request.AiQuestionReqDto;
 import com.human.festapick.dto.response.AiAnswerResDto;
 import com.human.festapick.dto.response.AiRecommendationResDto;
 import com.human.festapick.dto.response.FestivalInfoResponseDto;
@@ -107,11 +108,45 @@ public class AiService {
      * 5. Gemini가 고른 축제 ID로 DB 축제 정보를 다시 조회해서 반환
      */
     @Transactional(readOnly = true)
+    public AiRecommendationResDto sendQuestion(AiQuestionReqDto request) {
+        if (request == null) {
+            return sendQuestion(null, null, null, null);
+        }
+
+        return sendQuestion(
+                request.getQuestion(),
+                request.getLdongRegnCd(),
+                request.getLdongSignguCd(),
+                request.getRegionName()
+        );
+    }
+
+    @Transactional(readOnly = true)
     public AiRecommendationResDto sendQuestion(String question) {
+        return sendQuestion(question, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public AiRecommendationResDto sendQuestion(
+            String question,
+            String ldongRegnCd,
+            String ldongSignguCd,
+            String regionName
+    ) {
 
         if (question == null || question.isBlank()) {
             return AiRecommendationResDto.builder()
                     .message("질문을 입력해 주세요.")
+                    .festivals(List.of())
+                    .build();
+        }
+
+        boolean nearbyQuestion = isNearbyQuestion(question);
+        boolean hasRegionCode = hasRegionCode(ldongRegnCd, ldongSignguCd);
+
+        if (nearbyQuestion && !hasRegionCode) {
+            return AiRecommendationResDto.builder()
+                    .message("관심 지역을 설정하면 주변 축제를 추천받을 수 있어요.")
                     .festivals(List.of())
                     .build();
         }
@@ -131,9 +166,21 @@ public class AiService {
          * 나중에 추천 품질을 높이려면 findAll() 대신
          * 지역/키워드/인기순 검색 Repository 메서드로 바꾸는 게 좋음.
          */
-        List<Festivals> festivals = festivalRepository.findAll()
+        List<Festivals> activeFestivals = festivalRepository.findAll()
                 .stream()
                 .filter(festival -> festival.getStatus() == FestivalStatus.ACTIVE)
+                .toList();
+
+        List<Festivals> regionalFestivals = nearbyQuestion && hasRegionCode
+                ? activeFestivals.stream()
+                        .filter(festival -> matchesRegion(festival, ldongRegnCd, ldongSignguCd))
+                        .toList()
+                : List.of();
+
+        List<Festivals> festivals = (nearbyQuestion && hasRegionCode && !regionalFestivals.isEmpty()
+                ? regionalFestivals
+                : activeFestivals)
+                .stream()
                 .limit(30)
                 .toList();
 
@@ -183,6 +230,9 @@ public class AiService {
                 사용자 질문:
                 %s
 
+                사용자 위치/관심지역 정보:
+                %s
+
                 축제정보:
                 %s
 
@@ -198,7 +248,9 @@ public class AiService {
                 3. festivalIds에는 위 축제정보에 있는 축제ID만 넣어.
                 4. 추천 축제는 최대 3개만 골라.
                 5. JSON 형태만 응답해.
-                """.formatted(question, festivalInfo);
+                6. "내 주변", "근처", "가까운" 같은 표현은 현재 위치가 아니라 사용자 관심지역 기준으로 해석해.
+                7. 사용자 관심지역 정보가 있으면 위치 정보를 알 수 없다는 답변을 하지 마.
+                """.formatted(question, buildRegionPromptContext(ldongRegnCd, ldongSignguCd, regionName), festivalInfo);
 
         String aiResponse = askGemini(prompt);
         return toRecommendationResponse(aiResponse);
@@ -287,6 +339,46 @@ public class AiService {
 
     private Long defaultLong(Long value) {
         return value == null ? 0L : value;
+    }
+
+    private boolean isNearbyQuestion(String question) {
+        String safeQuestion = question == null ? "" : question;
+        return safeQuestion.contains("내 주변")
+                || safeQuestion.contains("주변")
+                || safeQuestion.contains("근처")
+                || safeQuestion.contains("가까운");
+    }
+
+    private boolean hasRegionCode(String ldongRegnCd, String ldongSignguCd) {
+        return (ldongRegnCd != null && !ldongRegnCd.isBlank())
+                || (ldongSignguCd != null && !ldongSignguCd.isBlank());
+    }
+
+    private boolean matchesRegion(Festivals festival, String ldongRegnCd, String ldongSignguCd) {
+        if (ldongRegnCd != null
+                && !ldongRegnCd.isBlank()
+                && !Objects.equals(festival.getLdongRegnCd(), ldongRegnCd)) {
+            return false;
+        }
+        return ldongSignguCd == null
+                || ldongSignguCd.isBlank()
+                || Objects.equals(festival.getLdongSignguCd(), ldongSignguCd);
+    }
+
+    private String buildRegionPromptContext(String ldongRegnCd, String ldongSignguCd, String regionName) {
+        String safeRegionName = regionName == null || regionName.isBlank() ? "미입력" : regionName;
+        String safeLdongRegnCd = ldongRegnCd == null || ldongRegnCd.isBlank() ? "미입력" : ldongRegnCd;
+        String safeLdongSignguCd = ldongSignguCd == null || ldongSignguCd.isBlank() ? "미입력" : ldongSignguCd;
+
+        if (!hasRegionCode(ldongRegnCd, ldongSignguCd)) {
+            return "사용자 관심지역이 설정되지 않았습니다.";
+        }
+
+        return """
+                관심지역명: %s
+                법정동 시도코드: %s
+                법정동 시군구코드: %s
+                """.formatted(safeRegionName, safeLdongRegnCd, safeLdongSignguCd);
     }
 
     /**

@@ -15,9 +15,11 @@ import {
   EmptyIconCard,
   EmptyState,
   EmptyTitle,
+  ErrorBanner,
   FestivalImage,
   FestivalInfo,
   FestivalLink,
+  FestivalLocationText,
   FestivalMeta,
   HeaderActions,
   HeaderCopy,
@@ -26,6 +28,7 @@ import {
   PageHeader,
   PageSubtitle,
   PageTitle,
+  PeriodText,
   SearchBox,
   SearchIcon,
   SearchInput,
@@ -93,37 +96,97 @@ function getFestivalImage(festival) {
   return festival.firstImage || festival.image || festival.thumbnail || festival.poster || festival.imageUrl || "";
 }
 
-function getFestivalStatus(festival) {
-  const status = String(festival.status || festival.state || "").toUpperCase();
+function formatDateKey(year, month, day) {
+  const normalizedYear = Number(year);
+  const normalizedMonth = Number(month);
+  const normalizedDay = Number(day);
+  const date = new Date(normalizedYear, normalizedMonth - 1, normalizedDay);
 
-  if (festival.statusLabel) {
-    return festival.statusLabel;
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== normalizedYear ||
+    date.getMonth() !== normalizedMonth - 1 ||
+    date.getDate() !== normalizedDay
+  ) {
+    return "";
   }
 
-  if (status === "ACTIVE" || status === "ONGOING") {
-    return "진행 중";
+  return [
+    String(normalizedYear).padStart(4, "0"),
+    String(normalizedMonth).padStart(2, "0"),
+    String(normalizedDay).padStart(2, "0"),
+  ].join("-");
+}
+
+function getDateKey(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (value instanceof Date) {
+    return formatDateKey(value.getFullYear(), value.getMonth() + 1, value.getDate());
+  }
+
+  const textValue = String(value).trim();
+  const dateMatch = textValue.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+
+  if (dateMatch) {
+    return formatDateKey(dateMatch[1], dateMatch[2], dateMatch[3]);
+  }
+
+  const parsedDate = new Date(textValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return formatDateKey(
+    parsedDate.getFullYear(),
+    parsedDate.getMonth() + 1,
+    parsedDate.getDate(),
+  );
+}
+
+function getTodayKey() {
+  return getDateKey(new Date());
+}
+
+function getFestivalStartDate(festival) {
+  return festival.eventStartDate || festival.startDate || festival.startedAt || festival.startAt;
+}
+
+function getFestivalEndDate(festival) {
+  return festival.eventEndDate || festival.endDate || festival.endedAt || festival.endAt;
+}
+
+function getFestivalDisplayStatus(festival) {
+  const status = String(festival.status || festival.state || "").toUpperCase();
+
+  if (status === "HIDDEN") {
+    return { label: "숨김", tone: "hidden" };
   }
 
   if (status === "ENDED" || status === "CLOSED") {
-    return "종료됨";
+    return { label: "종료됨", tone: "ended" };
   }
 
-  if (status === "HIDDEN") {
-    return "숨김";
+  const today = getTodayKey();
+  const startDate = getDateKey(getFestivalStartDate(festival));
+  const endDate = getDateKey(getFestivalEndDate(festival));
+
+  if (!today || !startDate || !endDate) {
+    return { label: "상태 없음", tone: "unknown" };
   }
 
-  if (status === "SCHEDULED" || status === "UPCOMING") {
-    return "예정";
+  if (today < startDate) {
+    return { label: "예정", tone: "upcoming" };
   }
 
-  return status || "상태 없음";
-}
+  if (today > endDate) {
+    return { label: "종료됨", tone: "ended" };
+  }
 
-function isActiveFestival(festival) {
-  const status = String(festival.status || festival.state || "").toUpperCase();
-  const label = getFestivalStatus(festival);
-
-  return status === "ACTIVE" || status === "ONGOING" || label === "진행 중";
+  return { label: "진행 중", tone: "active" };
 }
 
 function formatDate(value) {
@@ -145,12 +208,8 @@ function formatDate(value) {
 }
 
 function formatPeriod(festival) {
-  const start = formatDate(
-    festival.eventStartDate || festival.startDate || festival.startedAt || festival.startAt,
-  );
-  const end = formatDate(
-    festival.eventEndDate || festival.endDate || festival.endedAt || festival.endAt,
-  );
+  const start = formatDate(getFestivalStartDate(festival));
+  const end = formatDate(getFestivalEndDate(festival));
 
   if (start && end) {
     return `${start} - ${end}`;
@@ -286,6 +345,8 @@ function AdminFestival() {
             </HeaderActions>
           </PageHeader>
 
+          {error && hasFestivals && <ErrorBanner role="alert">{error}</ErrorBanner>}
+
           {hasFestivals ? (
             <TableCard>
               <TableScroll>
@@ -303,6 +364,7 @@ function AdminFestival() {
                     {festivals.map((festival, index) => {
                       const key = getFestivalKey(festival, index);
                       const festivalName = getFestivalName(festival);
+                      const displayStatus = getFestivalDisplayStatus(festival);
 
                       return (
                         <tr key={key}>
@@ -327,12 +389,16 @@ function AdminFestival() {
                               </div>
                             </FestivalInfo>
                           </td>
-                          <td>{getFestivalLocation(festival)}</td>
-                          <td>{formatPeriod(festival)}</td>
                           <td>
-                            <StatusBadge $active={isActiveFestival(festival)}>
+                            <FestivalLocationText>{getFestivalLocation(festival)}</FestivalLocationText>
+                          </td>
+                          <td>
+                            <PeriodText>{formatPeriod(festival)}</PeriodText>
+                          </td>
+                          <td>
+                            <StatusBadge $tone={displayStatus.tone}>
                               <span aria-hidden="true" />
-                              {getFestivalStatus(festival)}
+                              {displayStatus.label}
                             </StatusBadge>
                           </td>
                           <td>

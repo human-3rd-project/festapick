@@ -22,6 +22,36 @@ const float = keyframes`
   }
 `;
 
+const statusToneStyles = {
+  active: {
+    color: "#ffb0cd",
+    background: "rgba(255, 176, 205, 0.12)",
+    dot: "#ffb0cd",
+  },
+  upcoming: {
+    color: "#9bdcff",
+    background: "rgba(155, 220, 255, 0.12)",
+    dot: "#9bdcff",
+  },
+  ended: {
+    color: "#cfc2d6",
+    background: "rgba(255, 255, 255, 0.06)",
+    dot: "#a7aec7",
+  },
+  hidden: {
+    color: "#ffb4ab",
+    background: "rgba(255, 180, 171, 0.12)",
+    dot: "#ffb4ab",
+  },
+  unknown: {
+    color: "#cfc2d6",
+    background: "rgba(255, 255, 255, 0.05)",
+    dot: "transparent",
+  },
+};
+
+const getStatusTone = (tone) => statusToneStyles[tone] || statusToneStyles.unknown;
+
 export const PageFrame = styled.div`
   min-height: 100vh;
   background: #0b1326;
@@ -237,6 +267,18 @@ export const StatPill = styled.div`
   }
 `;
 
+export const ErrorBanner = styled.div`
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 180, 171, 0.28);
+  border-radius: 8px;
+  color: #ffb4ab;
+  background: rgba(255, 180, 171, 0.1);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+`;
+
 export const PreviewButton = styled.button`
   min-height: 42px;
   padding: 8px 16px;
@@ -288,14 +330,43 @@ export const TableScroll = styled.div`
 
 export const Table = styled.table`
   width: 100%;
-  min-width: 920px;
+  min-width: 1080px;
   border-collapse: collapse;
+  table-layout: fixed;
   text-align: left;
 
   th,
   td {
-    padding: 20px 24px;
+    padding: 18px 24px;
     vertical-align: middle;
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 26%;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 38%;
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 17%;
+    white-space: nowrap;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 12%;
+    white-space: nowrap;
+  }
+
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 7%;
+    white-space: nowrap;
   }
 
   thead tr {
@@ -341,6 +412,11 @@ export const FestivalInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+
+  > div:last-child {
+    min-width: 0;
+  }
 `;
 
 export const FestivalImage = styled.div`
@@ -383,8 +459,10 @@ export const FestivalName = styled.p`
 `;
 
 export const FestivalLink = styled.button`
-  display: inline;
+  display: -webkit-box;
+  width: 100%;
   padding: 0;
+  overflow: hidden;
   border: 0;
   color: #dae2fd;
   background: transparent;
@@ -392,6 +470,8 @@ export const FestivalLink = styled.button`
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   text-align: left;
   cursor: pointer;
   transition: color 160ms ease;
@@ -411,32 +491,50 @@ export const FestivalLink = styled.button`
 
 export const FestivalMeta = styled.p`
   margin: 2px 0 0;
+  overflow: hidden;
   color: rgba(207, 194, 214, 0.72);
   font-size: 12px;
   font-weight: 500;
   line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const FestivalLocationText = styled.span`
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+`;
+
+export const PeriodText = styled.span`
+  display: inline-block;
+  white-space: nowrap;
 `;
 
 export const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  min-width: 72px;
   min-height: 28px;
   padding: 6px 12px;
   border-radius: 999px;
-  color: ${({ $active }) => ($active ? "#ffb0cd" : "#cfc2d6")};
-  background: ${({ $active }) =>
-    $active ? "rgba(255, 176, 205, 0.1)" : "rgba(255, 255, 255, 0.05)"};
+  color: ${({ $tone }) => getStatusTone($tone).color};
+  background: ${({ $tone }) => getStatusTone($tone).background};
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
+  white-space: nowrap;
 
   span {
-    display: ${({ $active }) => ($active ? "block" : "none")};
+    display: block;
+    flex: 0 0 auto;
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: #ffb0cd;
+    background: ${({ $tone }) => getStatusTone($tone).dot};
   }
 `;
 

@@ -373,10 +373,8 @@ export const Table = styled.table`
 
   th:nth-child(3),
   td:nth-child(3),
-  th:nth-child(4),
-  td:nth-child(4),
-  th:nth-child(6),
-  td:nth-child(6),
+  th:nth-child(5),
+  td:nth-child(5),
   th:last-child,
   td:last-child {
     text-align: center;

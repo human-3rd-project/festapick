@@ -67,6 +67,30 @@ const emptyMainData = {
 
 const unwrapApiData = (response) => response.data?.data || response.data;
 
+export const getCarouselCardScrollDistance = (carousel) => {
+  if (!carousel) {
+    return 0;
+  }
+
+  const firstCard = carousel.firstElementChild;
+
+  if (!firstCard) {
+    return carousel.clientWidth || 0;
+  }
+
+  const cardWidth = firstCard.getBoundingClientRect().width;
+  const styles = window.getComputedStyle(carousel);
+  const gap = Number.parseFloat(styles.columnGap || styles.gap || "0");
+  const scrollDistance = cardWidth + (Number.isFinite(gap) ? gap : 0);
+
+  return scrollDistance > 0 ? scrollDistance : carousel.clientWidth || 0;
+};
+
+export const getCarouselScrollLeft = (carousel, direction) => {
+  const distance = getCarouselCardScrollDistance(carousel);
+  return direction === "prev" ? -distance : distance;
+};
+
 //날짜를 화면용으로 바꿔주는 함수
 const formatDateText = (date) => {
   if (!date) {
@@ -300,7 +324,7 @@ function MainPage() {
     }
 
     carousel.scrollBy({
-      left: direction === "prev" ? -carousel.clientWidth : carousel.clientWidth,
+      left: getCarouselScrollLeft(carousel, direction),
       behavior: "smooth",
     });
   };

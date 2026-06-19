@@ -181,4 +181,8 @@ public class Festivals {
     public void decreaseLikeCount() {
         this.likeCount = this.likeCount == null || this.likeCount <= 0 ? 0L : this.likeCount - 1;
     }
+
+    public void hide() {
+        this.status = FestivalStatus.HIDDEN;
+    }
 }

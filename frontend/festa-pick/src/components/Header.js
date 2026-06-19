@@ -36,10 +36,12 @@ import {
   NavLink,
   NotificationBadge,
   NotificationButton,
+  NotificationContentButton,
   NotificationIconBox,
   NotificationItem,
   NotificationPanel,
   NotificationPanelHeader,
+  NotificationReadButton,
   NotificationText,
   ProfileButton,
   SearchBox,
@@ -262,20 +264,23 @@ function Header() {
     }
   };
 
-  /*
-   * 개별 알림 클릭 시 백엔드 읽음 처리 후 목록/count를 갱신하고 연결된 화면으로 이동합니다.
-   */
-  const handleNotificationItemClick = async (notification) => {
-    if (notification.notificationId) {
-      try {
-        await AxiosApi.markAlarmAsRead(notification.notificationId);
-        removeReadNotifications([notification.notificationId]);
-      } catch (error) {
-        console.error("알림 읽음 처리 실패:", error);
-        return;
-      }
+  const handleNotificationReadClick = async (notification) => {
+    if (!notification.notificationId) {
+      return;
     }
 
+    try {
+      await AxiosApi.markAlarmAsRead(notification.notificationId);
+      removeReadNotifications([notification.notificationId]);
+    } catch (error) {
+      console.error("알림 읽음 처리 실패:", error);
+    }
+  };
+
+  /*
+   * 알림 본문 클릭은 연결된 화면으로 이동만 하고, 읽음 처리는 별도 버튼에서만 수행합니다.
+   */
+  const handleNotificationItemClick = (notification) => {
     if (notification.targetUrl) {
       navigate(notification.targetUrl);
       closeMenus();
@@ -516,11 +521,11 @@ function Header() {
                       >
                         <X size={18} aria-hidden="true" />
                       </CloseButton>
-                      <h2>Notification</h2>
+                      <h2>알림</h2>
                     </div>
 
                     <button type="button" onClick={handleMarkAllAsRead}>
-                      Mark all as read
+                      모두 읽음
                     </button>
                   </NotificationPanelHeader>
 
@@ -541,26 +546,42 @@ function Header() {
                       visibleNotifications.map((notification) => (
                         <NotificationItem
                           key={notification.id}
-                          type="button"
                           $unread={notification.unread}
-                          onClick={() =>
-                            handleNotificationItemClick(notification)
-                          }
                         >
                           {notification.unread && <UnreadDot />}
 
-                          <NotificationIconBox $type={notification.type}>
-                            {notification.type === "calendar" ? (
-                              <CalendarDays size={21} aria-hidden="true" />
-                            ) : (
-                              <Bell size={21} aria-hidden="true" />
-                            )}
-                          </NotificationIconBox>
+                          <NotificationContentButton
+                            type="button"
+                            aria-label={`${notification.title} 알림 열기`}
+                            onClick={() =>
+                              handleNotificationItemClick(notification)
+                            }
+                          >
+                            <NotificationIconBox $type={notification.type}>
+                              {notification.type === "calendar" ? (
+                                <CalendarDays size={21} aria-hidden="true" />
+                              ) : (
+                                <Bell size={21} aria-hidden="true" />
+                              )}
+                            </NotificationIconBox>
 
-                          <NotificationText>
-                            <p>{notification.title}</p>
-                            <span>{notification.time}</span>
-                          </NotificationText>
+                            <NotificationText>
+                              <p>{notification.title}</p>
+                              <span>{notification.time}</span>
+                            </NotificationText>
+                          </NotificationContentButton>
+
+                          {notification.notificationId && (
+                            <NotificationReadButton
+                              type="button"
+                              aria-label={`${notification.title} 읽음 처리`}
+                              onClick={() =>
+                                handleNotificationReadClick(notification)
+                              }
+                            >
+                              읽음
+                            </NotificationReadButton>
+                          )}
                         </NotificationItem>
                       ))
                     )}

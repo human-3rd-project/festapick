@@ -162,9 +162,10 @@ const AxiosApi = {
   getVisitHistoryCount: () => AxiosInstance.get("/visit-histories/count"),
 
   // AI에게 질문 보내기
-  sendQuestion: (question) =>
+  sendQuestion: (question, regionContext = {}) =>
     publicApi.post("/ai/question", {
       question,
+      ...regionContext,
     }),
 
   // 현장톡 내용 AI 요약 조회

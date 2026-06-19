@@ -18,7 +18,6 @@ import com.human.festapick.security.TokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,12 +32,14 @@ import java.util.Collections;
 @Transactional
 public class AuthService {
 
+    private static final String INVALID_LOGIN_MESSAGE = "아이디 또는 비밀번호가 올바르지 않습니다.";
+    private static final String SUSPENDED_LOGIN_MESSAGE = "정지된 계정입니다. 관리자에게 문의해 주세요.";
+
     private final UserRepository userRepository;
     private final EmailVerificationsRepository emailVerificationsRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
-    private final AuthenticationManagerBuilder managerBuilder;
 
     /**
      * 로그인 ID 중복 여부를 확인합니다.
@@ -118,27 +119,26 @@ public class AuthService {
      */
     @Transactional
     public LoginResponseDto login(LoginRequestDto dto) {
-        // Spring Security 인증 매니저에 로그인 ID/비밀번호 인증을 위임합니다.
-        UsernamePasswordAuthenticationToken authToken = dto.toAuthenticationToken();
+        Users user = userRepository.findByLoginId(dto.getLoginId())
+                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, INVALID_LOGIN_MESSAGE));
 
-        Authentication authentication;
-        try {
-            authentication = managerBuilder.getObject().authenticate(authToken);
-        } catch (Exception e) {
-            throw new CustomException(
-                    HttpStatus.UNAUTHORIZED,
-                    "아이디 또는 비밀번호가 올바르지 않습니다."
-            );
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, INVALID_LOGIN_MESSAGE);
+        }
+
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new CustomException(HttpStatus.FORBIDDEN, SUSPENDED_LOGIN_MESSAGE);
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, INVALID_LOGIN_MESSAGE);
         }
 
         // 인증된 사용자 정보를 기준으로 access token과 refresh token을 생성합니다.
+        Authentication authentication = createAuthentication(user);
         LoginResponseDto tokenDto = tokenProvider.generateTokenDto(authentication);
 
-        CustomUserDetail userDetail = (CustomUserDetail) authentication.getPrincipal();
-        Long userId = userDetail.getUserId();
         LocalDateTime expiry = tokenProvider.getRefreshTokenExpiry();
-        Users user = userRepository.findById(userId)
-                        .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,"존재하지 않는 유저 입니다."));
 
         // 사용자별 리프레시 토큰은 하나만 유지합니다.
         refreshTokenRepository.findByUsers(user)
@@ -189,12 +189,7 @@ public class AuthService {
             throw new CustomException(HttpStatus.FORBIDDEN, "활성 회원이 아닙니다.");
         }
 
-        SimpleGrantedAuthority authority =
-                new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
-        CustomUserDetail principal =
-                new CustomUserDetail(user, Collections.singleton(authority));
-        Authentication authentication =
-                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+        Authentication authentication = createAuthentication(user);
 
         LoginResponseDto tokenDto = tokenProvider.generateTokenDto(authentication);
         LocalDateTime expiry = tokenProvider.getRefreshTokenExpiry();
@@ -204,6 +199,14 @@ public class AuthService {
         tokenDto.setProfileImageUrl(user.getProfileImageUrl());
 
         return tokenDto;
+    }
+
+    private Authentication createAuthentication(Users user) {
+        SimpleGrantedAuthority authority =
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        CustomUserDetail principal =
+                new CustomUserDetail(user, Collections.singleton(authority));
+        return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
     }
 
     /**

@@ -698,7 +698,8 @@ export const MonthlyCarousel = styled.div`
 
   ${FestivalCard},
   ${NearbyCard} {
-    flex: 0 0 clamp(220px, 24vw, 292px);
+    flex: 0 0 calc((100% - 72px) / 4);
+    min-width: 0;
     scroll-snap-align: start;
     text-decoration: none;
   }
@@ -712,6 +713,22 @@ export const MonthlyCarousel = styled.div`
   ${NearbyImage} {
     height: 190px;
     min-height: auto;
+  }
+
+  @media (max-width: 1024px) {
+    ${FestivalCard},
+    ${NearbyCard} {
+      flex-basis: calc((100% - 48px) / 3);
+    }
+  }
+
+  @media (max-width: 760px) {
+    gap: 16px;
+
+    ${FestivalCard},
+    ${NearbyCard} {
+      flex-basis: calc((100% - 16px) / 2);
+    }
   }
 
   @media (max-width: 640px) {
