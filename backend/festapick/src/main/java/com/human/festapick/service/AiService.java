@@ -7,33 +7,49 @@ import com.google.genai.Client;
 import com.google.genai.types.GenerateContentResponse;
 import com.human.festapick.constant.ChatMessageType;
 import com.human.festapick.constant.FestivalStatus;
+import com.human.festapick.constant.OAuthProvider;
+import com.human.festapick.constant.UserRole;
+import com.human.festapick.constant.UserStatus;
 import com.human.festapick.dto.response.AiAnswerResDto;
 import com.human.festapick.dto.response.AiRecommendationResDto;
 import com.human.festapick.dto.response.FestivalInfoResponseDto;
 import com.human.festapick.entity.ChatMessages;
+import com.human.festapick.entity.ChatRooms;
 import com.human.festapick.entity.Festivals;
+import com.human.festapick.entity.Users;
 import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.ChatMessageRepository;
+import com.human.festapick.repository.ChatRoomRepository;
 import com.human.festapick.repository.FestivalRepository;
+import com.human.festapick.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AiService {
+
+    private static final String AI_SYSTEM_LOGIN_ID = "festapick_ai";
+    private static final String AI_SYSTEM_EMAIL = "festapick_ai@festapick.local";
+    private static final String AI_SYSTEM_NICKNAME = "FestaPick AI";
+    private static final List<ChatMessageType> SUMMARY_SOURCE_MESSAGE_TYPES = List.of(
+            ChatMessageType.CHAT,
+            ChatMessageType.IMAGE
+    );
 
     /*
      * GeminiConfig에서 Client Bean을 만들면 여기로 주입됨.
@@ -51,6 +67,10 @@ public class AiService {
      */
     private final ChatMessageRepository chatMessageRepository;
 
+    private final ChatRoomRepository chatRoomRepository;
+
+    private final UserRepository userRepository;
+
     /*
      * 축제 정보를 DB에서 가져오기 위한 Repository.
      * AI 추천 채팅에서 Gemini에게 제공할 축제 목록을 조회할 때 사용.
@@ -58,6 +78,8 @@ public class AiService {
     private final FestivalRepository festivalRepository;
 
     private final ObjectMapper objectMapper;
+
+    private final PasswordEncoder passwordEncoder;
 
     /*
      * application.properties에 있는 gemini.model 값을 가져옴.
@@ -270,19 +292,8 @@ public class AiService {
     /**
      * AI 현장 상황 조회
      *
-     * 축제 상세 페이지의 실시간 현장톡 메시지를 AI가 요약하는 기능.
-     *
-     * 예:
-     * - "입구 줄이 길어요"
-     * - "메인 스테이지 사람 많아요"
-     * - "푸드존 대기 20분이에요"
-     *
-     * 위 메시지들을 모아서:
-     * - 현재 혼잡도
-     * - 대기줄
-     * - 인기 구역
-     * - 주의사항
-     * 등을 1~2문장으로 요약.
+     * 스케줄러가 미리 저장한 최신 AI_NOTICE 메시지를 반환한다.
+     * 조회 시점에는 Gemini를 직접 호출하지 않는다.
      */
     @Transactional(readOnly = true)
     public AiAnswerResDto getAiFieldSummary(Long chatRoomId) {
@@ -291,48 +302,94 @@ public class AiService {
             throw new CustomException(HttpStatus.BAD_REQUEST, "채팅방 ID가 필요합니다.");
         }
 
-        /*
-         * 해당 채팅방의 최근 메시지 30개 조회.
-         *
-         * findByChatRoom_ChatRoomIdOrderByCreatedAtDesc
-         * - chatRoomId 기준으로 메시지 조회
-         * - createdAt 기준 최신순 정렬
-         */
-        Slice<ChatMessages> recentMessages =
-                chatMessageRepository.findByChatRoom_ChatRoomIdOrderByCreatedAtDesc(
+        return chatMessageRepository
+                .findTopByChatRoom_ChatRoomIdAndMessageTypeOrderByCreatedAtDesc(
                         chatRoomId,
-                        PageRequest.of(0, 30)
+                        ChatMessageType.AI_NOTICE
+                )
+                .map(AiAnswerResDto::of)
+                .orElseGet(() -> AiAnswerResDto.builder()
+                        .chatRoomId(chatRoomId)
+                        .message("아직 생성된 AI 현장 요약이 없습니다.")
+                        .messageType(ChatMessageType.AI_NOTICE)
+                        .createdAt(null)
+                        .build());
+    }
+
+    public boolean createFieldSummaryIfNeeded(Long chatRoomId) {
+        if (chatRoomId == null) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "채팅방 ID가 필요합니다.");
+        }
+
+        ChatRooms chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."));
+
+        if (!chatRoom.isActive()) {
+            return false;
+        }
+
+        return createFieldSummaryIfNeeded(chatRoom);
+    }
+
+    private boolean createFieldSummaryIfNeeded(ChatRooms chatRoom) {
+        Long chatRoomId = chatRoom.getChatRoomId();
+
+        Slice<ChatMessages> latestSourceMessages =
+                chatMessageRepository.findTextMessagesForSummary(
+                        chatRoomId,
+                        SUMMARY_SOURCE_MESSAGE_TYPES,
+                        PageRequest.of(0, 1)
                 );
 
-        /*
-         * ChatMessages 엔티티 목록에서 message 문자열만 꺼냄.
-         * null이거나 공백인 메시지는 제외.
-         */
-        List<String> messages = recentMessages.getContent()
+        if (latestSourceMessages.isEmpty()) {
+            return false;
+        }
+
+        ChatMessages latestSourceMessage = latestSourceMessages.getContent().get(0);
+        ChatMessages latestAiSummary = chatMessageRepository
+                .findTopByChatRoom_ChatRoomIdAndMessageTypeOrderByCreatedAtDesc(
+                        chatRoomId,
+                        ChatMessageType.AI_NOTICE
+                )
+                .orElse(null);
+
+        if (latestAiSummary != null
+                && !latestSourceMessage.getCreatedAt().isAfter(latestAiSummary.getCreatedAt())) {
+            return false;
+        }
+
+        Slice<ChatMessages> sourceMessages = chatMessageRepository.findTextMessagesForSummary(
+                chatRoomId,
+                SUMMARY_SOURCE_MESSAGE_TYPES,
+                PageRequest.of(0, 30)
+        );
+
+        List<String> messages = sourceMessages.getContent()
                 .stream()
                 .map(ChatMessages::getMessage)
                 .filter(message -> message != null && !message.isBlank())
                 .toList();
 
         if (messages.isEmpty()) {
-            return AiAnswerResDto.builder()
-                    .chatRoomId(chatRoomId)
-                    .message("아직 요약할 현장톡 메시지가 없습니다.")
-                    .messageType(ChatMessageType.AI_NOTICE)
-                    .createdAt(LocalDateTime.now())
-                    .build();
+            return false;
         }
 
-        /*
-         * 여러 개의 채팅 메시지를 줄바꿈으로 합쳐서 하나의 문자열로 만듦.
-         * Gemini에게 한 번에 보내기 위한 작업.
-         */
-        String joinedMessages = String.join("\n", messages);
+        String summary = askGemini(createFieldSummaryPrompt(messages));
+        Users systemUser = getOrCreateAiSystemUser();
 
-        /*
-         * Gemini에게 현장톡 메시지를 요약해달라고 요청하는 프롬프트.
-         */
-        String prompt = """
+        chatMessageRepository.save(ChatMessages.create(
+                chatRoom,
+                systemUser,
+                summary,
+                null,
+                ChatMessageType.AI_NOTICE
+        ));
+
+        return true;
+    }
+
+    private String createFieldSummaryPrompt(List<String> messages) {
+        return """
                 너는 축제 현장 상황을 요약하는 AI야.
 
                 아래는 실시간 현장톡 메시지들이야.
@@ -341,16 +398,20 @@ public class AiService {
 
                 위 메시지를 보고 현재 현장 상황을 1~2문장으로 요약해줘.
                 대기줄, 혼잡도, 인기 구역, 주의사항이 있으면 포함해줘.
-                """.formatted(joinedMessages);
+                """.formatted(String.join("\n", messages));
+    }
 
-        String summary = askGemini(prompt);
-
-        return AiAnswerResDto.builder()
-                .chatRoomId(chatRoomId)
-                .message(summary)
-                .messageType(ChatMessageType.AI_NOTICE)
-                .createdAt(LocalDateTime.now())
-                .build();
+    private Users getOrCreateAiSystemUser() {
+        return userRepository.findByLoginId(AI_SYSTEM_LOGIN_ID)
+                .orElseGet(() -> userRepository.save(Users.builder()
+                        .loginId(AI_SYSTEM_LOGIN_ID)
+                        .email(AI_SYSTEM_EMAIL)
+                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                        .nickname(AI_SYSTEM_NICKNAME)
+                        .role(UserRole.USER)
+                        .provider(OAuthProvider.LOCAL)
+                        .status(UserStatus.ACTIVE)
+                        .build()));
     }
 
     /**

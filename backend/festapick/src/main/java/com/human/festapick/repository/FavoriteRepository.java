@@ -40,11 +40,18 @@ public interface FavoriteRepository extends JpaRepository<Favorites, Long> {
                         fav.favoriteId,
                         festival.festivalId,
                         festival.title,
-                        festival.firstImage2,
+                        CASE
+                            WHEN festival.firstImage2 IS NOT NULL AND festival.firstImage2 <> '' THEN festival.firstImage2
+                            ELSE festival.firstImage
+                        END,
                         festival.lclsSystm3,
                         legal.fullName,
                         festival.eventStartDate,
-                        festival.eventEndDate
+                        festival.eventEndDate,
+                        festival.lclsSystm1,
+                        festival.lclsSystm2,
+                        festival.lclsSystm3,
+                        festival.festivalType
                     )
                     FROM Favorites fav
                     JOIN fav.festivals festival

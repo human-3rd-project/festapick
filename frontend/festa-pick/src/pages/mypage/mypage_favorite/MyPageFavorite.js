@@ -102,6 +102,7 @@ function MyPageFavorite() {
         location: item.place,
         venue: item.place,
         category: item.category,
+        image: item.image,
         favorite: true,
       },
     },
@@ -141,6 +142,18 @@ function MyPageFavorite() {
                     state={getFestivalLink(item).state}
                   >
                     <S.FestivalPoster $color={item.color}>
+                      {item.image && (
+                        <>
+                          <S.PosterImage
+                            src={item.image}
+                            alt=""
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
+                          <S.PosterOverlay aria-hidden="true" />
+                        </>
+                      )}
                       <S.PosterCategory>{item.category}</S.PosterCategory>
                       <S.PosterHeart aria-hidden="true">
                         <Heart size={18} fill="currentColor" />

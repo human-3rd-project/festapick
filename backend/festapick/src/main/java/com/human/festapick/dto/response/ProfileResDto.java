@@ -1,10 +1,9 @@
 package com.human.festapick.dto.response;
 
+import com.human.festapick.constant.OAuthProvider;
 import com.human.festapick.constant.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
@@ -24,5 +23,14 @@ public class ProfileResDto {
 
     // 사용자 권한
     private UserRole role;
+
+    // 로그인 제공자
+    private OAuthProvider provider;
+
+    // 사용자 활동 지역 시도 코드
+    private String ldongRegnCd;
+
+    // 사용자 활동 지역 시군구 코드
+    private String ldongSignguCd;
 
 }

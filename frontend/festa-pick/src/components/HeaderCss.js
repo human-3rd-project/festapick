@@ -292,6 +292,14 @@ export const Avatar = styled.span`
   ${ProfileButton}:hover & {
     border-color: ${colors.primary};
   }
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+  }
 `;
 
 export const Dropdown = styled.div`

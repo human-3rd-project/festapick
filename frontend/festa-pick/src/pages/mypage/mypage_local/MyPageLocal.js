@@ -1,10 +1,71 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Info, MapPin } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ExternalLink, Info } from "lucide-react";
 import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
+import { useAuth } from "../../../context/AuthContext";
 import * as S from "./MyPageLocalStyle";
 
 const getResponseData = (response) => response?.data?.data ?? response?.data;
+const KAKAO_MAP_SDK_ID = "kakao-map-sdk";
+
+let kakaoMapLoaderPromise = null;
+
+const loadKakaoMapSdk = () => {
+  if (window.kakao?.maps?.services) {
+    return Promise.resolve(window.kakao);
+  }
+
+  const appKey = process.env.REACT_APP_KAKAO_JAVASCRIPT_KEY;
+
+  if (!appKey) {
+    return Promise.reject(new Error("Kakao Maps JavaScript key is missing."));
+  }
+
+  if (!kakaoMapLoaderPromise) {
+    kakaoMapLoaderPromise = new Promise((resolve, reject) => {
+      const existingScript = document.getElementById(KAKAO_MAP_SDK_ID);
+
+      const handleLoad = () => {
+        if (!window.kakao?.maps) {
+          reject(new Error("Kakao Maps SDK failed to initialize."));
+          return;
+        }
+
+        window.kakao.maps.load(() => {
+          if (!window.kakao.maps.services) {
+            reject(new Error("Kakao Maps services library is missing."));
+            return;
+          }
+
+          resolve(window.kakao);
+        });
+      };
+
+      if (existingScript) {
+        if (window.kakao?.maps) {
+          handleLoad();
+          return;
+        }
+
+        existingScript.addEventListener("load", handleLoad, { once: true });
+        existingScript.addEventListener("error", reject, { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = KAKAO_MAP_SDK_ID;
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(
+        appKey,
+      )}&libraries=services&autoload=false`;
+      script.async = true;
+      script.addEventListener("load", handleLoad, { once: true });
+      script.addEventListener("error", reject, { once: true });
+      document.head.appendChild(script);
+    });
+  }
+
+  return kakaoMapLoaderPromise;
+};
 
 // LegalDongCodes 목록을 시/도 선택과 시/군/구 선택에 맞는 구조로 묶습니다.
 const buildRegionGroups = (items) => {
@@ -33,24 +94,42 @@ const buildRegionGroups = (items) => {
 };
 
 function MyPageLocal() {
+  const auth = useAuth();
+  const mapContainerRef = useRef(null);
+  const kakaoMapRef = useRef(null);
+  const kakaoMarkerRef = useRef(null);
   const [regionGroups, setRegionGroups] = useState([]);
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [mapMessage, setMapMessage] = useState(
+    "지역을 선택하면 지도를 표시합니다.",
+  );
   const [isSaving, setIsSaving] = useState(false);
 
-  const districts = useMemo(() => {
-    return (
-      regionGroups.find((region) => region.code === selectedCity)?.districts ||
-      []
-    );
+  const selectedCityGroup = useMemo(() => {
+    return regionGroups.find((region) => region.code === selectedCity);
   }, [regionGroups, selectedCity]);
 
-  const selectedCityName =
-    regionGroups.find((region) => region.code === selectedCity)?.name || "지역";
-  const selectedDistrictName =
-    districts.find((district) => district.code === selectedDistrict)?.name ||
-    "선택 안 됨";
+  const districts = useMemo(() => {
+    return selectedCityGroup?.districts || [];
+  }, [selectedCityGroup]);
+
+  const selectedDistrictInfo = useMemo(() => {
+    return districts.find((district) => district.code === selectedDistrict);
+  }, [districts, selectedDistrict]);
+
+  const selectedCityName = selectedCityGroup?.name || "지역";
+  const selectedDistrictName = selectedDistrictInfo?.name || "선택 안 됨";
+  const selectedRegionName = useMemo(() => {
+    if (selectedDistrictInfo?.fullName) {
+      return selectedDistrictInfo.fullName;
+    }
+
+    return [selectedCityGroup?.name, selectedDistrictInfo?.name]
+      .filter(Boolean)
+      .join(" ");
+  }, [selectedCityGroup, selectedDistrictInfo]);
 
   useEffect(() => {
     const loadRegion = async () => {
@@ -98,6 +177,91 @@ function MyPageLocal() {
     setStatusMessage("");
   };
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!selectedDistrict || !selectedRegionName) {
+      setMapMessage("지역을 선택하면 지도를 표시합니다.");
+      return undefined;
+    }
+
+    if (!mapContainerRef.current) {
+      return undefined;
+    }
+
+    setMapMessage(`${selectedRegionName} 지도를 불러오는 중입니다.`);
+
+    loadKakaoMapSdk()
+      .then((kakao) => {
+        if (isCancelled || !mapContainerRef.current) {
+          return;
+        }
+
+        const geocoder = new kakao.maps.services.Geocoder();
+
+        geocoder.addressSearch(selectedRegionName, (results, status) => {
+          if (isCancelled) {
+            return;
+          }
+
+          if (status !== kakao.maps.services.Status.OK || !results?.[0]) {
+            setMapMessage("선택한 지역의 좌표를 찾을 수 없습니다.");
+            return;
+          }
+
+          const center = new kakao.maps.LatLng(
+            Number(results[0].y),
+            Number(results[0].x),
+          );
+
+          if (!kakaoMapRef.current) {
+            kakaoMapRef.current = new kakao.maps.Map(mapContainerRef.current, {
+              center,
+              level: 7,
+            });
+          } else {
+            kakaoMapRef.current.setCenter(center);
+            kakaoMapRef.current.setLevel(7);
+          }
+
+          if (kakaoMarkerRef.current) {
+            kakaoMarkerRef.current.setMap(null);
+          }
+
+          kakaoMarkerRef.current = new kakao.maps.Marker({
+            map: kakaoMapRef.current,
+            position: center,
+            title: selectedRegionName,
+          });
+
+          setMapMessage(`${selectedRegionName} 기준 위치입니다.`);
+        });
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const errorMessage = error?.message || "";
+
+        if (errorMessage.includes("key")) {
+          setMapMessage("지도 API 키 설정이 필요합니다.");
+          return;
+        }
+
+        if (errorMessage.includes("services")) {
+          setMapMessage("Kakao 지도 주소 변환 기능을 사용할 수 없습니다.");
+          return;
+        }
+
+        setMapMessage("지도를 불러오지 못했습니다.");
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedDistrict, selectedRegionName]);
+
   const saveRegion = async () => {
     if (!selectedCity || !selectedDistrict) {
       setStatusMessage("지역을 선택해 주세요.");
@@ -109,10 +273,23 @@ function MyPageLocal() {
 
     try {
       // 관심 지역 저장 API는 지역명이 아니라 법정동 코드 2개를 받습니다.
-      await AxiosApi.updateMyRegion({
+      const response = await AxiosApi.updateMyRegion({
         ldongRegnCd: selectedCity,
         ldongSignguCd: selectedDistrict,
       });
+      const savedRegion = getResponseData(response);
+
+      localStorage.setItem("ldongRegnCd", savedRegion?.ldongRegnCd || selectedCity);
+      localStorage.setItem(
+        "ldongSignguCd",
+        savedRegion?.ldongSignguCd || selectedDistrict,
+      );
+      localStorage.setItem(
+        "userRegion",
+        savedRegion?.fullName || selectedRegionName,
+      );
+
+      await auth?.fetchCurrentUser?.();
       setStatusMessage("지역 정보가 저장되었습니다.");
     } catch (error) {
       setStatusMessage(
@@ -188,24 +365,25 @@ function MyPageLocal() {
               {statusMessage && <S.NoticeBox>{statusMessage}</S.NoticeBox>}
             </S.FormSection>
 
-            <S.MapCard aria-label="선택 지역 지도 시각화">
+            <S.MapCard aria-label="선택 지역 지도">
               <S.MapHeader>
-                <S.MapTitle>MAP VISUALIZATION</S.MapTitle>
+                <S.MapTitle>REGION MAP</S.MapTitle>
                 <S.LiveBadge>
                   <span aria-hidden="true" />
-                  LIVE
+                  KAKAO
                 </S.LiveBadge>
               </S.MapHeader>
-              <S.MapCanvas>
-                <S.GridLines aria-hidden="true" />
-                <S.MapGlow aria-hidden="true" />
-                <S.PinPulse aria-hidden="true">
-                  <MapPin size={22} fill="currentColor" />
-                </S.PinPulse>
+              <S.MapCanvas
+                ref={mapContainerRef}
+                aria-label={`${selectedRegionName || "선택 지역"} 지도`}
+              />
+              <S.MapFooter>
                 <S.MapLabel>
-                  {selectedCityName} {selectedDistrictName}
+                  {selectedRegionName ||
+                    `${selectedCityName} ${selectedDistrictName}`}
                 </S.MapLabel>
-              </S.MapCanvas>
+                <S.MapMessage>{mapMessage}</S.MapMessage>
+              </S.MapFooter>
             </S.MapCard>
           </S.Panel>
         </S.Content>

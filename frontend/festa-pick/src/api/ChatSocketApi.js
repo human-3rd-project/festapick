@@ -57,6 +57,8 @@ export const connectChatSocket = ({
     };
 
     socket.onclose = async (event) => {
+      const wasOpened = opened;
+
       if (!closedByClient && !opened && !retriedAfterRefresh) {
         retriedAfterRefresh = true;
 
@@ -70,7 +72,11 @@ export const connectChatSocket = ({
         onAuthFailure?.(event);
       }
 
-      onClose?.(event);
+      onClose?.(event, {
+        authFailed: !closedByClient && !wasOpened,
+        closedByClient,
+        wasOpened,
+      });
     };
   };
 

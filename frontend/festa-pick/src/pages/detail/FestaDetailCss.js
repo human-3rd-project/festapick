@@ -414,6 +414,20 @@ export const SmallIconButton = styled.button`
   &:active {
     transform: scale(0.94);
   }
+
+  &:disabled {
+    color: rgba(207, 194, 214, 0.42);
+    cursor: not-allowed;
+  }
+
+  &:disabled:hover {
+    background: rgba(34, 42, 61, 0.78);
+    color: rgba(207, 194, 214, 0.42);
+  }
+
+  &:disabled:active {
+    transform: none;
+  }
 `;
 
 export const CtaButton = styled.button`
@@ -903,5 +917,10 @@ export const FloatingTalkInput = styled.input`
 
   &::placeholder {
     color: rgba(207, 194, 214, 0.58);
+  }
+
+  &:disabled {
+    color: rgba(207, 194, 214, 0.52);
+    cursor: not-allowed;
   }
 `;

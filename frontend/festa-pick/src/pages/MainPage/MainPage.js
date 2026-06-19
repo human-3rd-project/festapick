@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarDays,
+  ChevronLeft,
   ChevronRight,
   Compass,
   Pause,
@@ -17,7 +18,6 @@ import {
   EmptyState,
   EmptyStateIcon,
   FestivalCard,
-  FestivalGrid,
   HeroActions,
   HeroBadge,
   HeroContent,
@@ -32,9 +32,11 @@ import {
   LocationCard,
   MainContainer,
   MainPageWrapper,
+  MonthlyCarousel,
+  MonthlyCarouselShell,
   MonthlyHeader,
+  MonthlyNavButton,
   NearbyCard,
-  NearbyGrid,
   NearbyImage,
   NearbyInfo,
   NearbyMeta,
@@ -47,7 +49,6 @@ import {
   SecondaryButton,
   Section,
   SectionHeader,
-  SectionLink,
   SectionTitle,
   TextButton,
 } from "./MainPageCss";
@@ -165,6 +166,8 @@ const MainEmptyState = ({ icon, title, description, action }) => (
 
 function MainPage() {
   const auth = useAuth();
+  const nearbyCarouselRef = useRef(null);
+  const monthlyCarouselRef = useRef(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHeroPlaying, setIsHeroPlaying] = useState(true);
   const [selectedPopularRank, setSelectedPopularRank] = useState(1);
@@ -214,11 +217,13 @@ function MainPage() {
     bannerSlides.length > 0 ? bannerSlides : heroFallbackSlides;
   const displayRegionFestivals = mainData.nearbyFestivals || [];
   const displayMonthlyFestivals = mainData.monthlyFestivals || [];
-  const displayPopularFestivals = mainData.popularFestivals || [];
+  const displayPopularFestivals = (mainData.popularFestivals || []).slice(0, 5);
   const selectedPopularFestival =
     displayPopularFestivals.find(
       (festival) => festival.rank === selectedPopularRank,
-    ) || displayPopularFestivals[0] || null;
+    ) ||
+    displayPopularFestivals[0] ||
+    null;
   const rankingItems = displayPopularFestivals;
 
   useEffect(() => {
@@ -259,6 +264,10 @@ function MainPage() {
   }, [displayHeroSlides.length]);
 
   useEffect(() => {
+    setSelectedPopularRank(1);
+  }, [displayPopularFestivals.length]);
+
+  useEffect(() => {
     if (!isHeroPlaying) {
       return undefined;
     }
@@ -281,6 +290,19 @@ function MainPage() {
 
   const showNextSlide = () => {
     setCurrentSlide((prevSlide) => (prevSlide + 1) % displayHeroSlides.length);
+  };
+
+  const scrollFestivalCarousel = (carouselRef, direction) => {
+    const carousel = carouselRef.current;
+
+    if (!carousel) {
+      return;
+    }
+
+    carousel.scrollBy({
+      left: direction === "prev" ? -carousel.clientWidth : carousel.clientWidth,
+      behavior: "smooth",
+    });
   };
 
   const getFestivalLink = (festival) => {
@@ -374,15 +396,36 @@ function MainPage() {
         </HeroSection>
 
         <Section>
-          <SectionHeader>
+          <MonthlyHeader>
             <SectionTitle>
               <MapPin size={28} />내 주변 추천 축제
             </SectionTitle>
-            <SectionLink as={Link} to="/search">
-              전체보기
-              <ChevronRight size={18} />
-            </SectionLink>
-          </SectionHeader>
+            <div>
+              {!shouldShowLocationGuide &&
+                displayRegionFestivals.length > 0 && (
+                  <>
+                    <MonthlyNavButton
+                      type="button"
+                      aria-label="이전 주변 추천 축제"
+                      onClick={() =>
+                        scrollFestivalCarousel(nearbyCarouselRef, "prev")
+                      }
+                    >
+                      <ChevronLeft size={20} aria-hidden="true" />
+                    </MonthlyNavButton>
+                    <MonthlyNavButton
+                      type="button"
+                      aria-label="다음 주변 추천 축제"
+                      onClick={() =>
+                        scrollFestivalCarousel(nearbyCarouselRef, "next")
+                      }
+                    >
+                      <ChevronRight size={20} aria-hidden="true" />
+                    </MonthlyNavButton>
+                  </>
+                )}
+            </div>
+          </MonthlyHeader>
           <NearbySectionLead>
             {hasUserRegion
               ? "설정한 위치 근처 추천 축제를 가까운 순서대로 골랐어요."
@@ -412,35 +455,37 @@ function MainPage() {
               }
             />
           ) : (
-            <NearbyGrid>
-              {displayRegionFestivals.map((festival, index) => (
-                <NearbyCard key={festival.id || festival.name}>
-                  <NearbyImage src={festival.image} alt="" />
-                  <NearbyInfo>
-                    <span>{index + 1}번째로 가까워요</span>
-                    <h3>{festival.name}</h3>
-                    <NearbyMeta>
-                      <span>
-                        <MapPin size={15} aria-hidden="true" />
-                        {festival.region}
-                      </span>
-                      {festival.distance && <span>{festival.distance}</span>}
-                      <span>
-                        <CalendarDays size={15} aria-hidden="true" />
-                        {festival.date}
-                      </span>
-                    </NearbyMeta>
-                    <p>{festival.description}</p>
-                    <Link
-                      to={getFestivalLink(festival).to}
-                      state={getFestivalLink(festival).state}
-                    >
-                      상세보기
-                    </Link>
-                  </NearbyInfo>
-                </NearbyCard>
-              ))}
-            </NearbyGrid>
+            <MonthlyCarouselShell>
+              <MonthlyCarousel ref={nearbyCarouselRef}>
+                {displayRegionFestivals.map((festival, index) => (
+                  <NearbyCard key={festival.id || festival.name}>
+                    <NearbyImage src={festival.image} alt="" />
+                    <NearbyInfo>
+                      <span>{index + 1}번째로 가까워요</span>
+                      <h3>{festival.name}</h3>
+                      <NearbyMeta>
+                        <span>
+                          <MapPin size={15} aria-hidden="true" />
+                          {festival.region}
+                        </span>
+                        {festival.distance && <span>{festival.distance}</span>}
+                        <span>
+                          <CalendarDays size={15} aria-hidden="true" />
+                          {festival.date}
+                        </span>
+                      </NearbyMeta>
+                      <p>{festival.description}</p>
+                      <Link
+                        to={getFestivalLink(festival).to}
+                        state={getFestivalLink(festival).state}
+                      >
+                        상세보기
+                      </Link>
+                    </NearbyInfo>
+                  </NearbyCard>
+                ))}
+              </MonthlyCarousel>
+            </MonthlyCarouselShell>
           )}
         </Section>
 
@@ -450,6 +495,28 @@ function MainPage() {
               <CalendarDays size={28} />
               이달의 전국 축제
             </SectionTitle>
+            {displayMonthlyFestivals.length > 0 && (
+              <div>
+                <MonthlyNavButton
+                  type="button"
+                  aria-label="이전 이달의 축제"
+                  onClick={() =>
+                    scrollFestivalCarousel(monthlyCarouselRef, "prev")
+                  }
+                >
+                  <ChevronLeft size={20} aria-hidden="true" />
+                </MonthlyNavButton>
+                <MonthlyNavButton
+                  type="button"
+                  aria-label="다음 이달의 축제"
+                  onClick={() =>
+                    scrollFestivalCarousel(monthlyCarouselRef, "next")
+                  }
+                >
+                  <ChevronRight size={20} aria-hidden="true" />
+                </MonthlyNavButton>
+              </div>
+            )}
           </MonthlyHeader>
           {displayMonthlyFestivals.length === 0 ? (
             <MainEmptyState
@@ -466,21 +533,23 @@ function MainPage() {
               }
             />
           ) : (
-            <FestivalGrid>
-              {displayMonthlyFestivals.map((festival) => (
-                <FestivalCard
-                  key={festival.id || festival.title}
-                  as={Link}
-                  to={getFestivalLink(festival).to}
-                  state={getFestivalLink(festival).state}
-                >
-                  <CardImage src={festival.image} alt="" />
-                  <span>{festival.region}</span>
-                  <h3>{festival.title}</h3>
-                  <p>{festival.date}</p>
-                </FestivalCard>
-              ))}
-            </FestivalGrid>
+            <MonthlyCarouselShell>
+              <MonthlyCarousel ref={monthlyCarouselRef}>
+                {displayMonthlyFestivals.map((festival) => (
+                  <FestivalCard
+                    key={festival.id || festival.title}
+                    as={Link}
+                    to={getFestivalLink(festival).to}
+                    state={getFestivalLink(festival).state}
+                  >
+                    <CardImage src={festival.image} alt="" />
+                    <span>{festival.region}</span>
+                    <h3>{festival.title}</h3>
+                    <p>{festival.date}</p>
+                  </FestivalCard>
+                ))}
+              </MonthlyCarousel>
+            </MonthlyCarouselShell>
           )}
         </Section>
 

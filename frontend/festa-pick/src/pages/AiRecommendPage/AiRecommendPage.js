@@ -155,12 +155,12 @@ function AiRecommendPage() {
     const userMessageId = Date.now();
 
     setMessages((prevMessages) => [
-      ...prevMessages,
       {
         id: userMessageId,
         type: "user",
         text: trimmedPrompt,
       },
+      ...prevMessages,
     ]);
 
     setInputValue("");
@@ -179,29 +179,53 @@ function AiRecommendPage() {
         ? data.festivals.map(normalizeFestival)
         : [];
 
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
+      setMessages((prevMessages) => {
+        const userMessageIndex = prevMessages.findIndex(
+          (message) => message.id === userMessageId,
+        );
+        const aiMessageData = {
           id: Date.now() + 1,
           type: "ai",
           text: aiMessage,
           festivals,
-        },
-      ]);
+        };
+
+        if (userMessageIndex < 0) {
+          return [aiMessageData, ...prevMessages];
+        }
+
+        return [
+          ...prevMessages.slice(0, userMessageIndex + 1),
+          aiMessageData,
+          ...prevMessages.slice(userMessageIndex + 1),
+        ];
+      });
     } catch (error) {
       console.error("AI 축제 추천 요청 실패:", error);
 
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
+      setMessages((prevMessages) => {
+        const userMessageIndex = prevMessages.findIndex(
+          (message) => message.id === userMessageId,
+        );
+        const errorMessageData = {
           id: Date.now() + 1,
           type: "ai",
           text:
             error.response?.data?.message ||
             "AI 추천을 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
           festivals: [],
-        },
-      ]);
+        };
+
+        if (userMessageIndex < 0) {
+          return [errorMessageData, ...prevMessages];
+        }
+
+        return [
+          ...prevMessages.slice(0, userMessageIndex + 1),
+          errorMessageData,
+          ...prevMessages.slice(userMessageIndex + 1),
+        ];
+      });
     } finally {
       setIsLoading(false);
     }
@@ -291,67 +315,73 @@ function AiRecommendPage() {
 
       {(hasMessages || isLoading) && (
         <ChatArea>
-          {messages.map((message) =>
-            message.type === "user" ? (
-              <UserMessage key={message.id}>
-                <ChatBubble $type="user">{message.text}</ChatBubble>
-              </UserMessage>
-            ) : (
-              <ResultGroup key={message.id}>
-                <AiAvatar aria-hidden="true">
-                  <Sparkles size={22} />
-                </AiAvatar>
-                <div>
-                  <ChatBubble $type="ai">{message.text}</ChatBubble>
+          {messages.map((message, index) => (
+            <React.Fragment key={message.id}>
+              {message.type === "user" ? (
+                <UserMessage>
+                  <ChatBubble $type="user">{message.text}</ChatBubble>
+                </UserMessage>
+              ) : (
+                <ResultGroup>
+                  <AiAvatar aria-hidden="true">
+                    <Sparkles size={22} />
+                  </AiAvatar>
+                  <div>
+                    <ChatBubble $type="ai">{message.text}</ChatBubble>
 
-                  {message.festivals?.length > 0 && (
-                    <RecommendationGrid>
-                      {message.festivals.map((festival) => (
-                        <FestivalCard key={festival.id}>
-                          <FestivalImage src={festival.image} alt="" />
-                          <FestivalInfo>
-                            <h3>{festival.name}</h3>
-                            <FestivalMeta>
-                              <span>
-                                <MapPin size={15} aria-hidden="true" />
-                                {festival.location || "위치 정보 없음"}
-                              </span>
-                              <span>
-                                <CalendarDays size={15} aria-hidden="true" />
-                                {festival.date || "일정 정보 없음"}
-                              </span>
-                            </FestivalMeta>
-                            <FestivalReason>
-                              <strong>
-                                <Sparkles size={15} aria-hidden="true" />
-                                추천 이유
-                              </strong>
-                              <p>{festival.reason}</p>
-                            </FestivalReason>
-                            <Link
-                              to={getFestivalLink(festival).to}
-                              state={getFestivalLink(festival).state}
-                            >
-                              상세보기
-                            </Link>
-                          </FestivalInfo>
-                        </FestivalCard>
-                      ))}
-                    </RecommendationGrid>
-                  )}
-                </div>
-              </ResultGroup>
-            ),
-          )}
+                    {message.festivals?.length > 0 && (
+                      <RecommendationGrid>
+                        {message.festivals.map((festival) => (
+                          <FestivalCard key={festival.id}>
+                            <FestivalImage src={festival.image} alt="" />
+                            <FestivalInfo>
+                              <h3>{festival.name}</h3>
+                              <FestivalMeta>
+                                <span>
+                                  <MapPin size={15} aria-hidden="true" />
+                                  {festival.location || "위치 정보 없음"}
+                                </span>
+                                <span>
+                                  <CalendarDays size={15} aria-hidden="true" />
+                                  {festival.date || "일정 정보 없음"}
+                                </span>
+                              </FestivalMeta>
+                              <FestivalReason>
+                                <strong>
+                                  <Sparkles size={15} aria-hidden="true" />
+                                  추천 이유
+                                </strong>
+                                <p>{festival.reason}</p>
+                              </FestivalReason>
+                              <Link
+                                to={getFestivalLink(festival).to}
+                                state={getFestivalLink(festival).state}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                상세보기
+                              </Link>
+                            </FestivalInfo>
+                          </FestivalCard>
+                        ))}
+                      </RecommendationGrid>
+                    )}
+                  </div>
+                </ResultGroup>
+              )}
 
-          {isLoading && (
-            <ResultGroup>
-              <AiAvatar aria-hidden="true">
-                <Sparkles size={22} />
-              </AiAvatar>
-              <ChatBubble $type="ai">추천 축제를 고르고 있어요...</ChatBubble>
-            </ResultGroup>
-          )}
+              {isLoading && index === 0 && message.type === "user" && (
+                <ResultGroup>
+                  <AiAvatar aria-hidden="true">
+                    <Sparkles size={22} />
+                  </AiAvatar>
+                  <ChatBubble $type="ai">
+                    추천 축제를 고르고 있어요...
+                  </ChatBubble>
+                </ResultGroup>
+              )}
+            </React.Fragment>
+          ))}
         </ChatArea>
       )}
     </PageContainer>

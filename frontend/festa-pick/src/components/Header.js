@@ -143,6 +143,7 @@ function Header() {
     user?.authority === "ADMIN" ||
     user?.authority === "ROLE_ADMIN";
   const userName = user?.nickname || user?.name || user?.loginId || "사용자님";
+  const profileImageUrl = user?.profileImageUrl || "";
 
   const visibleNotifications = useMemo(
     () => notificationList.filter((notification) => notification.unread),
@@ -448,7 +449,13 @@ function Header() {
                 onClick={handleProfileClick}
               >
                 <Avatar aria-hidden="true">
-                  {isAdmin ? <ShieldCheck size={17} /> : <User size={17} />}
+                  {profileImageUrl ? (
+                    <img alt="" src={profileImageUrl} />
+                  ) : isAdmin ? (
+                    <ShieldCheck size={17} />
+                  ) : (
+                    <User size={17} />
+                  )}
                 </Avatar>
                 <span>{userName}</span>
                 <ChevronDown size={16} aria-hidden="true" />

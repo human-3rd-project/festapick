@@ -3,6 +3,7 @@ import { LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
+import { useAuth } from "../../../context/AuthContext";
 import * as S from "./MyPageInfoStyle";
 
 const defaultProfileImageUrl =
@@ -27,6 +28,7 @@ const fallbackUser = {
   nickname: "밤하늘뮤직광",
   email: "user@festapick.com",
   profileImageUrl: defaultProfileImageUrl,
+  provider: "LOCAL",
 };
 
 // ApiResponse<T>와 axios response 양쪽 형태에서 실제 data만 꺼냅니다.
@@ -34,6 +36,7 @@ const getResponseData = (response) => response?.data?.data ?? response?.data;
 
 function MyPageInfo() {
   const navigate = useNavigate();
+  const { fetchCurrentUser } = useAuth() || {};
   const [profile, setProfile] = useState(fallbackUser);
   const [nickname, setNickname] = useState(fallbackUser.nickname);
   const [profileImageUrl, setProfileImageUrl] = useState(
@@ -62,7 +65,9 @@ function MyPageInfo() {
 
         setProfile(profileData);
         setNickname(profileData.nickname || "");
-        setProfileImageUrl(profileData.profileImageUrl || fallbackUser.profileImageUrl);
+        setProfileImageUrl(
+          profileData.profileImageUrl || fallbackUser.profileImageUrl,
+        );
       } catch (error) {
         setStatusMessage(
           error.response?.data?.message || "프로필 정보를 불러오지 못했습니다.",
@@ -98,7 +103,9 @@ function MyPageInfo() {
       const isDuplicate = getResponseData(response);
 
       setNicknameStatus(
-        isDuplicate ? "이미 사용 중인 닉네임입니다." : "사용 가능한 닉네임입니다.",
+        isDuplicate
+          ? "이미 사용 중인 닉네임입니다."
+          : "사용 가능한 닉네임입니다.",
       );
     } catch (error) {
       setNicknameStatus(
@@ -132,7 +139,9 @@ function MyPageInfo() {
       const uploadedImageUrl = getResponseData(response);
 
       setProfileImageUrl(uploadedImageUrl || fallbackUser.profileImageUrl);
-      setStatusMessage("프로필 이미지가 업로드되었습니다. 저장하기를 눌러 반영하세요.");
+      setStatusMessage(
+        "프로필 이미지가 업로드되었습니다. 저장하기를 눌러 반영하세요.",
+      );
     } catch (error) {
       setStatusMessage(
         error.response?.data?.message || "프로필 이미지 업로드에 실패했습니다.",
@@ -148,7 +157,6 @@ function MyPageInfo() {
       setIsEditing(true);
       return;
     }
-
     const trimmedNickname = nickname.trim();
 
     if (!trimmedNickname) {
@@ -166,19 +174,18 @@ function MyPageInfo() {
 
       setProfile(updatedProfile);
       setNickname(updatedProfile.nickname || "");
-      setProfileImageUrl(updatedProfile.profileImageUrl || fallbackUser.profileImageUrl);
+      setProfileImageUrl(
+        updatedProfile.profileImageUrl || fallbackUser.profileImageUrl,
+      );
       setNicknameStatus("");
       setStatusMessage("프로필 정보가 저장되었습니다.");
       setIsEditing(false);
+      await fetchCurrentUser?.();
     } catch (error) {
       setStatusMessage(
         error.response?.data?.message || "프로필 정보를 저장하지 못했습니다.",
       );
     }
-  };
-
-  const startImageUpload = () => {
-    setIsEditing(true);
   };
 
   return (
@@ -189,7 +196,9 @@ function MyPageInfo() {
         <S.Content>
           <S.ProfilePanel>
             <S.Title>프로필 정보</S.Title>
-            {isLoading && <S.HelperText>프로필 정보를 불러오는 중입니다.</S.HelperText>}
+            {isLoading && (
+              <S.HelperText>프로필 정보를 불러오는 중입니다.</S.HelperText>
+            )}
             {statusMessage && <S.HelperText>{statusMessage}</S.HelperText>}
 
             <S.ProfileBody>
@@ -198,13 +207,13 @@ function MyPageInfo() {
                   <S.AvatarImage
                     src={profileImageUrl}
                     alt=""
-                    onClick={startImageUpload}
+                    disabled={!isEditing}
                   />
                   <S.AvatarFileInput
                     type="file"
                     accept="image/jpeg,image/png,image/gif,image/webp"
                     onChange={handleProfileImageUpload}
-                    disabled={isUploadingImage}
+                    disabled={!isEditing}
                   />
                 </S.AvatarUploadLabel>
                 <S.AvatarCaption>
@@ -266,13 +275,16 @@ function MyPageInfo() {
                       <LockKeyhole size={19} />
                     </S.SecurityIcon>
                     <div>
-                      <S.SecurityTitle>비밀번호</S.SecurityTitle>
-                      <S.SecurityMeta>마지막 변경: 3개월 전</S.SecurityMeta>
+                      <S.SecurityTitle>비밀번호 변경</S.SecurityTitle>
                     </div>
                   </S.SecurityInfo>
                   <S.SecondaryButton
                     type="button"
-                    onClick={() => navigate("/mypage/password/verify")}
+                    onClick={() =>
+                      navigate("/mypage/password/verify", {
+                        state: { provider: profile.provider },
+                      })
+                    }
                   >
                     변경하기
                   </S.SecondaryButton>

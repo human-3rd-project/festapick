@@ -145,10 +145,14 @@ export const CheckWrap = styled.div`
   margin-bottom: 48px;
   padding: 4px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ddb7ff 0%, #ffb0cd 100%);
-  box-shadow:
-    0 0 20px rgba(255, 176, 205, 0.4),
-    0 0 40px rgba(255, 176, 205, 0.2);
+  background: ${({ $status }) =>
+    $status === "error"
+      ? "linear-gradient(135deg, #ffb690 0%, #ec6a06 100%)"
+      : "linear-gradient(135deg, #ddb7ff 0%, #ffb0cd 100%)"};
+  box-shadow: ${({ $status }) =>
+    $status === "error"
+      ? "0 0 20px rgba(236, 106, 6, 0.34), 0 0 40px rgba(236, 106, 6, 0.16)"
+      : "0 0 20px rgba(255, 176, 205, 0.4), 0 0 40px rgba(255, 176, 205, 0.2)"};
 
   @media (max-width: 560px) {
     width: 84px;
@@ -165,12 +169,13 @@ export const CheckInner = styled.div`
   height: 100%;
   border-radius: inherit;
   background: #171f33;
-  color: #ffb0cd;
+  color: ${({ $status }) => ($status === "error" ? "#ffb690" : "#ffb0cd")};
 
   svg {
     width: 48px;
     height: 48px;
-    fill: currentColor;
+    fill: ${({ $status }) => ($status === "error" ? "none" : "currentColor")};
+    stroke: currentColor;
     stroke-width: 1.8;
   }
 
@@ -219,10 +224,15 @@ export const BenefitNotice = styled.div`
   max-width: 100%;
   margin-bottom: 48px;
   padding: 16px 24px;
-  border: 1px solid rgba(255, 176, 205, 0.2);
+  border: 1px solid
+    ${({ $status }) =>
+      $status === "error"
+        ? "rgba(236, 106, 6, 0.3)"
+        : "rgba(255, 176, 205, 0.2)"};
   border-radius: 999px;
-  background: rgba(255, 176, 205, 0.1);
-  color: #ffb0cd;
+  background: ${({ $status }) =>
+    $status === "error" ? "rgba(236, 106, 6, 0.1)" : "rgba(255, 176, 205, 0.1)"};
+  color: ${({ $status }) => ($status === "error" ? "#ffb690" : "#ffb0cd")};
 
   svg {
     flex: 0 0 auto;
@@ -251,9 +261,15 @@ export const ActionButton = styled.button`
   padding: 16px 24px;
   border: 0;
   border-radius: 12px;
-  color: #490080;
-  background: linear-gradient(90deg, #ddb7ff, #ffb0cd);
-  box-shadow: 0 8px 24px rgba(221, 183, 255, 0.3);
+  color: ${({ $status }) => ($status === "error" ? "#ffffff" : "#490080")};
+  background: ${({ $status }) =>
+    $status === "error"
+      ? "linear-gradient(135deg, #ec6a06 0%, #aa0266 100%)"
+      : "linear-gradient(90deg, #ddb7ff, #ffb0cd)"};
+  box-shadow: ${({ $status }) =>
+    $status === "error"
+      ? "0 8px 24px rgba(236, 106, 6, 0.26)"
+      : "0 8px 24px rgba(221, 183, 255, 0.3)"};
   font-size: 24px;
   font-weight: 600;
   line-height: 32px;
@@ -264,9 +280,10 @@ export const ActionButton = styled.button`
 
   &:hover {
     transform: scale(1.02);
-    box-shadow:
-      0 8px 24px rgba(221, 183, 255, 0.3),
-      0 0 22px rgba(255, 176, 205, 0.26);
+    box-shadow: ${({ $status }) =>
+      $status === "error"
+        ? "0 8px 24px rgba(236, 106, 6, 0.26), 0 0 22px rgba(170, 2, 102, 0.35)"
+        : "0 8px 24px rgba(221, 183, 255, 0.3), 0 0 22px rgba(255, 176, 205, 0.26)"};
   }
 
   &:active {

@@ -48,7 +48,10 @@ public class UserService {
                 user.getEmail(),
                 user.getNickname(),
                 user.getProfileImageUrl(),
-                user.getRole()
+                user.getRole(),
+                user.getProvider(),
+                user.getLdongRegnCd(),
+                user.getLdongSignguCd()
         );
     }
 
@@ -94,7 +97,10 @@ public class UserService {
                 user.getEmail(),
                 user.getNickname(),
                 user.getProfileImageUrl(),
-                user.getRole()
+                user.getRole(),
+                user.getProvider(),
+                user.getLdongRegnCd(),
+                user.getLdongSignguCd()
         );
     }
 

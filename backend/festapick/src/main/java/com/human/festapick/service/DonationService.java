@@ -1,5 +1,8 @@
 package com.human.festapick.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.human.festapick.constant.DonationStatus;
 import com.human.festapick.constant.PaymentStatus;
 import com.human.festapick.constant.UserRole;
 import com.human.festapick.dto.request.PaymentConfirmReqDto;
@@ -47,6 +50,7 @@ public class DonationService {
     private final DonationRepository donationRepository;
     private final DonationPaymentRepository donationPaymentRepository;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
     private final WebClient.Builder webClientBuilder;
 
     @Value("${toss.payments.secret-key:}")
@@ -198,8 +202,8 @@ public class DonationService {
 
     public DonationStatisticsResDto getDonationStatistics() {
         return DonationStatisticsResDto.builder()
-                .totalDonationAmount(donationRepository.getTotalDonationAmount())
-                .totalDonorCount(donationRepository.getDonorCount())
+                .totalDonationAmount(donationRepository.getTotalDonationAmount(DonationStatus.DONE))
+                .totalDonorCount(donationRepository.getDonorCount(DonationStatus.DONE))
                 .build();
     }
 
@@ -254,11 +258,32 @@ public class DonationService {
                                 .defaultIfEmpty("")
                                 .map(body -> new CustomException(
                                         HttpStatus.valueOf(response.statusCode().value()),
-                                        "토스 결제 승인 실패: " + body
+                                        formatTossConfirmError(body)
                                 ))
                 )
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .block();
+    }
+
+    private String formatTossConfirmError(String body) {
+        String fallbackMessage = "토스 결제 승인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+
+        if (body == null || body.isBlank()) {
+            return fallbackMessage;
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode messageNode = root.get("message");
+
+            if (messageNode != null && messageNode.isTextual() && !messageNode.asText().isBlank()) {
+                return "토스 결제 승인 실패: " + messageNode.asText();
+            }
+        } catch (Exception ignored) {
+            return fallbackMessage;
+        }
+
+        return fallbackMessage;
     }
 
     private void verifyTossPayment(PaymentConfirmReqDto request, Map<String, Object> tossPayment) {

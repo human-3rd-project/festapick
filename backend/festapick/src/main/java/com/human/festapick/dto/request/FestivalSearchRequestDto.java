@@ -21,6 +21,8 @@ public class FestivalSearchRequestDto {
 
     private LocalDate endDate;
 
+    private String sortType;
+
     private Integer page;
 
     private Integer size;

@@ -16,7 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
@@ -36,6 +39,7 @@ import java.util.Optional;
 public class MainService {
   private static final int DEFAULT_BANNER_LIMIT = 5;
   private static final int DEFAULT_SECTION_LIMIT = 10;
+  private static final int POPULAR_SECTION_LIMIT = 5;
   private static final int TOUR_API_SYNC_PAGE_SIZE = 100;
   private static final int TOUR_API_SYNC_MAX_PAGE = 12;
   private static final DateTimeFormatter TOUR_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -46,6 +50,7 @@ public class MainService {
   private final WebSocketHandler webSocketHandler;
   private final WebClient.Builder webClientBuilder;
   private final ImageUploadService imageUploadService;
+  private final PlatformTransactionManager transactionManager;
 
   @Value("${tourapi.base-url}")
   private String tourApiBaseUrl;
@@ -84,11 +89,21 @@ public class MainService {
   // 위치 기반 축제 추천 조회: 사용자의 법정동 코드와 같은 지역의 진행 예정/진행 중 축제를 우선 노출합니다.
   public List<FestivalInfoResponseDto> getNearbyFestivalRecommendations(String ldongRegnCd, String ldongSignguCd) {
     LocalDate today = LocalDate.now();
-
-    return festivalRepository.findAll().stream()
+    List<Festivals> activeUpcomingFestivals = festivalRepository.findAll().stream()
             .filter(this::isActiveFestival)
-            .filter(festival -> isSameRegion(festival, ldongRegnCd, ldongSignguCd))
             .filter(festival -> isOngoingOrUpcoming(festival, today))
+            .toList();
+
+    List<Festivals> regionalFestivals = activeUpcomingFestivals.stream()
+            .filter(festival -> isSameRegion(festival, ldongRegnCd, ldongSignguCd))
+            .toList();
+
+    List<Festivals> recommendationSource =
+            hasRegionCode(ldongRegnCd, ldongSignguCd) && regionalFestivals.isEmpty()
+                    ? activeUpcomingFestivals
+                    : regionalFestivals;
+
+    return recommendationSource.stream()
             .sorted(Comparator
                     .comparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
                     .thenComparing(Festivals::getFavoriteCount, Comparator.nullsLast(Comparator.reverseOrder()))
@@ -124,7 +139,7 @@ public class MainService {
                     .reversed()
                     .thenComparing(Festivals::getAverageRating, Comparator.nullsLast(Comparator.reverseOrder()))
                     .thenComparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder())))
-            .limit(DEFAULT_SECTION_LIMIT)
+            .limit(POPULAR_SECTION_LIMIT)
             .map(this::toFestivalInfoResponseDto)
             .toList();
   }
@@ -152,7 +167,7 @@ public class MainService {
                     .reversed()
                     .thenComparing(Festivals::getAverageRating, Comparator.nullsLast(Comparator.reverseOrder()))
                     .thenComparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder())))
-            .limit(DEFAULT_SECTION_LIMIT)
+            .limit(POPULAR_SECTION_LIMIT)
             .map(festival -> toFestivalInfoResponseDto(
                     festival,
                     liveParticipantCountByFestivalId.getOrDefault(festival.getFestivalId(), 0L)
@@ -191,6 +206,14 @@ public class MainService {
   public int syncTourApiFestivals(LocalDate eventStartDate, int page, int size) {
     List<TourFestivalItemDto> tourFestivals = fetchTourApiFestivals(eventStartDate, page, size);
 
+    if (tourFestivals.isEmpty()) {
+      return 0;
+    }
+
+    return saveTourApiFestivals(tourFestivals);
+  }
+
+  private int saveTourApiFestivals(List<TourFestivalItemDto> tourFestivals) {
     List<Festivals> newFestivals = tourFestivals.stream()
             .filter(item -> item.getContentId() != null && !item.getContentId().isBlank())
             .filter(item -> !festivalRepository.existsByContentId(item.getContentId()))
@@ -206,15 +229,31 @@ public class MainService {
     return newFestivals.size();
   }
 
-  // TourAPI 축제 동기화: 매일 오전 9시에 오늘 이후 축제 데이터를 가져와 DB에 없는 항목만 저장합니다.
-  @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
-  @Transactional
-  public void scheduledSyncTourApiFestivals() {
+  // TourAPI 축제 동기화: 오늘 이후 축제 데이터를 페이지 단위로 가져와 DB에 없는 항목만 저장합니다.
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  public int syncTourApiFestivalsFromToday() {
     LocalDate today = LocalDate.now();
+    TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+    int syncedCount = 0;
 
     for (int page = 1; page <= TOUR_API_SYNC_MAX_PAGE; page++) {
-      syncTourApiFestivals(today, page, TOUR_API_SYNC_PAGE_SIZE);
+      List<TourFestivalItemDto> tourFestivals = fetchTourApiFestivals(today, page, TOUR_API_SYNC_PAGE_SIZE);
+      if (tourFestivals.isEmpty()) {
+        break;
+      }
+
+      Integer pageSyncedCount = transactionTemplate.execute(status -> saveTourApiFestivals(tourFestivals));
+      syncedCount += pageSyncedCount == null ? 0 : pageSyncedCount;
     }
+
+    return syncedCount;
+  }
+
+  // TourAPI 축제 동기화: 매일 오전 9시에 오늘 이후 축제 데이터를 가져와 DB에 없는 항목만 저장합니다.
+  @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  public void scheduledSyncTourApiFestivals() {
+    syncTourApiFestivalsFromToday();
   }
 
   // 화면 응답 DTO 변환: Festivals 엔티티를 메인/목록 카드에서 쓰는 공통 형태로 바꿉니다.
@@ -330,6 +369,11 @@ public class MainService {
       return false;
     }
     return ldongSignguCd == null || ldongSignguCd.isBlank() || Objects.equals(festival.getLdongSignguCd(), ldongSignguCd);
+  }
+
+  private boolean hasRegionCode(String ldongRegnCd, String ldongSignguCd) {
+    return (ldongRegnCd != null && !ldongRegnCd.isBlank())
+            || (ldongSignguCd != null && !ldongSignguCd.isBlank());
   }
 
   // 종료일이 오늘 이후이거나 종료일이 없으면 진행 예정/진행 중 축제로 봅니다.

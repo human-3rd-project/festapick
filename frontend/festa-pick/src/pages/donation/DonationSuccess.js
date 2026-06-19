@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Gem } from "lucide-react";
+import { CheckCircle2, Gem, TriangleAlert } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AxiosApi from "../../api/AxiosApi";
 import { useAuth } from "../../context/AuthContext";
@@ -40,8 +40,32 @@ const confettiPieces = [
 const getResponseData = (response) =>
   response?.data?.data ?? response?.data ?? response;
 
+const normalizeApprovalErrorMessage = (message, fallback) => {
+  if (!message) {
+    return fallback;
+  }
+
+  const tossPrefix = "토스 결제 승인 실패:";
+  if (!message.startsWith(tossPrefix)) {
+    return message;
+  }
+
+  const tossMessage = message.slice(tossPrefix.length).trim();
+  try {
+    const parsed = JSON.parse(tossMessage);
+    return parsed?.message
+      ? `${tossPrefix} ${parsed.message}`
+      : "토스 결제 승인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+  } catch {
+    return "토스 결제 승인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+  }
+};
+
 const getApiErrorMessage = (error, fallback) =>
-  error?.response?.data?.message || error?.message || fallback;
+  normalizeApprovalErrorMessage(
+    error?.response?.data?.message || error?.message,
+    fallback,
+  );
 
 function DonationSuccess() {
   const navigate = useNavigate();
@@ -117,33 +141,37 @@ function DonationSuccess() {
 
   const isSuccess = status === "success";
   const isLoading = status === "loading";
+  const isError = status === "error";
+  const StatusIcon = isError ? TriangleAlert : CheckCircle2;
 
   return (
     <SuccessPage>
       <BackgroundLayer aria-hidden="true">
         <Glow />
         <Glow $tone="secondary" />
-        <ConfettiLayer>
-          {confettiPieces.map((piece) => (
-            <Confetti
-              key={`${piece.left}-${piece.delay}`}
-              $left={piece.left}
-              $color={piece.color}
-              $delay={piece.delay}
-              $duration={piece.duration}
-              $xOffset={piece.xOffset}
-              $rotation={piece.rotation}
-              $scale={piece.scale}
-            />
-          ))}
-        </ConfettiLayer>
+        {isSuccess && (
+          <ConfettiLayer>
+            {confettiPieces.map((piece) => (
+              <Confetti
+                key={`${piece.left}-${piece.delay}`}
+                $left={piece.left}
+                $color={piece.color}
+                $delay={piece.delay}
+                $duration={piece.duration}
+                $xOffset={piece.xOffset}
+                $rotation={piece.rotation}
+                $scale={piece.scale}
+              />
+            ))}
+          </ConfettiLayer>
+        )}
       </BackgroundLayer>
 
       <ContentWrap>
         <SuccessCard aria-labelledby="donation-success-title">
-          <CheckWrap aria-hidden="true">
-            <CheckInner>
-              <CheckCircle2 />
+          <CheckWrap aria-hidden="true" $status={status}>
+            <CheckInner $status={status}>
+              <StatusIcon />
             </CheckInner>
           </CheckWrap>
 
@@ -156,7 +184,7 @@ function DonationSuccess() {
           </Title>
           <Message>{message}</Message>
 
-          <BenefitNotice role="status">
+          <BenefitNotice role="status" $status={status}>
             <Gem />
             <BenefitText>
               {isSuccess
@@ -169,7 +197,11 @@ function DonationSuccess() {
             </BenefitText>
           </BenefitNotice>
 
-          <ActionButton type="button" onClick={isSuccess ? goHome : goDonation}>
+          <ActionButton
+            type="button"
+            onClick={isSuccess ? goHome : goDonation}
+            $status={status}
+          >
             {isSuccess ? "메인으로 돌아가기" : "후원 페이지로 돌아가기"}
           </ActionButton>
         </SuccessCard>

@@ -1,12 +1,14 @@
 package com.human.festapick.service;
 
 import com.human.festapick.dto.response.FavoriteListResDto;
+import com.human.festapick.entity.FestivalCategoryCodes;
 import com.human.festapick.entity.Favorites;
 import com.human.festapick.entity.FestivalLikes;
 import com.human.festapick.entity.Festivals;
 import com.human.festapick.entity.Users;
 import com.human.festapick.exception.CustomException;
 import com.human.festapick.repository.FavoriteRepository;
+import com.human.festapick.repository.FestivalCategoryCodeRepository;
 import com.human.festapick.repository.FestivalLikeRepository;
 import com.human.festapick.repository.FestivalRepository;
 import com.human.festapick.repository.UserRepository;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -30,6 +33,7 @@ public class FestivalActionService {
     private final FestivalLikeRepository festivalLikeRepository;
     private final UserRepository userRepository;
     private final FestivalRepository festivalRepository;
+    private final FestivalCategoryCodeRepository festivalCategoryCodeRepository;
 
     // 찜 등록
     @Transactional
@@ -74,7 +78,8 @@ public class FestivalActionService {
 
     // 내 찜 목록 조회
     public Page<FavoriteListResDto> getMyFavoriteList(Long userId, Pageable pageable) {
-        return favoriteRepository.findFavoriteListByUserId(userId, pageable);
+        return favoriteRepository.findFavoriteListByUserId(userId, pageable)
+                .map(favorite -> favorite.withCategoryName(resolveCategoryName(favorite)));
     }
 
     // 특정 축제의 찜 개수 조회
@@ -154,5 +159,27 @@ public class FestivalActionService {
     private Festivals getFestival(Long festivalId) {
         return festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "축제를 찾을 수 없습니다."));
+    }
+
+    private String resolveCategoryName(FavoriteListResDto favorite) {
+        return festivalCategoryCodeRepository.findByLclsCodeAndMclsCodeAndSclsCode(
+                        favorite.getLclsSystm1(),
+                        favorite.getLclsSystm2(),
+                        favorite.getLclsSystm3()
+                )
+                .map(this::pickMostSpecificCategoryName)
+                .orElseGet(() -> Optional.ofNullable(favorite.getFestivalType())
+                        .filter(type -> !type.isBlank())
+                        .orElse(favorite.getLclsSystm3()));
+    }
+
+    private String pickMostSpecificCategoryName(FestivalCategoryCodes categoryCode) {
+        if (categoryCode.getSclsName() != null && !categoryCode.getSclsName().isBlank()) {
+            return categoryCode.getSclsName();
+        }
+        if (categoryCode.getMclsName() != null && !categoryCode.getMclsName().isBlank()) {
+            return categoryCode.getMclsName();
+        }
+        return categoryCode.getLclsName();
     }
 }

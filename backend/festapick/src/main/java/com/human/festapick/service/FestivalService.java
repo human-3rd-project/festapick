@@ -39,6 +39,8 @@ public class FestivalService {
 
   private static final int DEFAULT_PAGE = 0;
   private static final int DEFAULT_SIZE = 12;
+  private static final String SORT_LATEST = "latest";
+  private static final String SORT_POPULAR = "popular";
 
   private final FestivalRepository festivalRepository;
   private final FestivalImageRepository festivalImageRepository;
@@ -92,9 +94,7 @@ public class FestivalService {
             .filter(festival -> matchesRegion(festival, safeRequest.getLdongRegnCd(), safeRequest.getLdongSignguCd()))
             .filter(festival -> matchesTheme(festival, safeRequest.getLclsSystm()))
             .filter(festival -> matchesPeriod(festival, safeRequest.getStartDate(), safeRequest.getEndDate()))
-            .sorted(Comparator
-                    .comparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
-                    .thenComparing(Festivals::getTitle, Comparator.nullsLast(Comparator.naturalOrder())))
+            .sorted(resolveSearchComparator(safeRequest.getSortType()))
             .map(this::toFestivalInfoResponseDto)
             .toList();
 
@@ -307,6 +307,34 @@ public class FestivalService {
     LocalDate eventEndDate = Optional.ofNullable(festival.getEventEndDate()).orElse(LocalDate.MAX);
 
     return !eventStartDate.isAfter(searchEndDate) && !eventEndDate.isBefore(searchStartDate);
+  }
+
+  private Comparator<Festivals> resolveSearchComparator(String sort) {
+    if (SORT_LATEST.equalsIgnoreCase(Optional.ofNullable(sort).orElse(""))) {
+      return Comparator
+              .comparing((Festivals festival) -> festival.getCreatedAt(), Comparator.nullsLast(Comparator.reverseOrder()))
+              .thenComparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
+              .thenComparing(Festivals::getTitle, Comparator.nullsLast(Comparator.naturalOrder()));
+    }
+
+    if (SORT_POPULAR.equalsIgnoreCase(Optional.ofNullable(sort).orElse(""))) {
+      return Comparator
+              .comparingLong((Festivals festival) -> popularScore(festival))
+              .reversed()
+              .thenComparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
+              .thenComparing(Festivals::getTitle, Comparator.nullsLast(Comparator.naturalOrder()));
+    }
+
+    return Comparator
+            .comparing(Festivals::getEventStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(Festivals::getTitle, Comparator.nullsLast(Comparator.naturalOrder()));
+  }
+
+  private long popularScore(Festivals festival) {
+    return defaultLong(festival.getViewCount())
+            + defaultLong(festival.getLikeCount()) * 3
+            + defaultLong(festival.getFavoriteCount()) * 4
+            + defaultLong(festival.getReviewCount()) * 5;
   }
 
   // request에 page/size가 있으면 사용하고, 없으면 기본 페이지 설정을 사용합니다.

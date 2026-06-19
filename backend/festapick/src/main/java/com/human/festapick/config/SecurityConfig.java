@@ -55,7 +55,7 @@ public class SecurityConfig {
 
                 // URL 별 권한 설정 (위에서 아래 순서로 첫 번째 매칭 적용)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/chat/rooms/*/messages", "/festivals/*/favorites/count").permitAll()                            // 로그인/회원가입 허용
+                        .requestMatchers("/auth/**", "/ws/chat", "/chat/rooms/*/messages", "/festivals/*/favorites/count", "/donations/statistics").permitAll()                            // 로그인/회원가입 허용
                         .requestMatchers("/festivals/*/likes/count", "/festivals/*/reviews", "/festivals/*/reviews/count").permitAll()  // Swagger 허용
                         .requestMatchers("/ai/question", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes").permitAll()
                         .requestMatchers("/festivals/**", "/main/**").permitAll()

@@ -1,5 +1,6 @@
 package com.human.festapick.repository;
 
+import com.human.festapick.constant.DonationStatus;
 import com.human.festapick.entity.Donations;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,12 +16,12 @@ public interface DonationRepository extends JpaRepository<Donations, Long> {
     Page<Donations> findByUsers_UserId(Long userId, Pageable pageable);
 
     // 총 후원금 통계
-    @Query("select coalesce(sum(d.amount), 0) from Donations d")
-    Long getTotalDonationAmount();
+    @Query("select coalesce(sum(d.amount), 0) from Donations d where d.donationStatus = :status")
+    Long getTotalDonationAmount(@Param("status") DonationStatus status);
 
     // 후원자 수 통계
-    @Query("select count(distinct d.users.userId) from Donations d")
-    Long getDonorCount();
+    @Query("select count(distinct d.users.userId) from Donations d where d.donationStatus = :status")
+    Long getDonorCount(@Param("status") DonationStatus status);
 
     @Query("""
         select d

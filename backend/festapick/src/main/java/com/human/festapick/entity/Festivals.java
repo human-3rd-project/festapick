@@ -96,7 +96,7 @@ public class Festivals {
     @Column(name = "tour_modified_time", length = 14)
     private String tourModifiedTime;
 
-    @Column(name = "tel", length = 100)
+    @Column(name = "tel", length = 500)
     private String tel;
 
     @Column(name = "ldong_regn_cd", length = 10)

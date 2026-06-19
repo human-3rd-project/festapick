@@ -48,8 +48,8 @@ const AxiosApi = {
     }),
 
   // 채팅방 채팅 기록 조회 API
-  getChatHistory: (chatRoomId) =>
-    publicApi.get(`/chat/rooms/${chatRoomId}/messages`),
+  getChatHistory: (chatRoomId, size = 30) =>
+    publicApi.get(`/chat/rooms/${chatRoomId}/messages`, { params: { size } }),
 
   // 후원 신청 생성
   donationApply: (amount = 10000) =>
@@ -324,6 +324,7 @@ const AxiosApi = {
     lclsSystm,
     startDate,
     endDate,
+    sortType,
     page = 0,
     size = 10,
   }) =>
@@ -335,6 +336,7 @@ const AxiosApi = {
         lclsSystm,
         startDate,
         endDate,
+        sortType,
         page,
         size,
       },
