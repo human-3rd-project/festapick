@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -189,6 +189,7 @@ const MainEmptyState = ({ icon, title, description, action }) => (
 );
 
 function MainPage() {
+  const navigate = useNavigate();
   const auth = useAuth();
   const nearbyCarouselRef = useRef(null);
   const monthlyCarouselRef = useRef(null);
@@ -235,7 +236,15 @@ function MainPage() {
     storedUserRegion,
   );
   const shouldShowLocationGuide = !isLoggedIn || !hasUserRegion;
-  const locationSettingPath = isLoggedIn ? "/mypage/region" : "/login";
+  const handleLocationSettingClick = () => {
+    if (!isLoggedIn) {
+      window.alert("로그인 후 위치를 설정할 수 있습니다.");
+      navigate("/login");
+      return;
+    }
+
+    navigate("/mypage/region");
+  };
 
   const displayHeroSlides =
     bannerSlides.length > 0 ? bannerSlides : heroFallbackSlides;
@@ -460,7 +469,7 @@ function MainPage() {
               <MapPin size={42} aria-hidden="true" />
               <h3>내 위치를 설정하면</h3>
               <p>주변의 핫한 축제들을 실시간으로 추천받을 수 있어요.</p>
-              <TextButton as={Link} to={locationSettingPath}>
+              <TextButton type="button" onClick={handleLocationSettingClick}>
                 위치 설정하기
               </TextButton>
             </LocationCard>
