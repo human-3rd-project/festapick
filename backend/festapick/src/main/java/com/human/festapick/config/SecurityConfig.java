@@ -74,7 +74,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("http://localhost:3000");  // React 개발 서버
+        config.addAllowedOrigin("https://7dfd-1-247-161-31.ngrok-free.app");
         config.addAllowedHeader("*");                      // Authorization 헤더 포함 전체 허용
         config.addAllowedMethod("*");                      // GET/POST/PUT/DELETE/OPTIONS 전체 허용
         config.setAllowCredentials(true);                  // 자격증명(쿠키, Authorization) 허용

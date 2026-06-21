@@ -3,6 +3,9 @@ import Common from "../utils/Common";
 
 const AxiosInstance = axios.create({
   baseURL: Common.HM_DOMAIN,
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
 });
 
 // 요청 인터셉터 - 모든 요청에 Authrization 헤더 자동 첨부

@@ -3,7 +3,12 @@ import axios from "axios";
 import Common from "../utils/Common";
 
 // 인증이 필요 없는 공개 API
-const publicApi = axios.create({ baseURL: Common.HM_DOMAIN });
+const publicApi = axios.create({
+  baseURL: Common.HM_DOMAIN,
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
+});
 
 const AxiosApi = {
   // 관리자 사용자 검색 API

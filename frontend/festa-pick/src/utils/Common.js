@@ -2,7 +2,7 @@ import axios from "axios";
 
 const Common = {
   // 백엔드 주소
-  HM_DOMAIN: "http://localhost:8111",
+  HM_DOMAIN: "https://9608-1-247-161-31.ngrok-free.app",
 
   // 엑세스 토큰 관리 (localStrage)
   getAccessToken: () => localStorage.getItem("accessToken"),
@@ -25,6 +25,7 @@ const Common = {
       // 재발급 엔드포인트: POST /auth/reissue
       const res = await axios.post(`${Common.HM_DOMAIN}/auth/reissue`, null, {
         headers: { "Refresh-Token": refreshToken },
+        "ngrok-skip-browser-warning": "true",
       });
       // 백엔드 ApiResponse 구조: { status, message, data: { accessToken, ... } }
       Common.setAccessToken(res.data.data.accessToken);

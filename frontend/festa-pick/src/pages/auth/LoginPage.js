@@ -396,7 +396,9 @@ const LoginPage = () => {
 
       <Styles.Main>
         <Styles.LogoArea>
-          <h1>FestaPick</h1>
+          <Link to="/" aria-label="메인 페이지로 이동">
+            <h1>FestaPick</h1>
+          </Link>
           <p>Feel the rhythm of the night.</p>
         </Styles.LogoArea>
 

@@ -113,7 +113,7 @@ const loadKakaoMapSdk = () => {
       script.id = KAKAO_MAP_SDK_ID;
       script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(
         appKey,
-      )}&autoload=false`;
+      )}&libraries=services&autoload=false`;
       script.async = true;
       script.addEventListener("load", handleLoad, { once: true });
       script.addEventListener("error", reject, { once: true });

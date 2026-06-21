@@ -224,6 +224,9 @@ function MyPageLocal() {
             kakaoMapRef.current.setLevel(7);
           }
 
+          kakaoMapRef.current.relayout();
+          kakaoMapRef.current.setCenter(center);
+
           if (kakaoMarkerRef.current) {
             kakaoMarkerRef.current.setMap(null);
           }
