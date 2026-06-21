@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -208,8 +209,6 @@ function MyPageFavorite() {
                   </S.PageButton>
                 </S.Pagination>
               )}
-
-              <S.FindMoreButton type="button">{text.findMore}</S.FindMoreButton>
             </>
           ) : (
             <S.EmptyState>
@@ -218,7 +217,9 @@ function MyPageFavorite() {
               </S.EmptyIcon>
               <S.EmptyTitle>{text.emptyTitle}</S.EmptyTitle>
               <S.EmptyDescription>{text.emptyDescription}</S.EmptyDescription>
-              <S.FindMoreButton type="button">{text.findMore}</S.FindMoreButton>
+              <S.FindMoreButton as={Link} to="/search">
+                {text.findMore}
+              </S.FindMoreButton>
             </S.EmptyState>
           )}
         </S.Content>

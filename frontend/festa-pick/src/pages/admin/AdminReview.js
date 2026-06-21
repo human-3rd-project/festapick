@@ -82,6 +82,10 @@ function getReviewerEmail(review) {
   return review.email || review.userEmail || review.memberEmail || "이메일 없음";
 }
 
+function getReviewerAvatar(review) {
+  return review.profileImageUrl || review.avatar || review.profileImage || "";
+}
+
 function getFestivalName(review) {
   const festivalId = getFestivalId(review);
   return (
@@ -287,6 +291,7 @@ function AdminReview() {
                     {reviews.map((review, index) => {
                       const key = getReviewKey(review, index);
                       const reviewerName = getReviewerName(review);
+                      const reviewerAvatar = getReviewerAvatar(review);
                       const rating = getRating(review);
                       const festivalId = getFestivalId(review);
 
@@ -295,9 +300,9 @@ function AdminReview() {
                           <td>
                             <ReviewerIdentity>
                               <ReviewerAvatar $tone={index % 4}>
-                                {review.avatar || review.profileImage ? (
+                                {reviewerAvatar ? (
                                   <img
-                                    src={review.avatar || review.profileImage}
+                                    src={reviewerAvatar}
                                     alt={reviewerName}
                                   />
                                 ) : (

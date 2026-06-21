@@ -183,6 +183,7 @@ public class AdminService {
                 .userId(user.getUserId())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())

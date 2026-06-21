@@ -386,6 +386,7 @@ export const DonationAvatar = styled.div`
   justify-content: center;
   width: 32px;
   height: 32px;
+  overflow: hidden;
   border-radius: 999px;
   color: ${({ $tone }) => {
     if ($tone === 1) return "#ffb0cd";
@@ -401,6 +402,13 @@ export const DonationAvatar = styled.div`
   }};
   font-size: 12px;
   font-weight: 700;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 `;
 
 export const DonationName = styled.p`

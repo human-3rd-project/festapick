@@ -22,6 +22,7 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
                         festival.festivalId,
                         writer.userId,
                         writer.nickname,
+                        writer.profileImageUrl,
                         review.rating,
                         review.content,
                         review.createdAt,

@@ -438,7 +438,7 @@ function Calendar() {
                 <RotateCcw size={14} aria-hidden="true" /> 초기화
               </S.ResetButton>
               <S.ApplyButton type="button" onClick={applyFilter}>
-                필터 적용 ({draftFilterCount}개)
+                필터 적용
               </S.ApplyButton>
             </S.ModalActions>
           </S.FilterModal>

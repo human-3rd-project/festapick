@@ -21,6 +21,7 @@ public class ReviewResDto {
   // 작성자 - 조회 시 review.user 또는 fetch join 필요
   private Long userId;
   private String nickname;
+  private String profileImageUrl;
 
   // 리뷰 별점, 내용
   private Integer rating;
@@ -37,6 +38,7 @@ public class ReviewResDto {
         .festivalId(review.getFestival().getFestivalId())
         .userId(review.getUser().getUserId())
         .nickname(review.getUser().getNickname())
+        .profileImageUrl(review.getUser().getProfileImageUrl())
         .rating(review.getRating())
         .content(review.getContent())
         .createdAt(review.getCreatedAt())

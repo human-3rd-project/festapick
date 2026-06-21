@@ -3,10 +3,12 @@ import { AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
+import { useAuth } from "../../../context/AuthContext";
 import * as S from "./MyPageAccountStyle";
 
 function MyPageAccount() {
   const navigate = useNavigate();
+  const { logout } = useAuth() || {};
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -27,7 +29,7 @@ function MyPageAccount() {
     try {
       // 로그인 사용자의 계정을 삭제하고 로컬 인증 정보를 비웁니다.
       await AxiosApi.deleteMyAccount();
-      localStorage.clear();
+      logout?.();
       setDeleteMessage("계정 삭제 요청이 완료되었습니다.");
       setIsDeleteModalOpen(false);
       navigate("/");

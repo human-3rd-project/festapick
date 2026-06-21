@@ -16,6 +16,8 @@ public class UserManageResDto {
 
     private String email;
 
+    private String profileImageUrl;
+
     private UserStatus status;
 
     private UserRole role;

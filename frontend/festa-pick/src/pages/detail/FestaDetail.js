@@ -144,7 +144,8 @@ const EMPTY_FESTIVAL = {
 };
 
 // 추가: ApiResponse(data 래핑)와 일반 axios 응답을 모두 안전하게 꺼내기 위한 헬퍼입니다.
-const getResponseData = (response) => response?.data?.data ?? response?.data ?? null;
+const getResponseData = (response) =>
+  response?.data?.data ?? response?.data ?? null;
 
 // 추가: Spring Page 응답(content)과 일반 배열 응답을 모두 리뷰 배열로 처리합니다.
 const getPageContent = (value) => {
@@ -230,13 +231,18 @@ const normalizeReview = (review, currentUserId) => ({
   author: review?.nickname ?? review?.author ?? "익명",
   time:
     review?.time ||
-    (review?.updatedAt ? "수정됨" : review?.createdAt ? formatDate(review.createdAt) : ""),
+    (review?.updatedAt
+      ? "수정됨"
+      : review?.createdAt
+        ? formatDate(review.createdAt)
+        : ""),
   rating: Math.min(5, Math.max(0, Number(review?.rating) || 0)),
   text: review?.content ?? review?.text ?? "",
   content: review?.content ?? review?.text ?? "",
   isMine:
     Boolean(review?.isMine) ||
-    (currentUserId !== null && Number(review?.userId) === Number(currentUserId)),
+    (currentUserId !== null &&
+      Number(review?.userId) === Number(currentUserId)),
 });
 
 const formatChatTime = (createdAt) => {
@@ -262,7 +268,9 @@ const normalizeChatMessage = (chat, currentUserId) => {
     time: chat?.time ?? formatChatTime(chat?.createdAt),
     isMine:
       Boolean(chat?.isMine) ||
-      (currentUserId !== null && userId !== null && Number(userId) === Number(currentUserId)),
+      (currentUserId !== null &&
+        userId !== null &&
+        Number(userId) === Number(currentUserId)),
   };
 };
 
@@ -330,11 +338,16 @@ const normalizeFestival = (sourceFestival) => {
     period: formatPeriod(sourceFestival),
     time: sourceFestival.time || EMPTY_FESTIVAL.time,
     location: sourceFestival.location || address || EMPTY_FESTIVAL.location,
-    venue: sourceFestival.venue || sourceFestival.addr2 || sourceFestival.addr1 || EMPTY_FESTIVAL.venue,
+    venue:
+      sourceFestival.venue ||
+      sourceFestival.addr2 ||
+      sourceFestival.addr1 ||
+      EMPTY_FESTIVAL.venue,
     description: normalizeDescription(sourceFestival.description),
     rating:
-      Number.parseFloat(sourceFestival.averageRating ?? sourceFestival.rating) ||
-      0,
+      Number.parseFloat(
+        sourceFestival.averageRating ?? sourceFestival.rating,
+      ) || 0,
     reviewCount: Number(sourceFestival.reviewCount) || 0,
     favorite: Boolean(sourceFestival.favorite),
     liked: Boolean(sourceFestival.liked),
@@ -390,7 +403,8 @@ function FestaDetail({
   const [isChatUploading, setIsChatUploading] = useState(false);
   const [isFavorite, setIsFavorite] = useState(Boolean(festivalProp?.favorite));
   const [isLiked, setIsLiked] = useState(Boolean(festivalProp?.liked));
-  const [visibleReviewCount, setVisibleReviewCount] = useState(REVIEW_PAGE_SIZE);
+  const [visibleReviewCount, setVisibleReviewCount] =
+    useState(REVIEW_PAGE_SIZE);
   const [mapMessage, setMapMessage] = useState("");
   const mapContainerRef = useRef(null);
   const kakaoMapRef = useRef(null);
@@ -413,7 +427,8 @@ function FestaDetail({
     isFestivalActive ??
     (typeof festival.live === "boolean" ? festival.live : true);
   const resolvedHasMap =
-    hasMapProp ?? (typeof festival.hasMap === "boolean" ? festival.hasMap : true);
+    hasMapProp ??
+    (typeof festival.hasMap === "boolean" ? festival.hasMap : true);
   const mapCoordinates = useMemo(() => {
     const longitude = Number(festival.mapX);
     const latitude = Number(festival.mapY);
@@ -444,11 +459,15 @@ function FestaDetail({
   const latestChatMessage = chatMessages[chatMessages.length - 1] ?? null;
   const resolvedReviews = useMemo(() => {
     if (reviewsProp) {
-      return reviewsProp.map((review) => normalizeReview(review, currentUserId));
+      return reviewsProp.map((review) =>
+        normalizeReview(review, currentUserId),
+      );
     }
 
     if (Array.isArray(festival.reviews)) {
-      return festival.reviews.map((review) => normalizeReview(review, currentUserId));
+      return festival.reviews.map((review) =>
+        normalizeReview(review, currentUserId),
+      );
     }
 
     return [];
@@ -477,7 +496,9 @@ function FestaDetail({
         if (isMounted) {
           console.error("FestaDetail detail load error:", error);
           setApiFestival(null);
-          setDetailError("축제 상세 정보를 불러오지 못해 기본 정보를 표시합니다.");
+          setDetailError(
+            "축제 상세 정보를 불러오지 못해 기본 정보를 표시합니다.",
+          );
         }
       }
     };
@@ -543,7 +564,9 @@ function FestaDetail({
     if (!canRenderKakaoMap) {
       kakaoMapRef.current = null;
       setMapMessage(
-        resolvedHasMap ? "지도 좌표 정보가 없어 위치를 표시할 수 없습니다." : "",
+        resolvedHasMap
+          ? "지도 좌표 정보가 없어 위치를 표시할 수 없습니다."
+          : "",
       );
       return undefined;
     }
@@ -582,7 +605,9 @@ function FestaDetail({
 
         console.error("FestaDetail Kakao map load error:", error);
         kakaoMapRef.current = null;
-        setMapMessage("지도를 불러오지 못했습니다. 카카오맵 설정을 확인해주세요.");
+        setMapMessage(
+          "지도를 불러오지 못했습니다. 카카오맵 설정을 확인해주세요.",
+        );
       });
 
     return () => {
@@ -609,7 +634,10 @@ function FestaDetail({
       setChatStatusMessage("이전 채팅을 불러오는 중입니다.");
 
       try {
-        const response = await AxiosApi.getChatHistory(chatRoomId, CHAT_HISTORY_SIZE);
+        const response = await AxiosApi.getChatHistory(
+          chatRoomId,
+          CHAT_HISTORY_SIZE,
+        );
         const history = getPageContent(getResponseData(response))
           .slice()
           .reverse()
@@ -659,7 +687,10 @@ function FestaDetail({
       },
       onMessage: (message) => {
         setChatMessages((currentMessages) => {
-          const normalizedMessage = normalizeChatMessage(message, currentUserId);
+          const normalizedMessage = normalizeChatMessage(
+            message,
+            currentUserId,
+          );
           const exists = currentMessages.some(
             (chat) => String(chat.id) === String(normalizedMessage.id),
           );
@@ -679,7 +710,9 @@ function FestaDetail({
       onError: () => {
         setIsChatConnecting(false);
         setIsChatConnected(false);
-        setChatStatusMessage("채팅 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+        setChatStatusMessage(
+          "채팅 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        );
       },
       onClose: (event, closeInfo = {}) => {
         if (chatSocketRef.current === chatSocket) {
@@ -719,7 +752,9 @@ function FestaDetail({
     }
 
     if (!chatRoomId) {
-      setAiSummary("채팅방 정보를 찾을 수 없어 현장 요약을 불러올 수 없습니다.");
+      setAiSummary(
+        "채팅방 정보를 찾을 수 없어 현장 요약을 불러올 수 없습니다.",
+      );
       return undefined;
     }
 
@@ -742,7 +777,8 @@ function FestaDetail({
         if (isMounted) {
           console.error("FestaDetail AI field summary load error:", error);
           setAiSummary(
-            error.response?.data?.message || "AI 현장 요약을 불러오지 못했습니다.",
+            error.response?.data?.message ||
+              "AI 현장 요약을 불러오지 못했습니다.",
           );
         }
       }
@@ -870,7 +906,9 @@ function FestaDetail({
         return true;
       }
 
-      setChatStatusMessage("이미지는 업로드됐지만 채팅 서버 전송에 실패했습니다.");
+      setChatStatusMessage(
+        "이미지는 업로드됐지만 채팅 서버 전송에 실패했습니다.",
+      );
       return false;
     } catch (error) {
       console.error("FestaDetail chat image upload error:", error);
@@ -981,7 +1019,9 @@ function FestaDetail({
       ...normalizedReview,
       id: normalizedReview.id || "mine",
       author: normalizedReview.author || "김페스",
-      time: normalizedReview.id ? normalizedReview.time || "방금 전" : "방금 전",
+      time: normalizedReview.id
+        ? normalizedReview.time || "방금 전"
+        : "방금 전",
       rating: normalizedReview.rating,
       text: normalizedReview.text,
       isMine: true,
@@ -1085,7 +1125,7 @@ function FestaDetail({
               type="button"
             >
               <Heart fill={isFavorite ? "currentColor" : "none"} size={18} />
-              {isFavorite ? "찜 완료" : "찜하기"}
+              {isFavorite ? "찜" : "찜"}
             </ActionButton>
             <ActionButton
               $active={isLiked}
@@ -1094,15 +1134,13 @@ function FestaDetail({
               type="button"
             >
               <ThumbsUp fill={isLiked ? "currentColor" : "none"} size={18} />
-              {isLiked ? "좋아요 완료" : "좋아요"}
+              {isLiked ? "좋아요" : "좋아요"}
             </ActionButton>
           </HeroActions>
 
           {canShowAiSummary && (
             <AiMarquee>
-              <AiMarqueeContent>
-                AI Live 요약: {aiSummary}
-              </AiMarqueeContent>
+              <AiMarqueeContent>AI Live 요약: {aiSummary}</AiMarqueeContent>
             </AiMarquee>
           )}
           {/* 추가: API 실패/로그인 필요 안내를 기존 디자인을 해치지 않는 작은 문구로 표시합니다. */}
@@ -1182,7 +1220,9 @@ function FestaDetail({
                 <DisabledOverlay>
                   <MapPin size={48} />
                   <strong>지도 정보를 표시할 수 없습니다</strong>
-                  <span>{mapMessage || "축제 위치 좌표가 준비되지 않았습니다."}</span>
+                  <span>
+                    {mapMessage || "축제 위치 좌표가 준비되지 않았습니다."}
+                  </span>
                 </DisabledOverlay>
               )}
             </MapCanvas>
@@ -1193,7 +1233,9 @@ function FestaDetail({
               <div>
                 <SectionTitle $tone="tertiary">리뷰</SectionTitle>
                 {/* 추가: 리뷰 API 실패 시에도 화면은 유지하고 안내 문구만 표시합니다. */}
-                {reviewError && <MetaText role="status">{reviewError}</MetaText>}
+                {reviewError && (
+                  <MetaText role="status">{reviewError}</MetaText>
+                )}
                 <RatingLine>
                   <strong>
                     {hasReviews ? reviewSummary.rating.toFixed(1) : "0.0"}
@@ -1202,7 +1244,10 @@ function FestaDetail({
                     {renderStars(reviewSummary.rating, 17, "review-summary")}
                   </span>
                   <em>
-                    ({hasReviews ? reviewSummary.count.toLocaleString("ko-KR") : 0}{" "}
+                    (
+                    {hasReviews
+                      ? reviewSummary.count.toLocaleString("ko-KR")
+                      : 0}{" "}
                     reviews)
                   </em>
                 </RatingLine>
@@ -1224,7 +1269,11 @@ function FestaDetail({
                         <strong>{review.author}</strong>
                         <RatingLine $small>
                           <span>
-                            {renderStars(review.rating, 14, `review-${review.id}`)}
+                            {renderStars(
+                              review.rating,
+                              14,
+                              `review-${review.id}`,
+                            )}
                           </span>
                         </RatingLine>
                       </div>
@@ -1307,12 +1356,16 @@ function FestaDetail({
                   chatMessages.slice(-5).map((chat) => (
                     <FloatingTalkMessage $mine={chat.isMine} key={chat.id}>
                       {!chat.isMine && <strong>{chat.author}</strong>}
-                      <span>{chat.text || (chat.image ? "사진을 보냈습니다." : "")}</span>
+                      <span>
+                        {chat.text || (chat.image ? "사진을 보냈습니다." : "")}
+                      </span>
                     </FloatingTalkMessage>
                   ))
                 ) : (
                   <FloatingTalkMessage>
-                    <span>{chatStatusMessage || "아직 실시간 톡 메시지가 없습니다."}</span>
+                    <span>
+                      {chatStatusMessage || "아직 실시간 톡 메시지가 없습니다."}
+                    </span>
                   </FloatingTalkMessage>
                 )}
               </FloatingTalkBody>
@@ -1386,7 +1439,11 @@ function FestaDetail({
               <ConfirmButton onClick={closeDeleteConfirm} type="button">
                 취소
               </ConfirmButton>
-              <ConfirmButton $danger onClick={confirmDeleteMyReview} type="button">
+              <ConfirmButton
+                $danger
+                onClick={confirmDeleteMyReview}
+                type="button"
+              >
                 삭제
               </ConfirmButton>
             </ConfirmActions>
