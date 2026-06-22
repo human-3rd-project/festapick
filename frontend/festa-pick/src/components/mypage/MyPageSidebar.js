@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Heart,
@@ -8,7 +8,7 @@ import {
   Settings,
   UserRound,
 } from "lucide-react";
-import AxiosApi from "../../api/AxiosApi";
+import { useAuth } from "../../context/AuthContext";
 import * as S from "./MyPageSidebarCss";
 
 const menuItems = [
@@ -68,30 +68,13 @@ const fallbackProfile = {
   profileImageUrl: defaultProfileImageUrl,
 };
 
-const getResponseData = (response) => response?.data?.data ?? response?.data;
-
 function MyPageSidebar({ activePath }) {
-  const [profile, setProfile] = useState(fallbackProfile);
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const response = await AxiosApi.getMyProfile();
-        const profileData = getResponseData(response);
-
-        setProfile({
-          nickname: profileData?.nickname || fallbackProfile.nickname,
-          email: profileData?.email || fallbackProfile.email,
-          profileImageUrl:
-            profileData?.profileImageUrl || fallbackProfile.profileImageUrl,
-        });
-      } catch (error) {
-        setProfile(fallbackProfile);
-      }
-    };
-
-    loadProfile();
-  }, []);
+  const { user } = useAuth() || {};
+  const profile = {
+    nickname: user?.nickname || fallbackProfile.nickname,
+    email: user?.email || fallbackProfile.email,
+    profileImageUrl: user?.profileImageUrl || fallbackProfile.profileImageUrl,
+  };
 
   const avatarText = useMemo(() => {
     const trimmedNickname = profile.nickname.trim();

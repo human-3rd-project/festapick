@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CheckCircle, LockKeyhole } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AxiosApi from "../../../api/AxiosApi";
 import MyPageSidebar from "../../../components/mypage/MyPageSidebar";
 import * as S from "./PasswordStyle";
@@ -15,13 +15,16 @@ const getResponseData = (response) => response?.data?.data ?? response?.data;
 
 function PasswordVerify() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
+  const [provider, setProvider] = useState(location.state?.provider || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState(initialStatus);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const isSocialAccount = provider && provider !== "LOCAL";
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -31,6 +34,7 @@ function PasswordVerify() {
         const profile = getResponseData(response);
 
         setEmail(profile?.email || "");
+        setProvider(profile?.provider || "");
       } catch (error) {
         setStatus({
           type: "error",
@@ -45,6 +49,14 @@ function PasswordVerify() {
 
   const changePassword = async (event) => {
     event.preventDefault();
+
+    if (isSocialAccount) {
+      setStatus({
+        type: "error",
+        message: "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다.",
+      });
+      return;
+    }
 
     const normalizedNewPassword = newPassword.trim();
     const normalizedConfirmPassword = confirmPassword.trim();
@@ -98,9 +110,17 @@ function PasswordVerify() {
             <S.IconCircle aria-hidden="true">
               {isCompleted ? <CheckCircle size={28} /> : <LockKeyhole size={28} />}
             </S.IconCircle>
-            <S.Title>{isCompleted ? "비밀번호 변경 완료" : "비밀번호 변경"}</S.Title>
+            <S.Title>
+              {isSocialAccount
+                ? "비밀번호 변경 불가"
+                : isCompleted
+                  ? "비밀번호 변경 완료"
+                  : "비밀번호 변경"}
+            </S.Title>
             <S.Description>
-              {isCompleted
+              {isSocialAccount
+                ? "소셜 로그인 계정은 FestaPick에서 비밀번호를 변경할 수 없습니다. 카카오/네이버/구글 계정 설정에서 변경해 주세요."
+                : isCompleted
                 ? "새 비밀번호가 정상적으로 저장되었습니다."
                 : "현재 비밀번호와 새 비밀번호를 입력해 주세요."}
             </S.Description>
@@ -110,7 +130,7 @@ function PasswordVerify() {
               <S.AccountValue>{email || "계정 정보 확인 중"}</S.AccountValue>
             </S.AccountBox>
 
-            {isCompleted ? (
+            {isSocialAccount ? null : isCompleted ? (
               <S.HelperText>다음 로그인부터 새 비밀번호를 사용해 주세요.</S.HelperText>
             ) : (
               <>
@@ -161,17 +181,25 @@ function PasswordVerify() {
             )}
 
             <S.ActionRow>
-              <S.CancelButton type="button" onClick={() => navigate(-1)}>
-                취소
-              </S.CancelButton>
-              {isCompleted ? (
+              {isSocialAccount ? (
                 <S.PrimaryButton type="button" onClick={() => navigate("/mypage/profile")}>
                   프로필로 이동
                 </S.PrimaryButton>
               ) : (
-                <S.PrimaryButton type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "변경 중" : "변경하기"}
-                </S.PrimaryButton>
+                <>
+                  <S.CancelButton type="button" onClick={() => navigate(-1)}>
+                    취소
+                  </S.CancelButton>
+                  {isCompleted ? (
+                    <S.PrimaryButton type="button" onClick={() => navigate("/mypage/profile")}>
+                      프로필로 이동
+                    </S.PrimaryButton>
+                  ) : (
+                    <S.PrimaryButton type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "변경 중" : "변경하기"}
+                    </S.PrimaryButton>
+                  )}
+                </>
               )}
             </S.ActionRow>
           </S.Panel>

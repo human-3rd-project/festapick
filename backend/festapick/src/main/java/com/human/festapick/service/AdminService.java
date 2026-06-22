@@ -48,6 +48,7 @@ public class AdminService {
     private final ChatRoomRepository chatRoomRepository;
     private final DonationService donationService;
     private final EntityManager entityManager;
+    private Pageable pageable;
 
     public Page<UserManageResDto> getUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
@@ -100,6 +101,7 @@ public class AdminService {
     }
 
     public Page<ReviewResDto> getReviews(Pageable pageable) {
+        this.pageable = pageable;
         return reviewRepository.findAll(pageable)
                 .map(ReviewResDto::of);
     }
@@ -131,7 +133,7 @@ public class AdminService {
     }
 
     public Page<FestivalInfoResponseDto> getFestivals(Pageable pageable) {
-        return festivalRepository.findAll(pageable)
+        return festivalRepository.findByStatusNot(FestivalStatus.HIDDEN, pageable)
                 .map(this::toFestivalInfoResponseDto);
     }
 
@@ -146,6 +148,7 @@ public class AdminService {
                         toLikePattern(normalizedKeyword),
                         parseLong(normalizedKeyword),
                         parseFestivalStatus(normalizedKeyword),
+                        FestivalStatus.HIDDEN,
                         pageable
                 )
                 .map(this::toFestivalInfoResponseDto);
@@ -159,7 +162,7 @@ public class AdminService {
     @Transactional
     public void deleteFestival(Long festivalId) {
         Festivals festival = getFestivalEntity(festivalId);
-        festivalRepository.delete(festival);
+        festival.hide();
     }
 
     public Page<DonationManageResDto> getDonations(Long donationId, String keyword, Pageable pageable) {
@@ -180,6 +183,7 @@ public class AdminService {
                 .userId(user.getUserId())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())

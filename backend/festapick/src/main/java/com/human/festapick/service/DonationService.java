@@ -1,5 +1,8 @@
 package com.human.festapick.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.human.festapick.constant.DonationStatus;
 import com.human.festapick.constant.PaymentStatus;
 import com.human.festapick.constant.UserRole;
 import com.human.festapick.dto.request.PaymentConfirmReqDto;
@@ -47,6 +50,7 @@ public class DonationService {
     private final DonationRepository donationRepository;
     private final DonationPaymentRepository donationPaymentRepository;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
     private final WebClient.Builder webClientBuilder;
 
     @Value("${toss.payments.secret-key:}")
@@ -160,37 +164,42 @@ public class DonationService {
 
         if (donationId != null) {
             return donationRepository.findById(donationId)
+                    .filter(this::isCompletedDonation)
                     .filter(donation -> matchesKeyword(donation, normalizedKeyword))
                     .map(donation -> new PageImpl<>(List.of(toDonationManageResDto(donation)), pageable, 1))
                     .orElseGet(() -> new PageImpl<>(List.of(), pageable, 0));
         }
 
         if (normalizedKeyword == null) {
-            return donationRepository.findAll(pageable)
+            return donationRepository.findAdminCompletedDonations(
+                            DonationStatus.DONE,
+                            PaymentStatus.DONE,
+                            pageable
+                    )
                     .map(this::toDonationManageResDto);
         }
 
-        List<DonationManageResDto> filteredDonations = donationRepository.findAll()
-                .stream()
-                .filter(donation -> matchesKeyword(donation, normalizedKeyword))
-                .map(this::toDonationManageResDto)
-                .toList();
-
-        return toPage(filteredDonations, pageable);
+        return searchDonationHistory(normalizedKeyword, pageable);
     }
 
     public Page<DonationManageResDto> searchDonationHistory(String keyword, Pageable pageable) {
         String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
 
         if (normalizedKeyword == null) {
-            return donationRepository.findAll(pageable)
+            return donationRepository.findAdminCompletedDonations(
+                            DonationStatus.DONE,
+                            PaymentStatus.DONE,
+                            pageable
+                    )
                     .map(this::toDonationManageResDto);
         }
 
-        return donationRepository.searchAdminDonations(
+        return donationRepository.searchAdminCompletedDonations(
                         toLikePattern(normalizedKeyword),
                         parseLong(normalizedKeyword),
                         parseInteger(normalizedKeyword),
+                        DonationStatus.DONE,
+                        PaymentStatus.DONE,
                         pageable
                 )
                 .map(this::toDonationManageResDto);
@@ -198,8 +207,8 @@ public class DonationService {
 
     public DonationStatisticsResDto getDonationStatistics() {
         return DonationStatisticsResDto.builder()
-                .totalDonationAmount(donationRepository.getTotalDonationAmount())
-                .totalDonorCount(donationRepository.getDonorCount())
+                .totalDonationAmount(donationRepository.getTotalDonationAmount(DonationStatus.DONE))
+                .totalDonorCount(donationRepository.getDonorCount(DonationStatus.DONE))
                 .build();
     }
 
@@ -254,11 +263,32 @@ public class DonationService {
                                 .defaultIfEmpty("")
                                 .map(body -> new CustomException(
                                         HttpStatus.valueOf(response.statusCode().value()),
-                                        "토스 결제 승인 실패: " + body
+                                        formatTossConfirmError(body)
                                 ))
                 )
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .block();
+    }
+
+    private String formatTossConfirmError(String body) {
+        String fallbackMessage = "토스 결제 승인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+
+        if (body == null || body.isBlank()) {
+            return fallbackMessage;
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode messageNode = root.get("message");
+
+            if (messageNode != null && messageNode.isTextual() && !messageNode.asText().isBlank()) {
+                return "토스 결제 승인 실패: " + messageNode.asText();
+            }
+        } catch (Exception ignored) {
+            return fallbackMessage;
+        }
+
+        return fallbackMessage;
     }
 
     private void verifyTossPayment(PaymentConfirmReqDto request, Map<String, Object> tossPayment) {
@@ -299,6 +329,7 @@ public class DonationService {
                 .donationId(donation.getDonationId())
                 .nickname(donation.getUsers().getNickname())
                 .email(donation.getUsers().getEmail())
+                .profileImageUrl(donation.getUsers().getProfileImageUrl())
                 .amount(donation.getAmount())
                 .approvedAt(payment == null ? null : payment.getApprovedAt())
                 .orderId(payment == null ? null : payment.getOrderId())
@@ -313,10 +344,21 @@ public class DonationService {
                 .donationId(donation.getDonationId())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .amount(donation.getAmount())
                 .approvedAt(payment.getApprovedAt())
                 .orderId(payment.getOrderId())
                 .build();
+    }
+
+    private boolean isCompletedDonation(Donations donation) {
+        if (donation.getDonationStatus() != DonationStatus.DONE) {
+            return false;
+        }
+
+        return donationPaymentRepository.findByDonations_DonationId(donation.getDonationId())
+                .map(payment -> payment.getPaymentStatus() == PaymentStatus.DONE)
+                .orElse(false);
     }
 
     private boolean matchesKeyword(Donations donation, String keyword) {

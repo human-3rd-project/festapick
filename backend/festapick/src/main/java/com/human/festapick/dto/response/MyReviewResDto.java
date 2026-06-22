@@ -1,12 +1,11 @@
 package com.human.festapick.dto.response;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
 public class MyReviewResDto {
 
     // 리뷰 ID
@@ -34,4 +33,61 @@ public class MyReviewResDto {
 
     // 리뷰 작성일
     private LocalDateTime createdAt;
+
+    @JsonIgnore
+    private String lclsSystm1;
+
+    @JsonIgnore
+    private String lclsSystm2;
+
+    @JsonIgnore
+    private String lclsSystm3;
+
+    @JsonIgnore
+    private String festivalType;
+
+    public MyReviewResDto(
+            Long reviewId,
+            Long festivalId,
+            String title,
+            String thumbnailUrl,
+            String categoryName,
+            String content,
+            Integer rating,
+            LocalDateTime createdAt,
+            String lclsSystm1,
+            String lclsSystm2,
+            String lclsSystm3,
+            String festivalType
+    ) {
+        this.reviewId = reviewId;
+        this.festivalId = festivalId;
+        this.title = title;
+        this.thumbnailUrl = thumbnailUrl;
+        this.categoryName = categoryName;
+        this.content = content;
+        this.rating = rating;
+        this.createdAt = createdAt;
+        this.lclsSystm1 = lclsSystm1;
+        this.lclsSystm2 = lclsSystm2;
+        this.lclsSystm3 = lclsSystm3;
+        this.festivalType = festivalType;
+    }
+
+    public MyReviewResDto withCategoryName(String categoryName) {
+        return new MyReviewResDto(
+                reviewId,
+                festivalId,
+                title,
+                thumbnailUrl,
+                categoryName,
+                content,
+                rating,
+                createdAt,
+                lclsSystm1,
+                lclsSystm2,
+                lclsSystm3,
+                festivalType
+        );
+    }
 }

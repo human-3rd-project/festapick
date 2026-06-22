@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MessageSquareText, Search, SearchX, Star, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,8 +7,6 @@ import AdminPageNation from "./AdminPageNation";
 import AxiosApi from "../../api/AxiosApi";
 import {
   ActionCell,
-  CategoryButton,
-  CategoryFilter,
   ConfirmDelete,
   ContentArea,
   EmptyBadge,
@@ -26,7 +24,6 @@ import {
   PageTitle,
   RatingStars,
   ReviewContent,
-  ReviewStatusBadge,
   ReviewerAvatar,
   ReviewerIdentity,
   ReviewerMeta,
@@ -42,11 +39,6 @@ import {
 } from "./AdminReviewCss";
 
 const PAGE_SIZE = 10;
-const REVIEW_STATUS_OPTIONS = [
-  { value: "ALL", label: "전체" },
-  { value: "ACTIVE", label: "활성" },
-  { value: "DELETED", label: "삭제됨" },
-];
 
 function getDeletePopoverPosition(target) {
   const rect = target.getBoundingClientRect();
@@ -90,6 +82,10 @@ function getReviewerEmail(review) {
   return review.email || review.userEmail || review.memberEmail || "이메일 없음";
 }
 
+function getReviewerAvatar(review) {
+  return review.profileImageUrl || review.avatar || review.profileImage || "";
+}
+
 function getFestivalName(review) {
   const festivalId = getFestivalId(review);
   return (
@@ -108,15 +104,6 @@ function getReviewText(review) {
 
 function getFestivalId(review) {
   return review.festivalId || review.festival?.festivalId || review.festival?.id || null;
-}
-
-function getReviewStatus(review) {
-  const status = String(review.status || review.reviewStatus || "ACTIVE").toUpperCase();
-  return status === "DELETED" ? "DELETED" : "ACTIVE";
-}
-
-function getReviewStatusLabel(status) {
-  return status === "DELETED" ? "삭제됨" : "활성";
 }
 
 function getInitials(name = "") {
@@ -166,7 +153,6 @@ function AdminReview() {
   const [isLoading, setIsLoading] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [totalItems, setTotalItems] = useState(0);
 
@@ -205,19 +191,7 @@ function AdminReview() {
     fetchReviews();
   }, [fetchReviews]);
 
-  const filteredReviews = useMemo(() => {
-    return reviews.filter((review) => {
-      const reviewStatus = getReviewStatus(review);
-
-      if (selectedStatus !== "ALL" && reviewStatus !== selectedStatus) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [reviews, selectedStatus]);
-
-  const hasReviews = filteredReviews.length > 0;
+  const hasReviews = reviews.length > 0;
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
@@ -292,19 +266,6 @@ function AdminReview() {
                 />
               </SearchBox>
 
-              <CategoryFilter aria-label="리뷰 상태 카테고리">
-                {REVIEW_STATUS_OPTIONS.map((option) => (
-                  <CategoryButton
-                    key={option.value}
-                    type="button"
-                    $active={selectedStatus === option.value}
-                    onClick={() => setSelectedStatus(option.value)}
-                  >
-                    {option.label}
-                  </CategoryButton>
-                ))}
-              </CategoryFilter>
-
               <StatPill>
                 <strong>{totalItems.toLocaleString("ko-KR")}</strong>
                 <span>총 리뷰 수</span>
@@ -321,28 +282,27 @@ function AdminReview() {
                       <th>리뷰어</th>
                       <th>페스티벌</th>
                       <th>평점</th>
-                      <th>상태</th>
                       <th>리뷰 내용</th>
                       <th>날짜</th>
                       <th>작업</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredReviews.map((review, index) => {
+                    {reviews.map((review, index) => {
                       const key = getReviewKey(review, index);
                       const reviewerName = getReviewerName(review);
+                      const reviewerAvatar = getReviewerAvatar(review);
                       const rating = getRating(review);
                       const festivalId = getFestivalId(review);
-                      const reviewStatus = getReviewStatus(review);
 
                       return (
                         <tr key={key}>
                           <td>
                             <ReviewerIdentity>
                               <ReviewerAvatar $tone={index % 4}>
-                                {review.avatar || review.profileImage ? (
+                                {reviewerAvatar ? (
                                   <img
-                                    src={review.avatar || review.profileImage}
+                                    src={reviewerAvatar}
                                     alt={reviewerName}
                                   />
                                 ) : (
@@ -370,11 +330,6 @@ function AdminReview() {
                                 <Star key={starIndex} data-filled={starIndex < rating} />
                               ))}
                             </RatingStars>
-                          </td>
-                          <td>
-                            <ReviewStatusBadge $status={reviewStatus}>
-                              {getReviewStatusLabel(reviewStatus)}
-                            </ReviewStatusBadge>
                           </td>
                           <td>
                             <ReviewContent>{getReviewText(review)}</ReviewContent>
@@ -418,7 +373,7 @@ function AdminReview() {
                 onPageChange={setCurrentPage}
                 pageSize={PAGE_SIZE}
                 totalItems={totalItems}
-                visibleItems={filteredReviews.length}
+                visibleItems={reviews.length}
               />
             </TableCard>
           ) : (

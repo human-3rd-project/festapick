@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -102,6 +103,7 @@ function MyPageFavorite() {
         location: item.place,
         venue: item.place,
         category: item.category,
+        image: item.image,
         favorite: true,
       },
     },
@@ -141,6 +143,18 @@ function MyPageFavorite() {
                     state={getFestivalLink(item).state}
                   >
                     <S.FestivalPoster $color={item.color}>
+                      {item.image && (
+                        <>
+                          <S.PosterImage
+                            src={item.image}
+                            alt=""
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
+                          <S.PosterOverlay aria-hidden="true" />
+                        </>
+                      )}
                       <S.PosterCategory>{item.category}</S.PosterCategory>
                       <S.PosterHeart aria-hidden="true">
                         <Heart size={18} fill="currentColor" />
@@ -195,8 +209,6 @@ function MyPageFavorite() {
                   </S.PageButton>
                 </S.Pagination>
               )}
-
-              <S.FindMoreButton type="button">{text.findMore}</S.FindMoreButton>
             </>
           ) : (
             <S.EmptyState>
@@ -205,7 +217,9 @@ function MyPageFavorite() {
               </S.EmptyIcon>
               <S.EmptyTitle>{text.emptyTitle}</S.EmptyTitle>
               <S.EmptyDescription>{text.emptyDescription}</S.EmptyDescription>
-              <S.FindMoreButton type="button">{text.findMore}</S.FindMoreButton>
+              <S.FindMoreButton as={Link} to="/search">
+                {text.findMore}
+              </S.FindMoreButton>
             </S.EmptyState>
           )}
         </S.Content>

@@ -69,6 +69,12 @@ export const LogoArea = styled.div`
   text-align: center;
   margin-bottom: 44px;
 
+  a {
+    display: inline-block;
+    color: inherit;
+    text-decoration: none;
+  }
+
   h1 {
     font-size: 48px;
     line-height: 56px;

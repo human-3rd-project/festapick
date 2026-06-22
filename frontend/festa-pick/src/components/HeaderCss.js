@@ -292,6 +292,14 @@ export const Avatar = styled.span`
   ${ProfileButton}:hover & {
     border-color: ${colors.primary};
   }
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+  }
 `;
 
 export const Dropdown = styled.div`
@@ -448,23 +456,74 @@ export const CloseButton = styled.button`
   }
 `;
 
-export const NotificationItem = styled.button`
+export const NotificationItem = styled.div`
   position: relative;
   width: 100%;
   border: 0;
-  padding: 16px 16px;
+  padding: 0;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   background: transparent;
   color: inherit;
   text-align: left;
-  cursor: pointer;
   opacity: ${({ $unread }) => ($unread ? 1 : 0.72)};
   transition: background 180ms ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.05);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+export const NotificationContentButton = styled.button`
+  min-width: 0;
+  border: 0;
+  padding: 16px 16px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+`;
+
+export const NotificationReadButton = styled.button`
+  min-width: 58px;
+  height: 32px;
+  margin-right: 16px;
+  border: 1px solid rgba(221, 183, 255, 0.35);
+  border-radius: 8px;
+  background: rgba(221, 183, 255, 0.12);
+  color: ${colors.primary};
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 850;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+
+  &:hover {
+    border-color: rgba(221, 183, 255, 0.65);
+    background: rgba(221, 183, 255, 0.18);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  @media (max-width: 640px) {
+    justify-self: end;
+    margin: 0 16px 14px 0;
   }
 `;
 

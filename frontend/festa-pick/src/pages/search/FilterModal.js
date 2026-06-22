@@ -353,17 +353,19 @@ function FilterModal({
     };
 
     if (name === "province") {
-      const firstDistrict = regionsByProvince[value]?.[0];
-      nextValues.district = firstDistrict?.district || "";
-      nextValues.ldongRegnCd = firstDistrict?.ldongRegnCd || "";
-      nextValues.ldongSignguCd = firstDistrict?.ldongSignguCd || "";
+      const provinceRegion = regionsByProvince[value]?.[0];
+      nextValues.district = "";
+      nextValues.ldongRegnCd = provinceRegion?.ldongRegnCd || "";
+      nextValues.ldongSignguCd = "";
     }
 
     if (name === "district") {
       const selectedRegion = districtOptions.find(
         (region) => region.district === value,
       );
-      nextValues.ldongRegnCd = selectedRegion?.ldongRegnCd || "";
+      const provinceRegion = regionsByProvince[nextValues.province]?.[0];
+      nextValues.ldongRegnCd =
+        selectedRegion?.ldongRegnCd || provinceRegion?.ldongRegnCd || "";
       nextValues.ldongSignguCd = selectedRegion?.ldongSignguCd || "";
     }
 
@@ -431,6 +433,7 @@ function FilterModal({
     const selectedRegion = districtOptions.find(
       (region) => region.district === draftValues.district,
     );
+    const provinceRegion = regionsByProvince[draftValues.province]?.[0];
     const selectedTheme = themeOptions.find(
       (theme) => theme.label === draftValues.theme,
     );
@@ -438,7 +441,11 @@ function FilterModal({
       ...draftValues,
       location: `${draftValues.province} ${draftValues.district}`.trim(),
       period: formatDateRange(selectedRange.startDate, selectedRange.endDate),
-      ldongRegnCd: draftValues.ldongRegnCd || selectedRegion?.ldongRegnCd || "",
+      ldongRegnCd:
+        draftValues.ldongRegnCd ||
+        selectedRegion?.ldongRegnCd ||
+        provinceRegion?.ldongRegnCd ||
+        "",
       ldongSignguCd:
         draftValues.ldongSignguCd || selectedRegion?.ldongSignguCd || "",
       lclsSystm: draftValues.lclsSystm || selectedTheme?.lclsSystm || "",
@@ -515,7 +522,11 @@ function FilterModal({
                       }
                       value={draftValues.district}
                     >
-                      <option value="">시/군/구 데이터 없음</option>
+                      <option value="">
+                        {districtOptions.length === 0
+                          ? "시/군/구 데이터 없음"
+                          : "시/군/구 전체"}
+                      </option>
                       {districtOptions.map((district) => (
                         <option
                           key={`${district.province}-${district.district}-${district.ldongSignguCd}`}

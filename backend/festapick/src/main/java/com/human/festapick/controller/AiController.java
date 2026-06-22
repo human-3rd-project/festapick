@@ -1,5 +1,6 @@
 package com.human.festapick.controller;
 
+import com.human.festapick.dto.request.AiQuestionReqDto;
 import com.human.festapick.dto.response.AiAnswerResDto;
 import com.human.festapick.dto.response.AiRecommendationResDto;
 import com.human.festapick.dto.response.ApiResponse;
@@ -7,8 +8,6 @@ import com.human.festapick.service.AiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -50,11 +49,9 @@ public class AiController {
      */
     @PostMapping("/question")
     public ResponseEntity<ApiResponse<AiRecommendationResDto>> sendQuestion(
-            @RequestBody Map<String, String> request
+            @RequestBody AiQuestionReqDto request
     ) {
-        String question = request == null ? null : request.get("question");
-
-        AiRecommendationResDto response = aiService.sendQuestion(question);
+        AiRecommendationResDto response = aiService.sendQuestion(request);
 
         return ResponseEntity.ok(
                 ApiResponse.ok("AI 추천 결과 조회 성공", response)

@@ -3,7 +3,12 @@ import axios from "axios";
 import Common from "../utils/Common";
 
 // 인증이 필요 없는 공개 API
-const publicApi = axios.create({ baseURL: Common.HM_DOMAIN });
+const publicApi = axios.create({
+  baseURL: Common.HM_DOMAIN,
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
+});
 
 const AxiosApi = {
   // 관리자 사용자 검색 API
@@ -48,8 +53,8 @@ const AxiosApi = {
     }),
 
   // 채팅방 채팅 기록 조회 API
-  getChatHistory: (chatRoomId) =>
-    publicApi.get(`/chat/rooms/${chatRoomId}/messages`),
+  getChatHistory: (chatRoomId, size = 30) =>
+    publicApi.get(`/chat/rooms/${chatRoomId}/messages`, { params: { size } }),
 
   // 후원 신청 생성
   donationApply: (amount = 10000) =>
@@ -92,7 +97,7 @@ const AxiosApi = {
   getAlarms: () => AxiosInstance.get(`/notifications/festival-start`),
 
   // 알람 읽지 않은 개수 조회 API
-  getUnreadAlarmsCount: () => AxiosInstance.get(`/notifications//unread-count`),
+  getUnreadAlarmsCount: () => AxiosInstance.get(`/notifications/unread-count`),
 
   // 알람 읽음 처리 API
   markAlarmAsRead: (notificationId) =>
@@ -162,14 +167,15 @@ const AxiosApi = {
   getVisitHistoryCount: () => AxiosInstance.get("/visit-histories/count"),
 
   // AI에게 질문 보내기
-  sendQuestion: (question) =>
+  sendQuestion: (question, regionContext = {}) =>
     publicApi.post("/ai/question", {
       question,
+      ...regionContext,
     }),
 
   // 현장톡 내용 AI 요약 조회
   getAiFieldSummary: (chatRoomId) =>
-    AxiosInstance.get(`/ai/field-summary/${chatRoomId}`),
+    publicApi.get(`/ai/field-summary/${chatRoomId}`),
 
   // 인증 - 중복 확인
   checkLoginId: (loginId) =>
@@ -324,6 +330,7 @@ const AxiosApi = {
     lclsSystm,
     startDate,
     endDate,
+    sortType,
     page = 0,
     size = 10,
   }) =>
@@ -335,6 +342,7 @@ const AxiosApi = {
         lclsSystm,
         startDate,
         endDate,
+        sortType,
         page,
         size,
       },

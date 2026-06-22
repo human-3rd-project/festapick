@@ -115,6 +115,8 @@ export const FestivalPoster = styled.div`
   height: 168px;
   align-items: flex-end;
   padding: 16px;
+  isolation: isolate;
+  overflow: hidden;
   background:
     linear-gradient(145deg, rgba(8, 9, 20, 0.04), rgba(8, 9, 20, 0.78)),
     radial-gradient(
@@ -130,7 +132,31 @@ export const FestivalPoster = styled.div`
     linear-gradient(135deg, ${({ $color }) => $color || "#ff2d75"}, #080914);
 `;
 
+export const PosterImage = styled.img`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.08);
+`;
+
+export const PosterOverlay = styled.span`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 9, 20, 0.08) 0%,
+    rgba(8, 9, 20, 0.24) 44%,
+    rgba(8, 9, 20, 0.82) 100%
+  );
+`;
+
 export const PosterCategory = styled.span`
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   min-height: 30px;
@@ -144,6 +170,7 @@ export const PosterCategory = styled.span`
 
 export const PosterHeart = styled.span`
   position: absolute;
+  z-index: 2;
   top: 14px;
   right: 14px;
   display: grid;

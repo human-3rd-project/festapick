@@ -230,11 +230,18 @@ export const ChatRow = styled.article`
 `;
 
 export const Avatar = styled.img`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
   flex: 0 0 auto;
   border: 1px solid rgba(221, 183, 255, 0.34);
   border-radius: 999px;
+  background: rgba(221, 183, 255, 0.16);
+  color: #ddb7ff;
+  font-size: 14px;
+  font-weight: 800;
   object-fit: cover;
 `;
 
@@ -346,6 +353,77 @@ export const ComposerBox = styled.div`
   }
 `;
 
+export const SelectedPhoto = styled.div`
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(19, 27, 46, 0.58);
+`;
+
+export const SelectedPhotoPreview = styled.img`
+  width: 56px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  object-fit: cover;
+`;
+
+export const SelectedPhotoInfo = styled.div`
+  min-width: 0;
+
+  strong,
+  span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: #dae2fd;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 18px;
+  }
+
+  span {
+    margin-top: 2px;
+    color: rgba(207, 194, 214, 0.68);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+  }
+`;
+
+export const RemovePhotoButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cfc2d6;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+
+  &:hover {
+    background: rgba(255, 176, 205, 0.14);
+    color: #ffb0cd;
+  }
+
+  &:disabled {
+    color: rgba(207, 194, 214, 0.38);
+    cursor: not-allowed;
+  }
+`;
+
 export const UploadButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -362,6 +440,15 @@ export const UploadButton = styled.button`
 
   &:hover {
     background: rgba(221, 183, 255, 0.1);
+  }
+
+  &:disabled {
+    color: rgba(207, 194, 214, 0.38);
+    cursor: not-allowed;
+  }
+
+  &:disabled:hover {
+    background: transparent;
   }
 `;
 
@@ -393,6 +480,11 @@ export const Textarea = styled.textarea`
   &::-webkit-scrollbar {
     display: none;
   }
+
+  &:disabled {
+    color: rgba(207, 194, 214, 0.52);
+    cursor: not-allowed;
+  }
 `;
 
 export const SendButton = styled.button`
@@ -417,6 +509,18 @@ export const SendButton = styled.button`
 
   &:active {
     transform: scale(0.94);
+  }
+
+  &:disabled {
+    background: #2d3449;
+    color: rgba(207, 194, 214, 0.48);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  &:disabled:hover {
+    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -449,5 +553,16 @@ export const QuickChip = styled.button`
     border-color: rgba(221, 183, 255, 0.58);
     background: rgba(221, 183, 255, 0.08);
     color: #ddb7ff;
+  }
+
+  &:disabled {
+    color: rgba(207, 194, 214, 0.4);
+    cursor: not-allowed;
+  }
+
+  &:disabled:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(23, 31, 51, 0.7);
+    color: rgba(207, 194, 214, 0.4);
   }
 `;

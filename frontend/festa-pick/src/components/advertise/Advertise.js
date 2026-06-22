@@ -26,6 +26,7 @@ const hiddenPathPrefixes = [
   "/find-id-password",
   "/social-login",
   "/reset-password",
+  "/oauth/kakao/callback",
 ];
 
 function Advertise({ onDetailClick }) {
@@ -34,7 +35,10 @@ function Advertise({ onDetailClick }) {
   const { user } = useAuth();
 
   const isPremiumUser =
-    user?.role === "PREMIUM" || user?.role === "ROLE_PREMIUM";
+    user?.role === "PREMIUM" ||
+    user?.role === "ROLE_PREMIUM" ||
+    user?.role === "ROLE_ADMIN" ||
+    user?.role === "ADMIN";
 
   useEffect(() => {
     setIsVisible(true);

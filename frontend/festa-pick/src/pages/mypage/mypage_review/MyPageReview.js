@@ -230,7 +230,10 @@ function MyPageReview() {
                   <br />
                   리뷰를 남기면 특별한 뱃지를 획득할 수 있습니다.
                 </S.EmptyDescription>
-                <S.EmptyButton type="button">
+                <S.EmptyButton
+                  type="button"
+                  onClick={() => (window.location.href = "/search")}
+                >
                   <Edit3 size={14} aria-hidden="true" />
                   리뷰 작성하러 가기
                 </S.EmptyButton>

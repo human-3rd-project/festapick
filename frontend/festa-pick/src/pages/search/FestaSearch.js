@@ -60,8 +60,10 @@ import {
   Title,
 } from "./FestaSearchCss";
 
-const INITIAL_RESULT_COUNT = 6;
-const RESULT_LOAD_SIZE = 3;
+const SEARCH_PAGE_SIZE = 30;
+const SORT_RECOMMENDED = "recommended";
+const SORT_LATEST = "latest";
+const SORT_POPULAR = "popular";
 
 const DEFAULT_FILTER_VALUES = {
   location: "",
@@ -73,7 +75,8 @@ const DEFAULT_FILTER_VALUES = {
 };
 
 // 추가: ApiResponse(data 래핑)와 일반 axios 응답을 모두 안전하게 꺼내기 위한 헬퍼입니다.
-const getResponseData = (response) => response?.data?.data ?? response?.data ?? null;
+const getResponseData = (response) =>
+  response?.data?.data ?? response?.data ?? null;
 
 // 추가: Spring Page 응답(content)과 일반 배열 응답을 모두 검색 결과 배열로 처리합니다.
 const getPageContent = (value) => {
@@ -88,6 +91,35 @@ const getPageContent = (value) => {
   return [];
 };
 
+const getPageNumber = (value, fallback = 0) => {
+  const pageNumber = Number(value?.number);
+  return Number.isInteger(pageNumber) && pageNumber >= 0
+    ? pageNumber
+    : fallback;
+};
+
+const getTotalElements = (value, fallback = 0) => {
+  const totalElements = Number(value?.totalElements);
+  return Number.isInteger(totalElements) && totalElements >= 0
+    ? totalElements
+    : fallback;
+};
+
+const getHasNextPage = (value) => {
+  if (typeof value?.last === "boolean") {
+    return !value.last;
+  }
+
+  const pageNumber = Number(value?.number);
+  const totalPages = Number(value?.totalPages);
+
+  return (
+    Number.isInteger(pageNumber) &&
+    Number.isInteger(totalPages) &&
+    pageNumber + 1 < totalPages
+  );
+};
+
 // 추가: 백엔드 LocalDate 문자열과 기존 period 문자열을 카드 표시용으로 통일합니다.
 const formatDate = (value) => {
   if (!value) {
@@ -95,6 +127,34 @@ const formatDate = (value) => {
   }
 
   return String(value).replaceAll("-", ".");
+};
+
+const parseFestivalDate = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+};
+
+const isFestivalLive = (festival) => {
+  const startDate = parseFestivalDate(festival?.eventStartDate);
+  const endDate = parseFestivalDate(festival?.eventEndDate);
+
+  if (!startDate || !endDate) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return startDate <= today && today <= endDate;
 };
 
 // 추가: FilterModal의 "yyyy.M.d - M.d" 표시값을 검색 API의 yyyy-MM-dd 값으로 변환합니다.
@@ -154,7 +214,9 @@ const normalizeFestival = (festival) => {
   const endDate = formatDate(festival?.eventEndDate);
   const period =
     festival?.period ||
-    (startDate && endDate ? `${startDate} - ${endDate}` : startDate || "일정 미정");
+    (startDate && endDate
+      ? `${startDate} - ${endDate}`
+      : startDate || "일정 미정");
   const ratingValue =
     Number.parseFloat(festival?.averageRating ?? festival?.rating) || 0;
 
@@ -176,7 +238,7 @@ const normalizeFestival = (festival) => {
         : `${ratingValue.toFixed(1)} (${formatCount(festival?.reviewCount)} reviews)`,
     likes: festival?.likes ?? formatCount(festival?.likeCount),
     saves: festival?.saves ?? formatCount(festival?.favoriteCount),
-    live: Boolean(festival?.live || festival?.status === "ACTIVE"),
+    live: isFestivalLive(festival),
     image: festival?.image || festival?.firstImage || "",
   };
 };
@@ -204,18 +266,30 @@ function Search() {
   const [favoriteFestivalIds, setFavoriteFestivalIds] = useState(
     () => new Set(),
   );
-  const [visibleResultCount, setVisibleResultCount] =
-    useState(INITIAL_RESULT_COUNT);
-  // 추가: API 검색 결과와 로딩/안내 메시지를 별도 상태로 관리합니다.
+  // 추가: API 검색 결과와 로딩 상태를 별도 상태로 관리합니다.
   const [results, setResults] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [totalResultCount, setTotalResultCount] = useState(0);
+  const [sortType, setSortType] = useState(SORT_RECOMMENDED);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchMessage, setSearchMessage] = useState("");
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const visibleResults = useMemo(
-    () => results.slice(0, visibleResultCount),
-    [results, visibleResultCount],
-  );
-  const hasMoreResults = visibleResultCount < results.length;
+  const searchParams = useMemo(() => {
+    const periodParams = parsePeriodForApi(appliedFilterValues?.period);
+
+    return {
+      keyword: submittedKeyword.trim(),
+      ldongRegnCd: appliedFilterValues?.ldongRegnCd || undefined,
+      ldongSignguCd: appliedFilterValues?.ldongSignguCd || undefined,
+      lclsSystm: appliedFilterValues?.lclsSystm || undefined,
+      startDate: periodParams.startDate || undefined,
+      endDate: periodParams.endDate || undefined,
+      sortType,
+    };
+  }, [appliedFilterValues, sortType, submittedKeyword]);
+
+  const hasMoreResults = hasNextPage;
 
   useEffect(() => {
     const nextKeyword =
@@ -226,7 +300,6 @@ function Search() {
     setKeyword(nextKeyword);
     setSubmittedKeyword(nextKeyword);
     setHasSearched(Boolean(nextKeyword));
-    setVisibleResultCount(INITIAL_RESULT_COUNT);
   }, [location.search, location.state]);
 
   // 추가: 검색어 또는 적용된 필터가 바뀌면 백엔드 축제 통합 검색 API를 호출합니다.
@@ -235,25 +308,22 @@ function Search() {
 
     if (!hasSearched) {
       setResults([]);
-      setSearchMessage("");
+      setCurrentPage(0);
+      setHasNextPage(false);
+      setTotalResultCount(0);
+      setIsLoadingMore(false);
       return undefined;
     }
 
     const fetchSearchResults = async () => {
-      const periodParams = parsePeriodForApi(appliedFilterValues?.period);
       const requestParams = {
-        keyword: submittedKeyword.trim(),
-        ldongRegnCd: appliedFilterValues?.ldongRegnCd || undefined,
-        ldongSignguCd: appliedFilterValues?.ldongSignguCd || undefined,
-        lclsSystm: appliedFilterValues?.lclsSystm || undefined,
-        startDate: periodParams.startDate || undefined,
-        endDate: periodParams.endDate || undefined,
+        ...searchParams,
         page: 0,
-        size: 30,
+        size: SEARCH_PAGE_SIZE,
       };
 
       setIsSearching(true);
-      setSearchMessage("");
+      setIsLoadingMore(false);
 
       try {
         const response = await AxiosApi.searchFestivals(requestParams);
@@ -262,19 +332,17 @@ function Search() {
 
         if (isMounted) {
           setResults(apiResults);
-          setSearchMessage(
-            apiResults.length === 0
-              ? "검색 조건에 맞는 축제 데이터가 없습니다."
-              : "",
-          );
-          setVisibleResultCount(INITIAL_RESULT_COUNT);
+          setCurrentPage(getPageNumber(pageData, 0));
+          setHasNextPage(getHasNextPage(pageData));
+          setTotalResultCount(getTotalElements(pageData, apiResults.length));
         }
       } catch (error) {
         if (isMounted) {
           console.error("FestaSearch search error:", error);
           setResults([]);
-          setSearchMessage("검색 결과를 불러오지 못했습니다.");
-          setVisibleResultCount(INITIAL_RESULT_COUNT);
+          setCurrentPage(0);
+          setHasNextPage(false);
+          setTotalResultCount(0);
         }
       } finally {
         if (isMounted) {
@@ -288,13 +356,12 @@ function Search() {
     return () => {
       isMounted = false;
     };
-  }, [appliedFilterValues, hasSearched, submittedKeyword]);
+  }, [hasSearched, searchParams]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
     setSubmittedKeyword(keyword);
     setHasSearched(true);
-    setVisibleResultCount(INITIAL_RESULT_COUNT);
   };
 
   const handleResetFilters = () => {
@@ -374,7 +441,10 @@ function Search() {
     );
     setHasSearched(true);
     closeFilterModal();
-    setVisibleResultCount(INITIAL_RESULT_COUNT);
+  };
+
+  const handleSortChange = (event) => {
+    setSortType(event.target.value);
   };
 
   const openFestivalDetail = (festival) => {
@@ -395,7 +465,7 @@ function Search() {
     }
 
     if (!isLoggedIn) {
-      setSearchMessage("로그인 후 축제를 찜할 수 있습니다.");
+      window.alert("로그인 후 축제를 찜할 수 있습니다.");
       return;
     }
 
@@ -419,7 +489,6 @@ function Search() {
       } else {
         await AxiosApi.createFavorite(festivalId);
       }
-      setSearchMessage("");
     } catch (error) {
       console.error("FestaSearch favorite toggle error:", error);
       setFavoriteFestivalIds((currentIds) => {
@@ -433,7 +502,6 @@ function Search() {
 
         return nextIds;
       });
-      setSearchMessage("찜 상태 변경 중 오류가 발생했습니다.");
     }
   };
 
@@ -444,10 +512,37 @@ function Search() {
     }
   };
 
-  const handleLoadMore = () => {
-    setVisibleResultCount((currentCount) =>
-      Math.min(currentCount + RESULT_LOAD_SIZE, results.length),
-    );
+  const handleLoadMore = async () => {
+    if (!hasNextPage || isLoadingMore) {
+      return;
+    }
+
+    const nextPage = currentPage + 1;
+
+    setIsLoadingMore(true);
+
+    try {
+      const response = await AxiosApi.searchFestivals({
+        ...searchParams,
+        page: nextPage,
+        size: SEARCH_PAGE_SIZE,
+      });
+      const pageData = getResponseData(response);
+      const apiResults = getPageContent(pageData).map(normalizeFestival);
+
+      setResults((currentResults) => [...currentResults, ...apiResults]);
+      setCurrentPage(getPageNumber(pageData, nextPage));
+      setHasNextPage(getHasNextPage(pageData));
+      setTotalResultCount((currentTotal) => {
+        const fallbackTotal =
+          currentTotal || results.length + apiResults.length;
+        return getTotalElements(pageData, fallbackTotal);
+      });
+    } catch (error) {
+      console.error("FestaSearch load more error:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   return (
@@ -515,22 +610,6 @@ function Search() {
             )}
           </FilterPanel>
 
-          {/* 추가: API 검색 진행/실패 상태를 검색 패널 아래에 표시합니다. */}
-          {(isSearching || searchMessage) && (
-            <p
-              role="status"
-              style={{
-                color: searchMessage ? "#ffb690" : "#ddb7ff",
-                fontSize: "14px",
-                fontWeight: 800,
-                lineHeight: "22px",
-                margin: "-40px 0 36px",
-              }}
-            >
-              {isSearching ? "축제를 검색하고 있습니다." : searchMessage}
-            </p>
-          )}
-
           {!hasSearched && !isSearching && (
             <EmptyState>
               <EmptyIcon>
@@ -567,20 +646,26 @@ function Search() {
               <ResultsHeader>
                 <ResultsTitleWrap>
                   <ResultsTitle>검색 결과</ResultsTitle>
-                  <ResultCount>{results.length}개 결과</ResultCount>
+                  <ResultCount>
+                    {totalResultCount || results.length}개 결과
+                  </ResultCount>
                 </ResultsTitleWrap>
                 <SortGroup>
                   정렬 기준
-                  <SortSelect aria-label="검색 결과 정렬">
-                    <option>추천순</option>
-                    <option>최신순</option>
-                    <option>인기순</option>
+                  <SortSelect
+                    aria-label="검색 결과 정렬"
+                    onChange={handleSortChange}
+                    value={sortType}
+                  >
+                    <option value={SORT_RECOMMENDED}>추천순</option>
+                    <option value={SORT_LATEST}>최신순</option>
+                    <option value={SORT_POPULAR}>인기순</option>
                   </SortSelect>
                 </SortGroup>
               </ResultsHeader>
 
               <ResultGrid>
-                {visibleResults.map((festival) => (
+                {results.map((festival) => (
                   <FestivalCard
                     key={festival.id}
                     onClick={() => openFestivalDetail(festival)}
@@ -589,7 +674,9 @@ function Search() {
                     tabIndex={0}
                   >
                     <ImageWrap>
-                      {festival.image && <img alt={festival.title} src={festival.image} />}
+                      {festival.image && (
+                        <img alt={festival.title} src={festival.image} />
+                      )}
                       {festival.live && <LiveBadge>LIVE</LiveBadge>}
                       <HeartButton
                         $active={favoriteFestivalIds.has(festival.id)}
@@ -658,8 +745,12 @@ function Search() {
 
                 {hasMoreResults && (
                   <LoadMoreWrap>
-                    <LoadMoreButton onClick={handleLoadMore} type="button">
-                      더 많은 축제 보기
+                    <LoadMoreButton
+                      disabled={isLoadingMore}
+                      onClick={handleLoadMore}
+                      type="button"
+                    >
+                      {isLoadingMore ? "불러오는 중" : "더 많은 축제 보기"}
                       <ChevronDown size={18} strokeWidth={2.4} />
                     </LoadMoreButton>
                   </LoadMoreWrap>

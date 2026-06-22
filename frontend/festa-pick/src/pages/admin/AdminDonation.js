@@ -74,6 +74,10 @@ function getDonorEmail(donation) {
   return donation.email || donation.userEmail || donation.memberEmail || "이메일 없음";
 }
 
+function getDonorAvatar(donation) {
+  return donation.profileImageUrl || donation.avatar || donation.profileImage || "";
+}
+
 function getInitials(name = "") {
   const source = name.trim() || "후원";
 
@@ -222,13 +226,18 @@ function AdminDonation() {
                     {donations.map((donation, index) => {
                       const key = getDonationKey(donation, index);
                       const donorName = getDonorName(donation);
+                      const donorAvatar = getDonorAvatar(donation);
 
                       return (
                         <tr key={key}>
                           <td>
                             <DonationIdentity>
                               <DonationAvatar $tone={index % 4}>
-                                {getInitials(donorName)}
+                                {donorAvatar ? (
+                                  <img src={donorAvatar} alt={donorName} />
+                                ) : (
+                                  getInitials(donorName)
+                                )}
                               </DonationAvatar>
                               <div>
                                 <DonationName>{donorName}</DonationName>
@@ -241,7 +250,7 @@ function AdminDonation() {
                               {formatAmount(donation.amount || donation.price)}
                             </AmountText>
                           </td>
-                          <td>{formatDate(donation.approvedAt || donation.donatedAt || donation.createdAt)}</td>
+                          <td>{formatDate(donation.approvedAt || donation.donatedAt)}</td>
                           <td>
                             <TransactionText>
                               {donation.orderId || donation.transactionId || donation.donationId || donation.id || "-"}

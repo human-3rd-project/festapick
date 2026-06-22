@@ -304,6 +304,12 @@ export const SectionHeader = styled.div`
 
 export const MonthlyHeader = styled(SectionHeader)`
   align-items: center;
+
+  > div {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
 `;
 
 export const SectionTitle = styled.h2`
@@ -396,6 +402,56 @@ export const TextButton = styled(BaseButton)`
   }
 `;
 
+export const EmptyState = styled.div`
+  min-height: 240px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background:
+    linear-gradient(135deg, rgba(221, 183, 255, 0.08), transparent 38%),
+    rgba(255, 255, 255, 0.045);
+  color: #dae2fd;
+  text-align: center;
+  backdrop-filter: blur(12px);
+
+  h3 {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.35;
+    font-weight: 850;
+    letter-spacing: 0;
+  }
+
+  p {
+    max-width: 520px;
+    margin: 0;
+    color: #cfc2d6;
+    font-size: 15px;
+    line-height: 1.55;
+    font-weight: 500;
+  }
+
+  ${TextButton} {
+    margin-top: 8px;
+  }
+`;
+
+export const EmptyStateIcon = styled.div`
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 176, 205, 0.14);
+  color: #ffb0cd;
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 205, 0.2);
+`;
+
 export const NearbySectionLead = styled.p`
   margin: -10px 0 0;
   color: #cfc2d6;
@@ -464,13 +520,16 @@ export const NearbyImage = styled.img`
 
 export const NearbyInfo = styled.div`
   padding: 18px;
-  display: flex;
+  min-height: 318px;
+  display: grid;
+  grid-template-rows: 28px minmax(58px, auto) auto minmax(30px, 1fr) 48px;
   flex: 1;
-  flex-direction: column;
   gap: 12px;
 
   > span {
     width: fit-content;
+    max-width: 100%;
+    align-self: start;
     border-radius: 999px;
     padding: 4px 9px;
     background: rgba(221, 183, 255, 0.12);
@@ -487,19 +546,27 @@ export const NearbyInfo = styled.div`
     line-height: 1.32;
     font-weight: 850;
     letter-spacing: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   p {
+    align-self: end;
     margin: 0;
     color: #cfc2d6;
     font-size: 14px;
     line-height: 1.55;
     font-weight: 500;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   a {
     min-height: 40px;
-    margin-top: auto;
     border-radius: 8px;
     display: inline-flex;
     align-items: center;
@@ -521,16 +588,19 @@ export const NearbyInfo = styled.div`
 export const NearbyMeta = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+  overflow: hidden;
   color: #cfc2d6;
   font-size: 13px;
   line-height: 18px;
   font-weight: 650;
 
   span {
-    display: inline-flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-items: start;
     gap: 6px;
+    min-width: 0;
   }
 
   svg {
@@ -603,6 +673,100 @@ export const CardImage = styled.img`
 
   ${FestivalCard}:hover & {
     transform: scale(1.02);
+  }
+`;
+
+export const MonthlyCarouselShell = styled.div`
+  position: relative;
+  overflow: hidden;
+`;
+
+export const MonthlyCarousel = styled.div`
+  display: flex;
+  gap: 24px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 2px;
+  padding: 2px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  ${FestivalCard},
+  ${NearbyCard} {
+    flex: 0 0 calc((100% - 72px) / 4);
+    min-width: 0;
+    scroll-snap-align: start;
+    text-decoration: none;
+  }
+
+  ${NearbyCard} {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  ${NearbyImage} {
+    height: 190px;
+    min-height: auto;
+  }
+
+  @media (max-width: 1024px) {
+    ${FestivalCard},
+    ${NearbyCard} {
+      flex-basis: calc((100% - 48px) / 3);
+    }
+  }
+
+  @media (max-width: 760px) {
+    gap: 16px;
+
+    ${FestivalCard},
+    ${NearbyCard} {
+      flex-basis: calc((100% - 16px) / 2);
+    }
+  }
+
+  @media (max-width: 640px) {
+    gap: 16px;
+
+    ${FestivalCard},
+    ${NearbyCard} {
+      flex-basis: min(82vw, 280px);
+    }
+  }
+`;
+
+export const MonthlyNavButton = styled.button`
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.055);
+  color: #dae2fd;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+
+  &:hover {
+    border-color: rgba(221, 183, 255, 0.45);
+    background: rgba(221, 183, 255, 0.12);
+    color: #ddb7ff;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 `;
 

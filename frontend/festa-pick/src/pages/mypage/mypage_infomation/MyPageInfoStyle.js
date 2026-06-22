@@ -3,7 +3,11 @@ import styled from "styled-components";
 export const Page = styled.section`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 12%, rgba(255, 45, 117, 0.14), transparent 32%),
+    radial-gradient(
+      circle at 20% 12%,
+      rgba(255, 45, 117, 0.14),
+      transparent 32%
+    ),
     radial-gradient(circle at 82% 8%, rgba(0, 212, 255, 0.14), transparent 30%),
     linear-gradient(180deg, #080914 0%, #0d1020 48%, #05060d 100%);
   color: #f8fbff;
@@ -38,7 +42,11 @@ export const ProfilePanel = styled.section`
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(17, 21, 42, 0.9), rgba(13, 16, 32, 0.86)),
-    radial-gradient(circle at 0% 100%, rgba(155, 92, 255, 0.16), transparent 34%);
+    radial-gradient(
+      circle at 0% 100%,
+      rgba(155, 92, 255, 0.16),
+      transparent 34%
+    );
   box-shadow:
     0 18px 48px rgba(0, 0, 0, 0.34),
     0 0 36px rgba(0, 212, 255, 0.08);
@@ -77,7 +85,6 @@ export const AvatarColumn = styled.div`
 
 export const AvatarUploadLabel = styled.label`
   display: block;
-  cursor: pointer;
 `;
 
 export const AvatarImage = styled.img`
@@ -86,6 +93,7 @@ export const AvatarImage = styled.img`
   border: 3px solid rgba(155, 92, 255, 0.78);
   border-radius: 50%;
   object-fit: cover;
+  cursor: ${({ disabled }) => (disabled ? "default" : "pointer")};
   box-shadow:
     0 0 0 4px rgba(255, 45, 117, 0.16),
     0 0 34px rgba(155, 92, 255, 0.26);

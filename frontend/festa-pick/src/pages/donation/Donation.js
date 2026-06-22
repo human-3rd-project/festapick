@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
 import {
   BadgeCheck,
@@ -89,11 +89,58 @@ const getCustomerKey = (user) => {
 const getApiErrorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
 
+const DEFAULT_DONATION_STATISTICS = {
+  totalDonationAmount: 0,
+  totalDonorCount: 0,
+};
+
+const toNumber = (value) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+const formatWon = (value) => `${toNumber(value).toLocaleString("ko-KR")}원`;
+
+const formatPeople = (value) => `${toNumber(value).toLocaleString("ko-KR")}명`;
+
 function Donation() {
   const navigate = useNavigate();
   const { isLoggedIn, isAuthLoading, user } = useAuth() || {};
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [donationStatistics, setDonationStatistics] = useState(
+    DEFAULT_DONATION_STATISTICS,
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDonationStatistics = async () => {
+      try {
+        const response = await AxiosApi.donationStatistics();
+        const data = getResponseData(response);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDonationStatistics({
+          totalDonationAmount: toNumber(data?.totalDonationAmount),
+          totalDonorCount: toNumber(data?.totalDonorCount),
+        });
+      } catch {
+        if (isMounted) {
+          setDonationStatistics(DEFAULT_DONATION_STATISTICS);
+        }
+      }
+    };
+
+    fetchDonationStatistics();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleDonate = async () => {
     if (isProcessing || isAuthLoading) {
@@ -101,6 +148,7 @@ function Donation() {
     }
 
     if (!isLoggedIn) {
+      window.alert("로그인 후 후원할 수 있습니다.");
       navigate("/login", { state: { redirectTo: "/donation" } });
       return;
     }
@@ -204,13 +252,17 @@ function Donation() {
 
               <Stats aria-label="후원 현황">
                 <StatItem>
-                  <StatValue>12k+</StatValue>
-                  <StatLabel>Donors</StatLabel>
+                  <StatValue>
+                    {formatWon(donationStatistics.totalDonationAmount)}
+                  </StatValue>
+                  <StatLabel>누적 후원금</StatLabel>
                 </StatItem>
                 <StatDivider />
                 <StatItem>
-                  <StatValue>450+</StatValue>
-                  <StatLabel>Events Funded</StatLabel>
+                  <StatValue>
+                    {formatPeople(donationStatistics.totalDonorCount)}
+                  </StatValue>
+                  <StatLabel>함께한 후원자</StatLabel>
                 </StatItem>
               </Stats>
             </ActionArea>

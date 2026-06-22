@@ -3,7 +3,11 @@ import styled from "styled-components";
 export const Page = styled.section`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 12%, rgba(255, 45, 117, 0.14), transparent 32%),
+    radial-gradient(
+      circle at 20% 12%,
+      rgba(255, 45, 117, 0.14),
+      transparent 32%
+    ),
     radial-gradient(circle at 82% 8%, rgba(0, 212, 255, 0.14), transparent 30%),
     linear-gradient(180deg, #080914 0%, #0d1020 48%, #05060d 100%);
   color: #f8fbff;
@@ -42,7 +46,11 @@ export const Panel = styled.section`
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(17, 21, 42, 0.92), rgba(13, 16, 32, 0.88)),
-    radial-gradient(circle at 100% 0%, rgba(155, 92, 255, 0.18), transparent 34%);
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(155, 92, 255, 0.18),
+      transparent 34%
+    );
   box-shadow:
     0 18px 48px rgba(0, 0, 0, 0.34),
     0 0 36px rgba(0, 212, 255, 0.08);
@@ -152,7 +160,7 @@ export const NoticeBox = styled.div`
 
 export const MapCard = styled.aside`
   width: 100%;
-  max-width: 340px;
+  max-width: 380px;
   justify-self: end;
   border: 1px solid rgba(255, 143, 199, 0.28);
   border-radius: 8px;
@@ -202,59 +210,30 @@ export const LiveBadge = styled.span`
 
 export const MapCanvas = styled.div`
   position: relative;
-  height: 230px;
-  background:
-    radial-gradient(circle at 50% 55%, rgba(201, 155, 255, 0.28), transparent 18%),
-    radial-gradient(circle at 50% 55%, rgba(255, 143, 199, 0.18), transparent 28%),
-    linear-gradient(135deg, rgba(17, 21, 42, 0.64), rgba(4, 8, 18, 0.94));
+  width: 100%;
+  height: 260px;
+  background: #11152a;
   overflow: hidden;
 `;
 
-export const GridLines = styled.div`
-  position: absolute;
-  inset: -40px;
-  background:
-    linear-gradient(rgba(143, 157, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(143, 157, 255, 0.08) 1px, transparent 1px);
-  background-size: 28px 28px;
-  transform: rotate(-14deg);
-`;
-
-export const MapGlow = styled.div`
-  position: absolute;
-  inset: 42px 64px;
-  border: 1px solid rgba(201, 155, 255, 0.44);
-  border-radius: 50%;
-  background: rgba(201, 155, 255, 0.12);
-  filter: blur(0.2px);
-`;
-
-export const PinPulse = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 1px solid rgba(255, 255, 255, 0.36);
-  border-radius: 50%;
-  background: rgba(201, 155, 255, 0.35);
-  color: #f1ddff;
-  transform: translate(-50%, -50%);
-  box-shadow:
-    0 0 0 18px rgba(201, 155, 255, 0.08),
-    0 0 30px rgba(201, 155, 255, 0.3);
-`;
-
-export const MapLabel = styled.div`
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
-  padding: 8px 10px;
-  border-radius: 6px;
+export const MapFooter = styled.div`
+  padding: 14px 16px 16px;
+  border-top: 1px solid rgba(143, 157, 255, 0.16);
   background: rgba(8, 9, 20, 0.72);
+`;
+
+export const MapLabel = styled.p`
+  margin: 0;
   color: #dbe5ff;
+  font-size: 13px;
+  font-weight: 900;
+`;
+
+export const MapMessage = styled.p`
+  min-height: 18px;
+  margin: 6px 0 0;
+  color: #aab4cd;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
+  line-height: 1.45;
 `;

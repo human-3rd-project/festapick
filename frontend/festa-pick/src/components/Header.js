@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-// 실제 API 연결할 때 주석 해제
-// import AxiosApi from "../api/AxiosApi";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AxiosApi from "../api/AxiosApi";
+import { useAuth } from "../context/AuthContext";
 import {
   Link,
   NavLink as RouterNavLink,
@@ -36,10 +36,12 @@ import {
   NavLink,
   NotificationBadge,
   NotificationButton,
+  NotificationContentButton,
   NotificationIconBox,
   NotificationItem,
   NotificationPanel,
   NotificationPanelHeader,
+  NotificationReadButton,
   NotificationText,
   ProfileButton,
   SearchBox,
@@ -47,61 +49,19 @@ import {
   UnreadDot,
 } from "./HeaderCss";
 
-/*
- * 현재는 로그인 API가 아직 연결 전이라 테스트용 로그인 상태를 사용합니다.
- * "guest" → 비로그인 화면
- * "user" → 일반 회원 로그인 화면
- * "admin" → 관리자 로그인 화면
- */
-const TEST_USER_TYPE = "admin"; // "guest" | "user" | "admin"
-const TEST_USER_NAME = TEST_USER_TYPE === "admin" ? "관리자님" : "사용자님";
+const getResponseData = (response) =>
+  response?.data?.data ?? response?.data ?? response;
 
-/*
- * 현재 알림 API 연결 전이므로 더미 데이터 사용.
- * 백엔드 Notification 엔티티 기준 실제 필드명은:
- * notificationId, title, content, notificationType, referenceType,
- * referenceId, readStatus, targetUrl, createdAt 입니다.
- */
-const initialNotifications = [
-  {
-    id: 1,
-    title: "찜한 축제 '서울 재즈 페스티벌'의 시작일이 2일 남았습니다.",
-    time: "2시간 전",
-    type: "calendar",
-    unread: true,
-    referenceId: null,
-    targetUrl: null,
-  },
-  {
-    id: 2,
-    title: "찜한 축제 '부산 불꽃축제'가 오늘 6시에 시작됩니다.",
-    time: "5시간 전",
-    type: "festival",
-    unread: true,
-    referenceId: null,
-    targetUrl: null,
-  },
-  {
-    id: 3,
-    title: "찜한 축제 'K-푸드 페스타'가 내일 시작됩니다.",
-    time: "8시간 전",
-    type: "calendar",
-    unread: true,
-    referenceId: null,
-    targetUrl: null,
-  },
-];
-
-const getHiddenNotificationIds = () => {
-  try {
-    return JSON.parse(localStorage.getItem("hiddenNotificationIds") || "[]");
-  } catch {
-    return [];
+const getSliceContent = (data) => {
+  if (Array.isArray(data)) {
+    return data;
   }
-};
 
-const saveHiddenNotificationIds = (ids) => {
-  localStorage.setItem("hiddenNotificationIds", JSON.stringify(ids));
+  if (Array.isArray(data?.content)) {
+    return data.content;
+  }
+
+  return [];
 };
 
 const formatNotificationTime = (createdAt) => {
@@ -122,6 +82,7 @@ const formatNotificationTime = (createdAt) => {
  * - readStatus
  * - targetUrl
  * - createdAt
+ * - createdA
  */
 const normalizeNotification = (notification, index) => {
   const id =
@@ -137,8 +98,10 @@ const normalizeNotification = (notification, index) => {
       notification.title ||
       notification.content ||
       "찜한 축제 시작 알림이 도착했습니다.",
-    time: notification.time || formatNotificationTime(notification.createdAt),
-    type: "calendar",
+    time:
+      notification.time ||
+      formatNotificationTime(notification.createdAt || notification.createdA),
+    type: notification.notificationType === "SYSTEM" ? "system" : "calendar",
     unread:
       typeof notification.readStatus === "boolean"
         ? !notification.readStatus
@@ -151,55 +114,43 @@ const normalizeNotification = (notification, index) => {
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
+  const auth = useAuth() || {};
+  const {
+    user,
+    isLoggedIn: authIsLoggedIn = false,
+    isAuthLoading = false,
+    logout,
+  } = auth;
 
   const profileButtonRef = useRef(null);
   const dropdownRef = useRef(null);
   const notificationButtonRef = useRef(null);
   const notificationPanelRef = useRef(null);
 
-  /*
-   * 실제 로그인 API 연결 시 사용할 state.
-   * 지금은 테스트 관리자 화면을 보기 위해 주석 처리합니다.
-   */
-  // const [userInfo, setUserInfo] = useState(null);
-
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [notificationList, setNotificationList] = useState(() => {
-    const hiddenIds = getHiddenNotificationIds();
-
-    return initialNotifications.filter(
-      (notification) => !hiddenIds.includes(String(notification.id)),
-    );
-  });
+  const [notificationList, setNotificationList] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   /*
    * 실제 로그인 API 연결 시 사용할 로그인 판단 코드.
    * 백엔드 UserRole enum은 USER, PREMIUM, ADMIN 이므로 ADMIN도 체크합니다.
    */
-  // const isLoggedIn = !!userInfo;
-  // const isAdmin =
-  //   userInfo?.role === "ADMIN" ||
-  //   userInfo?.role === "ROLE_ADMIN" ||
-  //   userInfo?.authority === "ADMIN" ||
-  //   userInfo?.authority === "ROLE_ADMIN";
-  // const userName =
-  //   userInfo?.nickname || userInfo?.name || userInfo?.loginId || "사용자님";
-
-  /*
-   * 현재는 테스트용 관리자 로그인 상태.
-   */
-  const isLoggedIn = TEST_USER_TYPE === "user" || TEST_USER_TYPE === "admin";
-  const isAdmin = TEST_USER_TYPE === "admin";
-  const userName = TEST_USER_NAME;
+  const isLoggedIn = Boolean(authIsLoggedIn);
+  const shouldShowLoginButton = !isAuthLoading && !isLoggedIn;
+  const isAdmin =
+    user?.role === "ADMIN" ||
+    user?.role === "ROLE_ADMIN" ||
+    user?.authority === "ADMIN" ||
+    user?.authority === "ROLE_ADMIN";
+  const userName = user?.nickname || user?.name || user?.loginId || "사용자님";
+  const profileImageUrl = user?.profileImageUrl || "";
 
   const visibleNotifications = useMemo(
     () => notificationList.filter((notification) => notification.unread),
     [notificationList],
   );
-
-  const unreadCount = visibleNotifications.length;
 
   const closeMenus = () => {
     setIsUserMenuOpen(false);
@@ -223,29 +174,21 @@ function Header() {
 
   /*
    * 실제 로그아웃 API 연결 시 사용할 코드.
-   * 현재는 테스트 화면 확인용이라 API 호출 없이 이동만 처리합니다.
+   * 서버 로그아웃 실패와 무관하게 프론트 인증 상태는 정리합니다.
    */
-  // const handleLogout = async () => {
-  //   try {
-  //     await AxiosApi.logout();
-  //   } catch (error) {
-  //     console.error("로그아웃 실패:", error);
-  //   } finally {
-  //     localStorage.removeItem("accessToken");
-  //     localStorage.removeItem("refreshToken");
-  //     localStorage.removeItem("token");
-  //     setUserInfo(null);
-  //     closeMenus();
-  //     navigate("/login");
-  //   }
-  // };
-
-  const handleLogout = () => {
-    closeMenus();
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await AxiosApi.logout();
+    } catch (error) {
+      console.error("로그아웃 실패:", error);
+    } finally {
+      logout?.();
+      setNotificationList([]);
+      setUnreadCount(0);
+      closeMenus();
+      navigate("/");
+    }
   };
-
-  //로그아웃 시 메인으로 이동
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
@@ -270,37 +213,74 @@ function Header() {
     );
   };
 
-  /*
-   * Mark all as read는 백엔드 읽음 처리 API를 호출하지 않습니다.
-   * 현재 화면에서만 알림을 숨기고, localStorage에 숨긴 알림 id를 저장합니다.
-   */
-  const handleMarkAllAsRead = () => {
-    const currentIds = visibleNotifications.map((notification) =>
-      String(notification.id),
-    );
-    const hiddenIds = getHiddenNotificationIds();
-    const nextHiddenIds = Array.from(new Set([...hiddenIds, ...currentIds]));
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isLoggedIn) {
+      setUnreadCount(0);
+      return;
+    }
 
-    saveHiddenNotificationIds(nextHiddenIds);
-    setNotificationList([]);
+    try {
+      const response = await AxiosApi.getUnreadAlarmsCount();
+      const count = Number(getResponseData(response));
+      setUnreadCount(Number.isFinite(count) ? count : 0);
+    } catch (error) {
+      console.error("읽지 않은 알림 개수 조회 실패:", error);
+    }
+  }, [isLoggedIn]);
+
+  const removeReadNotifications = (readIds) => {
+    const readIdSet = new Set(readIds.map(String));
+
+    setNotificationList((prevList) =>
+      prevList.filter((item) => !readIdSet.has(String(item.notificationId))),
+    );
+    setUnreadCount((prevCount) => Math.max(prevCount - readIdSet.size, 0));
   };
 
   /*
-   * 개별 알림 클릭도 백엔드 읽음 처리 없이 프론트에서만 숨김 처리합니다.
-   * referenceId 또는 targetUrl이 있으면 나중에 상세 페이지 이동까지 연결 가능합니다.
+   * 보이는 알림을 백엔드에서 읽음 처리하고, 성공한 항목만 화면에서 제거합니다.
+   */
+  const handleMarkAllAsRead = async () => {
+    const targetNotifications = visibleNotifications.filter(
+      (notification) => notification.notificationId,
+    );
+
+    if (targetNotifications.length === 0) {
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      targetNotifications.map((notification) =>
+        AxiosApi.markAlarmAsRead(notification.notificationId),
+      ),
+    );
+
+    const readIds = targetNotifications
+      .filter((_, index) => results[index].status === "fulfilled")
+      .map((notification) => notification.notificationId);
+
+    if (readIds.length > 0) {
+      removeReadNotifications(readIds);
+    }
+  };
+
+  const handleNotificationReadClick = async (notification) => {
+    if (!notification.notificationId) {
+      return;
+    }
+
+    try {
+      await AxiosApi.markAlarmAsRead(notification.notificationId);
+      removeReadNotifications([notification.notificationId]);
+    } catch (error) {
+      console.error("알림 읽음 처리 실패:", error);
+    }
+  };
+
+  /*
+   * 알림 본문 클릭은 연결된 화면으로 이동만 하고, 읽음 처리는 별도 버튼에서만 수행합니다.
    */
   const handleNotificationItemClick = (notification) => {
-    const hiddenIds = getHiddenNotificationIds();
-    const nextHiddenIds = Array.from(
-      new Set([...hiddenIds, String(notification.id)]),
-    );
-
-    saveHiddenNotificationIds(nextHiddenIds);
-
-    setNotificationList((prevList) =>
-      prevList.filter((item) => item.id !== notification.id),
-    );
-
     if (notification.targetUrl) {
       navigate(notification.targetUrl);
       closeMenus();
@@ -313,33 +293,15 @@ function Header() {
     }
   };
 
-  /*
-   * 실제 로그인 API 연결 시 주석 해제.
-   * Header가 처음 렌더링될 때 localStorage 토큰을 확인하고,
-   * 토큰이 있으면 내 프로필 정보를 조회해서 userInfo에 저장합니다.
-   */
-  // useEffect(() => {
-  //   const fetchMyProfile = async () => {
-  //     const accessToken =
-  //       localStorage.getItem("accessToken") || localStorage.getItem("token");
-  //
-  //     if (!accessToken) {
-  //       setUserInfo(null);
-  //       return;
-  //     }
-  //
-  //     try {
-  //       const response = await AxiosApi.getMyProfile();
-  //       const profile = response.data?.data || response.data;
-  //       setUserInfo(profile);
-  //     } catch (error) {
-  //       console.error("헤더 사용자 정보 조회 실패:", error);
-  //       setUserInfo(null);
-  //     }
-  //   };
-  //
-  //   fetchMyProfile();
-  // }, []);
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setNotificationList([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    fetchUnreadCount();
+  }, [fetchUnreadCount, isLoggedIn]);
 
   /*
    * 실제 알림 API 연결 시 주석 해제.
@@ -354,36 +316,27 @@ function Header() {
    * - targetUrl
    * - createdAt
    */
-  // useEffect(() => {
-  //   if (!isNotificationOpen || !isLoggedIn) {
-  //     return;
-  //   }
-  //
-  //   const fetchNotifications = async () => {
-  //     try {
-  //       const response = await AxiosApi.getAlarms();
-  //       const data = response.data?.data || response.data || [];
-  //
-  //       const notificationData = Array.isArray(data)
-  //         ? data
-  //         : data.content || [];
-  //
-  //       const hiddenIds = getHiddenNotificationIds();
-  //
-  //       const normalizedNotifications = notificationData
-  //         .map(normalizeNotification)
-  //         .filter(
-  //           (notification) => !hiddenIds.includes(String(notification.id)),
-  //         );
-  //
-  //       setNotificationList(normalizedNotifications);
-  //     } catch (error) {
-  //       console.error("알림 목록 조회 실패:", error);
-  //     }
-  //   };
-  //
-  //   fetchNotifications();
-  // }, [isNotificationOpen, isLoggedIn]);
+  useEffect(() => {
+    if (!isNotificationOpen || !isLoggedIn) {
+      return;
+    }
+
+    const fetchNotifications = async () => {
+      try {
+        const response = await AxiosApi.getAlarms();
+        const notificationData = getSliceContent(getResponseData(response));
+        const normalizedNotifications =
+          notificationData.map(normalizeNotification);
+
+        setNotificationList(normalizedNotifications);
+        fetchUnreadCount();
+      } catch (error) {
+        console.error("알림 목록 조회 실패:", error);
+      }
+    };
+
+    fetchNotifications();
+  }, [fetchUnreadCount, isNotificationOpen, isLoggedIn]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -471,7 +424,7 @@ function Header() {
             />
           </SearchBox>
 
-          {!isLoggedIn && (
+          {shouldShowLoginButton && (
             <LoginButton type="button" onClick={handleLoginClick}>
               <LogIn size={16} aria-hidden="true" />
               Login
@@ -501,7 +454,13 @@ function Header() {
                 onClick={handleProfileClick}
               >
                 <Avatar aria-hidden="true">
-                  {isAdmin ? <ShieldCheck size={17} /> : <User size={17} />}
+                  {profileImageUrl ? (
+                    <img alt="" src={profileImageUrl} />
+                  ) : isAdmin ? (
+                    <ShieldCheck size={17} />
+                  ) : (
+                    <User size={17} />
+                  )}
                 </Avatar>
                 <span>{userName}</span>
                 <ChevronDown size={16} aria-hidden="true" />
@@ -562,11 +521,11 @@ function Header() {
                       >
                         <X size={18} aria-hidden="true" />
                       </CloseButton>
-                      <h2>Notification</h2>
+                      <h2>알림</h2>
                     </div>
 
                     <button type="button" onClick={handleMarkAllAsRead}>
-                      Mark all as read
+                      모두 읽음
                     </button>
                   </NotificationPanelHeader>
 
@@ -587,26 +546,42 @@ function Header() {
                       visibleNotifications.map((notification) => (
                         <NotificationItem
                           key={notification.id}
-                          type="button"
                           $unread={notification.unread}
-                          onClick={() =>
-                            handleNotificationItemClick(notification)
-                          }
                         >
                           {notification.unread && <UnreadDot />}
 
-                          <NotificationIconBox $type={notification.type}>
-                            {notification.type === "calendar" ? (
-                              <CalendarDays size={21} aria-hidden="true" />
-                            ) : (
-                              <Bell size={21} aria-hidden="true" />
-                            )}
-                          </NotificationIconBox>
+                          <NotificationContentButton
+                            type="button"
+                            aria-label={`${notification.title} 알림 열기`}
+                            onClick={() =>
+                              handleNotificationItemClick(notification)
+                            }
+                          >
+                            <NotificationIconBox $type={notification.type}>
+                              {notification.type === "calendar" ? (
+                                <CalendarDays size={21} aria-hidden="true" />
+                              ) : (
+                                <Bell size={21} aria-hidden="true" />
+                              )}
+                            </NotificationIconBox>
 
-                          <NotificationText>
-                            <p>{notification.title}</p>
-                            <span>{notification.time}</span>
-                          </NotificationText>
+                            <NotificationText>
+                              <p>{notification.title}</p>
+                              <span>{notification.time}</span>
+                            </NotificationText>
+                          </NotificationContentButton>
+
+                          {notification.notificationId && (
+                            <NotificationReadButton
+                              type="button"
+                              aria-label={`${notification.title} 읽음 처리`}
+                              onClick={() =>
+                                handleNotificationReadClick(notification)
+                              }
+                            >
+                              읽음
+                            </NotificationReadButton>
+                          )}
                         </NotificationItem>
                       ))
                     )}

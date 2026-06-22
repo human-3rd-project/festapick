@@ -96,7 +96,7 @@ public class Festivals {
     @Column(name = "tour_modified_time", length = 14)
     private String tourModifiedTime;
 
-    @Column(name = "tel", length = 100)
+    @Column(name = "tel", length = 500)
     private String tel;
 
     @Column(name = "ldong_regn_cd", length = 10)
@@ -180,5 +180,9 @@ public class Festivals {
 
     public void decreaseLikeCount() {
         this.likeCount = this.likeCount == null || this.likeCount <= 0 ? 0L : this.likeCount - 1;
+    }
+
+    public void hide() {
+        this.status = FestivalStatus.HIDDEN;
     }
 }

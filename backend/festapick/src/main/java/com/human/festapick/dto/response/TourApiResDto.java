@@ -3,10 +3,18 @@ package com.human.festapick.dto.response;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +70,7 @@ public class TourApiResDto {
     public static class Body {
 
         // 검색 결과 목록을 감싸는 객체입니다.
+        @JsonDeserialize(using = EmptyStringItemsDeserializer.class)
         private Items items;
 
         // 한 페이지에 조회된 데이터 개수입니다.
@@ -84,5 +93,52 @@ public class TourApiResDto {
         @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
         @JsonProperty("item")
         private List<TourFestivalItemDto> item;
+    }
+
+    public static class EmptyStringItemsDeserializer extends JsonDeserializer<Items> {
+
+        @Override
+        public Items deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+            JsonToken token = parser.currentToken();
+            if (token == JsonToken.VALUE_STRING && parser.getValueAsString().isBlank()) {
+                return emptyItems();
+            }
+            if (token == JsonToken.VALUE_NULL) {
+                return emptyItems();
+            }
+
+            JsonNode itemsNode = parser.getCodec().readTree(parser);
+            if (itemsNode == null || itemsNode.isNull()) {
+                return emptyItems();
+            }
+
+            JsonNode itemNode = itemsNode.get("item");
+            if (itemNode == null || itemNode.isNull()) {
+                return emptyItems();
+            }
+
+            Items items = new Items();
+            if (itemNode.isArray()) {
+                List<TourFestivalItemDto> festivalItems = new ArrayList<>();
+                for (JsonNode node : itemNode) {
+                    festivalItems.add(parser.getCodec().treeToValue(node, TourFestivalItemDto.class));
+                }
+                items.setItem(festivalItems);
+                return items;
+            }
+
+            if (itemNode.isObject()) {
+                items.setItem(List.of(parser.getCodec().treeToValue(itemNode, TourFestivalItemDto.class)));
+                return items;
+            }
+
+            return emptyItems();
+        }
+
+        private Items emptyItems() {
+            Items items = new Items();
+            items.setItem(Collections.emptyList());
+            return items;
+        }
     }
 }

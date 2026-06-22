@@ -17,10 +17,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ChatService {
+
+    private static final List<ChatMessageType> LIVE_CHAT_MESSAGE_TYPES = List.of(
+            ChatMessageType.CHAT,
+            ChatMessageType.IMAGE
+    );
 
     /*
      * 채팅방 조회용 Repository.
@@ -35,7 +42,7 @@ public class ChatService {
      * 채팅 메시지 조회/저장용 Repository.
      *
      * 현재 Repository에 있는 메서드:
-     * - findByChatRoom_ChatRoomIdOrderByCreatedAtDesc(...)
+     * - findByChatRoom_ChatRoomIdAndMessageTypeInOrderByCreatedAtDesc(...)
      * - findTopByChatRoom_ChatRoomIdOrderByCreatedAtDesc(...)
      */
     private final ChatMessageRepository chatMessageRepository;
@@ -131,8 +138,9 @@ public class ChatService {
 
         int pageSize = size <= 0 ? 30 : size;
 
-        return chatMessageRepository.findByChatRoom_ChatRoomIdOrderByCreatedAtDesc(
+        return chatMessageRepository.findByChatRoom_ChatRoomIdAndMessageTypeInOrderByCreatedAtDesc(
                 chatRoomId,
+                LIVE_CHAT_MESSAGE_TYPES,
                 PageRequest.of(0, pageSize)
         ).map(LiveChatResDto::of);
     }

@@ -1,12 +1,11 @@
 package com.human.festapick.dto.response;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 
 import java.time.LocalDate;
 
 @Getter
-@AllArgsConstructor
 public class FavoriteListResDto {
 
     private Long favoriteId;
@@ -24,4 +23,61 @@ public class FavoriteListResDto {
     private LocalDate eventStartDate;
 
     private LocalDate eventEndDate;
+
+    @JsonIgnore
+    private String lclsSystm1;
+
+    @JsonIgnore
+    private String lclsSystm2;
+
+    @JsonIgnore
+    private String lclsSystm3;
+
+    @JsonIgnore
+    private String festivalType;
+
+    public FavoriteListResDto(
+            Long favoriteId,
+            Long festivalId,
+            String title,
+            String thumbnailUrl,
+            String categoryName,
+            String regionName,
+            LocalDate eventStartDate,
+            LocalDate eventEndDate,
+            String lclsSystm1,
+            String lclsSystm2,
+            String lclsSystm3,
+            String festivalType
+    ) {
+        this.favoriteId = favoriteId;
+        this.festivalId = festivalId;
+        this.title = title;
+        this.thumbnailUrl = thumbnailUrl;
+        this.categoryName = categoryName;
+        this.regionName = regionName;
+        this.eventStartDate = eventStartDate;
+        this.eventEndDate = eventEndDate;
+        this.lclsSystm1 = lclsSystm1;
+        this.lclsSystm2 = lclsSystm2;
+        this.lclsSystm3 = lclsSystm3;
+        this.festivalType = festivalType;
+    }
+
+    public FavoriteListResDto withCategoryName(String categoryName) {
+        return new FavoriteListResDto(
+                favoriteId,
+                festivalId,
+                title,
+                thumbnailUrl,
+                categoryName,
+                regionName,
+                eventStartDate,
+                eventEndDate,
+                lclsSystm1,
+                lclsSystm2,
+                lclsSystm3,
+                festivalType
+        );
+    }
 }

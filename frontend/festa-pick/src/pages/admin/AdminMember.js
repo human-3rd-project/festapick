@@ -86,6 +86,10 @@ function getMemberName(member) {
   return member.name || member.nickname || member.loginId || "이름 없음";
 }
 
+function getMemberAvatar(member) {
+  return member.profileImageUrl || member.avatar || member.profileImage || "";
+}
+
 function getMemberId(member, index) {
   return member.userId || member.id || index + 1;
 }
@@ -253,6 +257,7 @@ function AdminMember() {
                     {members.map((member, index) => {
                       const key = member.userId || member.id || member.email || index;
                       const memberName = getMemberName(member);
+                      const memberAvatar = getMemberAvatar(member);
 
                       return (
                       <tr key={key}>
@@ -260,8 +265,8 @@ function AdminMember() {
                         <td>
                           <MemberIdentity>
                             <MemberAvatar $tone={index % 3}>
-                              {member.avatar ? (
-                                <img src={member.avatar} alt={memberName} />
+                              {memberAvatar ? (
+                                <img src={memberAvatar} alt={memberName} />
                               ) : (
                                 getInitials(memberName || member.email)
                               )}

@@ -23,6 +23,7 @@ import {
 
 // 리뷰 본문 최대 길이: 백엔드와 별도 검증이 있더라도 프론트에서 먼저 입력을 제한합니다.
 const MAX_REVIEW_LENGTH = 500;
+const STAR_VALUES = [1, 2, 3, 4, 5];
 
 // 추가: ApiResponse(data 래핑)와 일반 axios 응답을 모두 안전하게 꺼내기 위한 헬퍼입니다.
 const getResponseData = (response) => response?.data?.data ?? response?.data ?? null;
@@ -188,7 +189,7 @@ function ReviewModal({
           {/* 별점 선택 영역: 1~5점 버튼으로 rating 상태를 갱신합니다. */}
           <RatingSection>
             <div>
-              {[1, 2, 3, 4, 5].map((value) => (
+              {STAR_VALUES.map((value) => (
                 <StarButton
                   $active={value <= rating}
                   aria-label={`${value}점 선택`}
@@ -197,7 +198,11 @@ function ReviewModal({
                   onClick={() => setRating(value)}
                   type="button"
                 >
-                  <Star fill="currentColor" size={40} strokeWidth={1.6} />
+                  <Star
+                    fill={value <= rating ? "currentColor" : "none"}
+                    size={40}
+                    strokeWidth={1.6}
+                  />
                 </StarButton>
               ))}
             </div>

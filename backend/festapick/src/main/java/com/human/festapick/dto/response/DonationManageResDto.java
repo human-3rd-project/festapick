@@ -14,6 +14,8 @@ public class DonationManageResDto {
 
     private String email;
 
+    private String profileImageUrl;
+
     private Integer amount;
 
     private LocalDateTime approvedAt;

@@ -22,6 +22,7 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
                         festival.festivalId,
                         writer.userId,
                         writer.nickname,
+                        writer.profileImageUrl,
                         review.rating,
                         review.content,
                         review.createdAt,
@@ -54,11 +55,18 @@ public interface ReviewRepository extends JpaRepository<Reviews, Long> {
                         review.reviewId,
                         festival.festivalId,
                         festival.title,
-                        festival.firstImage2,
+                        CASE
+                            WHEN festival.firstImage2 IS NOT NULL AND festival.firstImage2 <> '' THEN festival.firstImage2
+                            ELSE festival.firstImage
+                        END,
                         festival.lclsSystm3,
                         review.content,
                         review.rating,
-                        review.createdAt
+                        review.createdAt,
+                        festival.lclsSystm1,
+                        festival.lclsSystm2,
+                        festival.lclsSystm3,
+                        festival.festivalType
                     )
                     FROM Reviews review
                     JOIN review.festival festival

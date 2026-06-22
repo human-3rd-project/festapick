@@ -21,6 +21,7 @@ public class LiveChatResDto {
   // 작성자 - JWT 사용자와 비교해 본인 메시지 여부 확인
   private Long userId;
   private String nickname;
+  private String profileImageUrl;
 
   // 채팅 메시지 - imageUrl 존재 시 프론트에서 이미지 렌더링
   private String message;
@@ -39,6 +40,7 @@ public class LiveChatResDto {
       .chatRoomId(chatMessage.getChatRoom().getChatRoomId())
       .userId(chatMessage.getUser().getUserId())
       .nickname(chatMessage.getUser().getNickname())
+      .profileImageUrl(chatMessage.getUser().getProfileImageUrl())
       .message(chatMessage.getMessage())
       .imageUrl(chatMessage.getImageUrl())
       .messageType(chatMessage.getMessageType())

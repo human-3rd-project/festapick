@@ -1,5 +1,7 @@
 package com.human.festapick.repository;
 
+import com.human.festapick.constant.DonationStatus;
+import com.human.festapick.constant.PaymentStatus;
 import com.human.festapick.entity.Donations;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,12 +17,12 @@ public interface DonationRepository extends JpaRepository<Donations, Long> {
     Page<Donations> findByUsers_UserId(Long userId, Pageable pageable);
 
     // 총 후원금 통계
-    @Query("select coalesce(sum(d.amount), 0) from Donations d")
-    Long getTotalDonationAmount();
+    @Query("select coalesce(sum(d.amount), 0) from Donations d where d.donationStatus = :status")
+    Long getTotalDonationAmount(@Param("status") DonationStatus status);
 
     // 후원자 수 통계
-    @Query("select count(distinct d.users.userId) from Donations d")
-    Long getDonorCount();
+    @Query("select count(distinct d.users.userId) from Donations d where d.donationStatus = :status")
+    Long getDonorCount(@Param("status") DonationStatus status);
 
     @Query("""
         select d
@@ -66,6 +68,71 @@ public interface DonationRepository extends JpaRepository<Donations, Long> {
             @Param("keyword") String keyword,
             @Param("numericKeyword") Long numericKeyword,
             @Param("amountKeyword") Integer amountKeyword,
+            Pageable pageable
+    );
+
+    @Query(
+            value = """
+                    select donation
+                    from Donations donation
+                    join DonationPayments payment on payment.donations = donation
+                    where donation.donationStatus = :donationStatus
+                      and payment.paymentStatus = :paymentStatus
+                    """,
+            countQuery = """
+                    select count(donation)
+                    from Donations donation
+                    join DonationPayments payment on payment.donations = donation
+                    where donation.donationStatus = :donationStatus
+                      and payment.paymentStatus = :paymentStatus
+                    """
+    )
+    Page<Donations> findAdminCompletedDonations(
+            @Param("donationStatus") DonationStatus donationStatus,
+            @Param("paymentStatus") PaymentStatus paymentStatus,
+            Pageable pageable
+    );
+
+    @Query(
+            value = """
+                    select donation
+                    from Donations donation
+                    join donation.users user
+                    join DonationPayments payment on payment.donations = donation
+                    where donation.donationStatus = :donationStatus
+                      and payment.paymentStatus = :paymentStatus
+                      and (
+                           (:numericKeyword is not null and donation.donationId = :numericKeyword)
+                        or (:amountKeyword is not null and donation.amount = :amountKeyword)
+                        or lower(user.nickname) like :keyword
+                        or lower(user.email) like :keyword
+                        or lower(user.loginId) like :keyword
+                        or lower(payment.orderId) like :keyword
+                      )
+                    """,
+            countQuery = """
+                    select count(donation)
+                    from Donations donation
+                    join donation.users user
+                    join DonationPayments payment on payment.donations = donation
+                    where donation.donationStatus = :donationStatus
+                      and payment.paymentStatus = :paymentStatus
+                      and (
+                           (:numericKeyword is not null and donation.donationId = :numericKeyword)
+                        or (:amountKeyword is not null and donation.amount = :amountKeyword)
+                        or lower(user.nickname) like :keyword
+                        or lower(user.email) like :keyword
+                        or lower(user.loginId) like :keyword
+                        or lower(payment.orderId) like :keyword
+                      )
+                    """
+    )
+    Page<Donations> searchAdminCompletedDonations(
+            @Param("keyword") String keyword,
+            @Param("numericKeyword") Long numericKeyword,
+            @Param("amountKeyword") Integer amountKeyword,
+            @Param("donationStatus") DonationStatus donationStatus,
+            @Param("paymentStatus") PaymentStatus paymentStatus,
             Pageable pageable
     );
 }

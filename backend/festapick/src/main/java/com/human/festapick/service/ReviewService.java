@@ -4,10 +4,12 @@ import com.human.festapick.constant.ReviewStatus;
 import com.human.festapick.dto.request.ReviewReqDto;
 import com.human.festapick.dto.response.MyReviewResDto;
 import com.human.festapick.dto.response.ReviewResDto;
+import com.human.festapick.entity.FestivalCategoryCodes;
 import com.human.festapick.entity.Festivals;
 import com.human.festapick.entity.Reviews;
 import com.human.festapick.entity.Users;
 import com.human.festapick.exception.CustomException;
+import com.human.festapick.repository.FestivalCategoryCodeRepository;
 import com.human.festapick.repository.FestivalRepository;
 import com.human.festapick.repository.ReviewRepository;
 import com.human.festapick.repository.UserRepository;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final FestivalRepository festivalRepository;
+    private final FestivalCategoryCodeRepository festivalCategoryCodeRepository;
 
     // 특정 축제의 리뷰 목록 조회
     public Page<ReviewResDto> getReviewList(Long festivalId, Pageable pageable) {
@@ -125,7 +129,7 @@ public class ReviewService {
                 userId,
                 ReviewStatus.ACTIVE,
                 pageable
-        );
+        ).map(review -> review.withCategoryName(resolveCategoryName(review)));
     }
 
     // 특정 축제의 활성 리뷰 개수 조회
@@ -176,5 +180,27 @@ public class ReviewService {
     private Festivals getFestival(Long festivalId) {
         return festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "축제를 찾을 수 없습니다."));
+    }
+
+    private String resolveCategoryName(MyReviewResDto review) {
+        return festivalCategoryCodeRepository.findByLclsCodeAndMclsCodeAndSclsCode(
+                        review.getLclsSystm1(),
+                        review.getLclsSystm2(),
+                        review.getLclsSystm3()
+                )
+                .map(this::pickMostSpecificCategoryName)
+                .orElseGet(() -> Optional.ofNullable(review.getFestivalType())
+                        .filter(type -> !type.isBlank())
+                        .orElse(review.getLclsSystm3()));
+    }
+
+    private String pickMostSpecificCategoryName(FestivalCategoryCodes categoryCode) {
+        if (categoryCode.getSclsName() != null && !categoryCode.getSclsName().isBlank()) {
+            return categoryCode.getSclsName();
+        }
+        if (categoryCode.getMclsName() != null && !categoryCode.getMclsName().isBlank()) {
+            return categoryCode.getMclsName();
+        }
+        return categoryCode.getLclsName();
     }
 }
