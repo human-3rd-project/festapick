@@ -2,7 +2,7 @@ import axios from "axios";
 
 const Common = {
   // 백엔드 주소
-  HM_DOMAIN: "https://9608-1-247-161-31.ngrok-free.app",
+  HM_DOMAIN: "https://ba51-116-36-205-25.ngrok-free.app",
 
   // 엑세스 토큰 관리 (localStrage)
   getAccessToken: () => localStorage.getItem("accessToken"),

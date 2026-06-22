@@ -129,6 +129,34 @@ const formatDate = (value) => {
   return String(value).replaceAll("-", ".");
 };
 
+const parseFestivalDate = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+};
+
+const isFestivalLive = (festival) => {
+  const startDate = parseFestivalDate(festival?.eventStartDate);
+  const endDate = parseFestivalDate(festival?.eventEndDate);
+
+  if (!startDate || !endDate) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return startDate <= today && today <= endDate;
+};
+
 // 추가: FilterModal의 "yyyy.M.d - M.d" 표시값을 검색 API의 yyyy-MM-dd 값으로 변환합니다.
 const toApiDate = (value, baseYear) => {
   const match = value?.trim().match(/(?:(\d{4})\.)?(\d{1,2})\.(\d{1,2})/);
@@ -210,7 +238,7 @@ const normalizeFestival = (festival) => {
         : `${ratingValue.toFixed(1)} (${formatCount(festival?.reviewCount)} reviews)`,
     likes: festival?.likes ?? formatCount(festival?.likeCount),
     saves: festival?.saves ?? formatCount(festival?.favoriteCount),
-    live: Boolean(festival?.live || festival?.status === "ACTIVE"),
+    live: isFestivalLive(festival),
     image: festival?.image || festival?.firstImage || "",
   };
 };

@@ -175,7 +175,7 @@ const AxiosApi = {
 
   // 현장톡 내용 AI 요약 조회
   getAiFieldSummary: (chatRoomId) =>
-    AxiosInstance.get(`/ai/field-summary/${chatRoomId}`),
+    publicApi.get(`/ai/field-summary/${chatRoomId}`),
 
   // 인증 - 중복 확인
   checkLoginId: (loginId) =>

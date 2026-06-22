@@ -378,6 +378,7 @@ const LoginPage = () => {
     }
 
     // 백엔드에 네이버 로그인 API가 아직 없으므로 잘못된 요청을 보내지 않고 사용자에게 현재 상태를 안내합니다.
+    window.alert("아직 미구현입니다.");
     setStatusMessage(
       "error",
       "네이버 로그인 API는 아직 준비되어 있지 않습니다.",

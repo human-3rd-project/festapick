@@ -57,7 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**", "/ws/chat", "/chat/rooms/*/messages", "/festivals/*/favorites/count", "/donations/statistics").permitAll()                            // 로그인/회원가입 허용
                         .requestMatchers("/festivals/*/likes/count", "/festivals/*/reviews", "/festivals/*/reviews/count").permitAll()  // Swagger 허용
-                        .requestMatchers("/ai/question", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes", "/calendar").permitAll()
+                        .requestMatchers("/ai/question", "/ai/field-summary/**", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes", "/calendar").permitAll()
                         .requestMatchers("/festivals/**", "/main/**").permitAll()
                         .requestMatchers(HttpMethod.POST,   "/admin/**").hasRole("ADMIN") // 재고 등록
                         .requestMatchers(HttpMethod.PUT,    "/admin/**").hasRole("ADMIN") // 재고 수정
@@ -74,7 +74,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("https://7dfd-1-247-161-31.ngrok-free.app");
+        config.addAllowedOrigin("https://c835-116-36-205-25.ngrok-free.app");
         config.addAllowedHeader("*");                      // Authorization 헤더 포함 전체 허용
         config.addAllowedMethod("*");                      // GET/POST/PUT/DELETE/OPTIONS 전체 허용
         config.setAllowCredentials(true);                  // 자격증명(쿠키, Authorization) 허용

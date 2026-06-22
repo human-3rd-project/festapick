@@ -148,6 +148,7 @@ function Donation() {
     }
 
     if (!isLoggedIn) {
+      window.alert("로그인 후 후원할 수 있습니다.");
       navigate("/login", { state: { redirectTo: "/donation" } });
       return;
     }

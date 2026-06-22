@@ -180,6 +180,34 @@ const formatDate = (value) => {
   return String(value).replaceAll("-", ".");
 };
 
+const parseFestivalDate = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+};
+
+const isFestivalLive = (festival) => {
+  const startDate = parseFestivalDate(festival?.eventStartDate);
+  const endDate = parseFestivalDate(festival?.eventEndDate);
+
+  if (!startDate || !endDate) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return startDate <= today && today <= endDate;
+};
+
 // 추가: 백엔드 날짜(eventStartDate/eventEndDate)와 기존 period 필드를 같은 표시 형식으로 맞춥니다.
 const formatPeriod = (festival) => {
   if (festival?.period) {
@@ -351,11 +379,7 @@ const normalizeFestival = (sourceFestival) => {
     reviewCount: Number(sourceFestival.reviewCount) || 0,
     favorite: Boolean(sourceFestival.favorite),
     liked: Boolean(sourceFestival.liked),
-    live:
-      typeof sourceFestival.live === "boolean"
-        ? sourceFestival.live
-        : sourceFestival.progressType === "ONGOING" ||
-          sourceFestival.status === "ACTIVE",
+    live: isFestivalLive(sourceFestival),
     hasMap:
       typeof sourceFestival.hasMap === "boolean"
         ? sourceFestival.hasMap
@@ -444,7 +468,7 @@ function FestaDetail({
   const canOpenChat = resolvedIsFestivalActive && Boolean(chatRoomId);
   const canConnectChat = canOpenChat && isLoggedIn && !isAuthLoading;
   const canSendChat = canConnectChat && isChatConnected && !isChatUploading;
-  const canShowAiSummary = canOpenChat && isLoggedIn && !isAuthLoading;
+  const canShowAiSummary = canOpenChat && !isAuthLoading;
   const chatInputPlaceholder = !chatRoomId
     ? "채팅방이 준비되지 않았습니다."
     : isAuthLoading
@@ -758,11 +782,6 @@ function FestaDetail({
       return undefined;
     }
 
-    if (!isLoggedIn) {
-      setAiSummary("로그인하면 AI 현장 요약을 확인할 수 있습니다.");
-      return undefined;
-    }
-
     const fetchAiSummary = async () => {
       setAiSummary("최신 AI 현장 요약을 불러오는 중입니다.");
 
@@ -789,7 +808,7 @@ function FestaDetail({
     return () => {
       isMounted = false;
     };
-  }, [chatRoomId, isAuthLoading, isLoggedIn]);
+  }, [chatRoomId, isAuthLoading]);
 
   // 추가: 로그인 상태에서만 현재 사용자의 찜/좋아요 여부를 백엔드와 동기화합니다.
   useEffect(() => {
