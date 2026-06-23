@@ -47,3 +47,53 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// ============================================================
+// React + Spring Boot 통합 빌드 설정
+// ============================================================
+def reactDir = "D:\\dev\\festapick\\frontend\\festa-pick"
+
+sourceSets {
+	main {
+		resources {
+			srcDirs = ["$projectDir/src/main/resources"]
+		}
+	}
+}
+
+processResources { dependsOn "copyReactBuildFiles" }
+
+// 1단계: yarn install
+task installReact(type: Exec) {
+	workingDir "$reactDir"
+	inputs.dir "$reactDir"
+	group = BasePlugin.BUILD_GROUP
+	if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+		commandLine "yarn.cmd", "install"
+	} else {
+		commandLine "yarn", "install"
+	}
+}
+
+// 2단계: yarn build
+task buildReact(type: Exec) {
+	dependsOn "installReact"
+	workingDir "$reactDir"
+	inputs.dir "$reactDir"
+	group = BasePlugin.BUILD_GROUP
+	if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+		commandLine "yarn.cmd", "run", "build"
+	} else {
+		commandLine "yarn", "run", "build"
+	}
+}
+
+// 3단계: static 디렉토리로 복사
+task copyReactBuildFiles(type: Copy) {
+	dependsOn "buildReact"
+	from "$reactDir/build"
+	into "$projectDir/src/main/resources/static"
+}
+
+// jar 파일 중복 생성 방지
+jar { enabled = false }

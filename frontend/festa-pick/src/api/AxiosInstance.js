@@ -2,7 +2,6 @@ import axios from "axios";
 import Common from "../utils/Common";
 
 const AxiosInstance = axios.create({
-  baseURL: Common.HM_DOMAIN,
   headers: {
     "ngrok-skip-browser-warning": "true",
   },

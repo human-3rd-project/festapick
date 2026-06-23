@@ -2,6 +2,7 @@
   "name": "festa-pick",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:8111",
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
     "@testing-library/dom": "^10.4.0",
