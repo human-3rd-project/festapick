@@ -47,3 +47,26 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+def frontendDir = "$projectDir/src/main/react"
+
+tasks.register("installReact", Exec) {
+	workingDir frontendDir
+	commandLine "/home/pc/.npm-global/bin/yarn", "install"
+}
+
+tasks.register("buildReact", Exec) {
+	dependsOn "installReact"
+	workingDir frontendDir
+	commandLine "/home/pc/.npm-global/bin/yarn", "build"
+}
+
+tasks.register("copyReactBuild", Copy) {
+	dependsOn "buildReact"
+	from "$frontendDir/build"
+	into "$projectDir/src/main/resources/static"
+}
+
+processResources {
+	dependsOn "copyReactBuild"
+}
