@@ -343,7 +343,7 @@ function MainPage() {
       festival.festivalId || festival.id || festival.title || festival.name;
 
     return {
-      to: `/festivals/${encodeURIComponent(festivalId)}`,
+      to: `/detail/${encodeURIComponent(festivalId)}`,
       state: {
         festival: {
           ...festival,

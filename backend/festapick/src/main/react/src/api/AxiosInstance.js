@@ -9,7 +9,11 @@ const AxiosInstance = axios.create({
 AxiosInstance.interceptors.request.use(
   (config) => {
     const accessToken = Common.getAccessToken();
-    config.headers.Authorization = `Bearer ${accessToken}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    } else if (config.headers?.Authorization) {
+      delete config.headers.Authorization;
+    }
     return config;
   },
   (error) => Promise.reject(error),
@@ -30,7 +34,7 @@ AxiosInstance.interceptors.response.use(
         return axios(originalRequest); // 원본 요청 재시도
       }
       // 재발급 실패 → 로그아웃 처리
-      localStorage.clear();
+      Common.removeAuthTokens();
       window.location.href = "/";
     }
     return Promise.reject(error);

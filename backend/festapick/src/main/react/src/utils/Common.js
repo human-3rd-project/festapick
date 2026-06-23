@@ -11,13 +11,18 @@ const Common = {
   // 리프레시 토큰 관리 (localStorage)
   getRefreshToken: () => localStorage.getItem("refreshToken"),
   setRefreshToken: (token) => localStorage.setItem("refreshToken", token),
+  removeAuthTokens: () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("token");
+  },
 
   // 401 에러 시 자동 토큰 재발급
   handleUnauthorized: async () => {
     const refreshToken = Common.getRefreshToken();
 
     if (!refreshToken) {
-      localStorage.clear();
+      Common.removeAuthTokens();
       return false;
     }
 
@@ -32,7 +37,7 @@ const Common = {
       return true;
     } catch (err) {
       console.error("리프레시 토큰 만료.");
-      localStorage.clear();
+      Common.removeAuthTokens();
       return false;
     }
   },

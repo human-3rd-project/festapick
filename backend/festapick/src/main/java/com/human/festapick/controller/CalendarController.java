@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -61,7 +62,7 @@ public class CalendarController {
     }
 
     // 캘린더 축제 조회: 연월, 지역, 테마, 찜 여부 조건으로 필터링된 일정 목록을 내려줍니다.
-    @GetMapping
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Page<CalendarResDto>>> getFilteredCalendars(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @ModelAttribute CalendarFilterReqDto request,

@@ -1,7 +1,14 @@
 import "./App.css";
 import Layout from "./layout";
 import { useEffect } from "react";
-import { Navigate, Routes, useLocation, Route } from "react-router-dom";
+import {
+  Navigate,
+  Routes,
+  useLocation,
+  useParams,
+  Route,
+} from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 import MainPage from "./pages/MainPage/MainPage";
 import FestaSearch from "./pages/search/FestaSearch";
 import Calendar from "./pages/calendar/Calendar";
@@ -40,6 +47,41 @@ const noLayoutPaths = [
   "/oauth/kakao/callback",
 ];
 
+const ProtectedRoute = ({ children }) => {
+  const location = useLocation();
+  const { isLoggedIn, isAuthLoading } = useAuth() || {};
+
+  if (isAuthLoading) {
+    return null;
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          redirectTo: `${location.pathname}${location.search}`,
+        }}
+      />
+    );
+  }
+
+  return children;
+};
+
+const LegacyFestivalRoute = () => {
+  const { festivalId } = useParams();
+  const { search } = useLocation();
+
+  return (
+    <Navigate
+      to={`/detail/${encodeURIComponent(festivalId || "")}${search}`}
+      replace
+    />
+  );
+};
+
 function App() {
   const { pathname } = useLocation();
   const hideHeaderFooter = noLayoutPaths.some(
@@ -60,11 +102,25 @@ function App() {
       <Route path="/ai" element={<AiRecommendPage />} />
       <Route path="/ai-recommend" element={<AiRecommendPage />} />
       <Route path="/detail/:festivalId" element={<FestaDetail />} />
-      <Route path="/festivals/:festivalId" element={<FestaDetail />} />
+      <Route path="/festivals/:festivalId" element={<LegacyFestivalRoute />} />
 
       <Route path="/donation" element={<Donation />} />
-      <Route path="/donation/success" element={<DonationSuccess />} />
-      <Route path="/donation/fail" element={<DonationFail />} />
+      <Route
+        path="/donation/success"
+        element={
+          <ProtectedRoute>
+            <DonationSuccess />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/donation/fail"
+        element={
+          <ProtectedRoute>
+            <DonationFail />
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
@@ -76,22 +132,117 @@ function App() {
 
       <Route
         path="/mypage"
-        element={<Navigate to="/mypage/profile" replace />}
+        element={
+          <ProtectedRoute>
+            <Navigate to="/mypage/profile" replace />
+          </ProtectedRoute>
+        }
       />
-      <Route path="/mypage/profile" element={<MyPageInfo />} />
-      <Route path="/mypage/region" element={<MyPageLocal />} />
-      <Route path="/mypage/favorite" element={<MyPageFavorite />} />
-      <Route path="/mypage/record" element={<MyPageRecord />} />
-      <Route path="/mypage/review" element={<MyPageReview />} />
-      <Route path="/mypage/account" element={<MyPageAccount />} />
-      <Route path="/mypage/password/verify" element={<PasswordVerify />} />
-      <Route path="/mypage/password/reset" element={<ResetPasswordPage />} />
+      <Route
+        path="/mypage/profile"
+        element={
+          <ProtectedRoute>
+            <MyPageInfo />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mypage/region"
+        element={
+          <ProtectedRoute>
+            <MyPageLocal />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mypage/favorite"
+        element={
+          <ProtectedRoute>
+            <MyPageFavorite />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mypage/record"
+        element={
+          <ProtectedRoute>
+            <MyPageRecord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mypage/review"
+        element={
+          <ProtectedRoute>
+            <MyPageReview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mypage/account"
+        element={
+          <ProtectedRoute>
+            <MyPageAccount />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mypage/password/verify"
+        element={
+          <ProtectedRoute>
+            <PasswordVerify />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mypage/password/reset"
+        element={
+          <ProtectedRoute>
+            <ResetPasswordPage />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/admin" element={<Navigate to="/admin/members" replace />} />
-      <Route path="/admin/members" element={<AdminMember />} />
-      <Route path="/admin/reviews" element={<AdminReview />} />
-      <Route path="/admin/festivals" element={<AdminFestival />} />
-      <Route path="/admin/donations" element={<AdminDonation />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/admin/members" replace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/members"
+        element={
+          <ProtectedRoute>
+            <AdminMember />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reviews"
+        element={
+          <ProtectedRoute>
+            <AdminReview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/festivals"
+        element={
+          <ProtectedRoute>
+            <AdminFestival />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/donations"
+        element={
+          <ProtectedRoute>
+            <AdminDonation />
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

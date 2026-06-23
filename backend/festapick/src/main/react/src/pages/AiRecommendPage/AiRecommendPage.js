@@ -144,7 +144,7 @@ function AiRecommendPage() {
   const placeholder = "예: 이번 주말 서울에서 갈만한 축제 추천해줘";
 
   const getFestivalLink = (festival) => ({
-    to: `/festivals/${festival.festivalId || festival.id}`,
+    to: `/detail/${festival.festivalId || festival.id}`,
     state: {
       festival: {
         ...festival,

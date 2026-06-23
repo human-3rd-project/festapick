@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Lock, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AxiosApi from "../../api/AxiosApi";
 import { useAuth } from "../../context/AuthContext";
 import Styles from "./LoginPageCss";
@@ -22,6 +22,7 @@ const KAKAO_POPUP_FEATURES =
  */
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth() || {};
   const kakaoPopupRef = useRef(null);
   const kakaoPollTimerRef = useRef(null);
@@ -43,6 +44,12 @@ const LoginPage = () => {
   // 로그인 API 요청이 진행 중인지 나타냅니다.
   // true일 때는 버튼을 비활성화하고, 같은 요청이 여러 번 전송되는 것을 막습니다.
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const redirectTo =
+    typeof location.state?.redirectTo === "string" &&
+    location.state.redirectTo.startsWith("/") &&
+    !location.state.redirectTo.startsWith("/login")
+      ? location.state.redirectTo
+      : "/";
 
   const setStatusMessage = useCallback((type, text) => {
     // text가 빈 문자열이면 Boolean(text)는 false입니다.
@@ -112,7 +119,7 @@ const LoginPage = () => {
             "success",
             "카카오 로그인에 성공했습니다. 메인 페이지로 이동합니다.",
           );
-          navigate("/", { replace: true });
+          navigate(redirectTo, { replace: true });
         } catch (error) {
           setStatusMessage(
             "error",
@@ -125,7 +132,7 @@ const LoginPage = () => {
 
       return false;
     },
-    [clearKakaoPolling, login, navigate, setStatusMessage],
+    [clearKakaoPolling, login, navigate, redirectTo, setStatusMessage],
   );
 
   const readStoredKakaoAuthResult = useCallback(async () => {
@@ -290,7 +297,7 @@ const LoginPage = () => {
       // 성공 메시지를 아주 짧게 보여준 뒤 메인 페이지로 이동합니다.
       // replace: true를 사용해서 브라우저 뒤로가기로 로그인 페이지에 다시 돌아오지 않게 합니다.
       window.setTimeout(() => {
-        navigate("/", { replace: true });
+        navigate(redirectTo, { replace: true });
       }, 700);
     } catch (error) {
       // 서버가 내려준 메시지가 있으면 우선 사용하고,

@@ -85,7 +85,7 @@ function MyPageReview() {
   };
 
   const getReviewFestivalLink = (review) => ({
-    to: `/festivals/${review.id}`,
+    to: `/detail/${review.id}`,
     state: {
       festival: {
         id: review.id,

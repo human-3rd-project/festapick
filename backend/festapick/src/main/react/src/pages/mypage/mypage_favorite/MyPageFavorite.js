@@ -93,7 +93,7 @@ function MyPageFavorite() {
   };
 
   const getFestivalLink = (item) => ({
-    to: `/festivals/${item.id}`,
+    to: `/detail/${item.id}`,
     state: {
       festival: {
         id: item.id,

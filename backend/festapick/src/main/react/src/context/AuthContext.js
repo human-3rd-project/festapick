@@ -14,12 +14,6 @@ const AuthContext = createContext(null);
 const getResponseData = (response) =>
   response?.data?.data ?? response?.data ?? response;
 
-const removeAuthTokens = () => {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("token");
-};
-
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(
     Common.getAccessToken() !== null,
@@ -28,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const clearAuth = useCallback(() => {
-    removeAuthTokens();
+    Common.removeAuthTokens();
     setIsLoggedIn(false);
     setUser(null);
   }, []);
