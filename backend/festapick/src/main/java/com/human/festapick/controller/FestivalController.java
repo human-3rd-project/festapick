@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -113,7 +114,7 @@ public class FestivalController {
     }
 
     // 축제 상세 조회: 기본 정보, 이미지, 위치, 리뷰 통계, 채팅방 ID를 내려줍니다.
-    @GetMapping("/{festivalId}")
+    @GetMapping(value = "/{festivalId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<FestivalDetailResponseDto>> getFestivalDetail(
             @PathVariable Long festivalId
     ) {

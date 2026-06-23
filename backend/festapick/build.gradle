@@ -49,20 +49,24 @@ tasks.named('test') {
 }
 
 def frontendDir = "$projectDir/src/main/react"
+def yarnCommand = "yarn"
 
 tasks.register("installReact", Exec) {
 	workingDir frontendDir
-	commandLine "/home/pc/.npm-global/bin/yarn", "install"
+	commandLine yarnCommand, "install", "--frozen-lockfile"
 }
 
 tasks.register("buildReact", Exec) {
 	dependsOn "installReact"
 	workingDir frontendDir
-	commandLine "/home/pc/.npm-global/bin/yarn", "build"
+	commandLine yarnCommand, "build"
 }
 
 tasks.register("copyReactBuild", Copy) {
 	dependsOn "buildReact"
+	doFirst {
+		delete "$projectDir/src/main/resources/static"
+	}
 	from "$frontendDir/build"
 	into "$projectDir/src/main/resources/static"
 }

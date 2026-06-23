@@ -65,7 +65,18 @@ public class SecurityConfig {
                                 "/ai-recommend",
                                 "/donation/**",
                                 "/mypage/**",
-                                "/admin/**",
+                                "/admin",
+                                "/admin/members",
+                                "/admin/reviews",
+                                "/admin/festivals",
+                                "/admin/donations",
+                                "/login",
+                                "/signup",
+                                "/find-id",
+                                "/find-password",
+                                "/reset-password",
+                                "/social-login",
+                                "/oauth/kakao/callback",
                                 "/detail/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.HEAD,
@@ -76,16 +87,25 @@ public class SecurityConfig {
                                 "/ai-recommend",
                                 "/donation/**",
                                 "/mypage/**",
-                                "/admin/**",
+                                "/admin",
+                                "/admin/members",
+                                "/admin/reviews",
+                                "/admin/festivals",
+                                "/admin/donations",
+                                "/login",
+                                "/signup",
+                                "/find-id",
+                                "/find-password",
+                                "/reset-password",
+                                "/social-login",
+                                "/oauth/kakao/callback",
                                 "/detail/**"
                         ).permitAll()
                         .requestMatchers("/auth/**", "/ws/chat", "/chat/rooms/*/messages", "/festivals/*/favorites/count", "/donations/statistics").permitAll()                            // 로그인/회원가입 허용
                         .requestMatchers("/festivals/*/likes/count", "/festivals/*/reviews", "/festivals/*/reviews/count").permitAll()  // Swagger 허용
                         .requestMatchers("/ai/question", "/ai/field-summary/**", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes", "/calendar").permitAll()
-                        .requestMatchers("/festivals/**", "/main/**", "/detail/**").permitAll()
-                        .requestMatchers(HttpMethod.POST,   "/admin/**").hasRole("ADMIN") // 재고 등록
-                        .requestMatchers(HttpMethod.PUT,    "/admin/**").hasRole("ADMIN") // 재고 수정
-                        .requestMatchers(HttpMethod.DELETE, "/admin/**").hasRole("ADMIN") // 재고 삭제
+                        .requestMatchers(HttpMethod.GET, "/festivals/**", "/main/**", "/detail/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()                                      // 나머지는 인증 필요
                 )
 

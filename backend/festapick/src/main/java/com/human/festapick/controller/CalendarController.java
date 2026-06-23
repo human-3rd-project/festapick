@@ -68,8 +68,10 @@ public class CalendarController {
             @Valid @ModelAttribute CalendarFilterReqDto request,
             Pageable pageable
     ) {
+        Long userId = userDetail == null ? null : userDetail.getUserId();
+
         return ResponseEntity.ok(ApiResponse.ok(calendarService.getFilteredCalendars(
-                userDetail.getUserId(),
+                userId,
                 request.getYear(),
                 request.getMonth(),
                 request.getLdongRegnCd(),

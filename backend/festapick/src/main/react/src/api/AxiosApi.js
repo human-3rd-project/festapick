@@ -7,6 +7,22 @@ const publicApi = axios.create({
   baseURL: Common.HM_DOMAIN,
 });
 
+// 공개 API이지만 로그인 사용자의 개인화 정보가 있으면 함께 받는 선택적 인증 API
+const optionalAuthApi = axios.create({
+  baseURL: Common.HM_DOMAIN,
+});
+
+optionalAuthApi.interceptors.request.use(
+  (config) => {
+    const accessToken = Common.getAccessToken();
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
 const AxiosApi = {
   // 관리자 사용자 검색 API
   adminUserSearch: (keyword, page = 0, size = 10) =>
@@ -237,46 +253,6 @@ const AxiosApi = {
   getMyRegion: () => AxiosInstance.get("/users/me/region"),
   updateMyRegion: (data) => AxiosInstance.patch("/users/me/region", data),
 
-  // 게시글 페이지네이션
-  getPosts: (page = 0, size = 10) =>
-    AxiosInstance.get("/api/posts", { params: { page, size } }),
-  // 게시글 상세 조회
-  getPost: (id) => AxiosInstance.get(`/api/posts/${id}`),
-  // 게시글 쓰기
-  createPost: (data) => AxiosInstance.post("/api/posts", data),
-  // 게시글 수정
-  updatePost: (id, data) => AxiosInstance.put(`/api/posts/${id}`, data),
-  // 게시글 삭제
-  deletePost: (postId) => AxiosInstance.delete(`/api/posts/${postId}`),
-  // 댓글 조회
-  getComments: (postId) => AxiosInstance.get(`/api/posts/${postId}/comments`),
-  // 댓글 쓰기
-  createComment: (postId, data) =>
-    AxiosInstance.post(`/api/posts/${postId}/comments`, data),
-  // 댓글 수정
-  updateComment: (postId, commentId, data) =>
-    AxiosInstance.put(`/api/posts/${postId}/comments/${commentId}`, data),
-  // 댓글 삭제
-  deleteComment: (postId, commentId) =>
-    AxiosInstance.delete(`/api/posts/${postId}/comments/${commentId}`),
-
-  // 회원 전체 조회
-  getMembers: () => AxiosInstance.get("/api/members"),
-  // 개별 회원 조회
-  getMember: (id) => AxiosInstance.get(`/api/members/${id}`),
-  // 채팅방 목록 조회
-  chatList: async () => {
-    return await publicApi.get("/chat/list");
-  },
-  // 채팅방 생성
-  chatCreate: async (name) => {
-    return await publicApi.post("/chat/new", { name });
-  },
-  // 채팅방 정보 조회
-  chatDetail: async (roomId) => {
-    return await publicApi.get(`/chat/room/${roomId}`);
-  },
-
   // 월별 축제 조회 - 공개 API
   getCalendarMonthlyFestivals: (targetMonth) =>
     publicApi.get("/calendar/monthly", { params: { targetMonth } }),
@@ -291,7 +267,7 @@ const AxiosApi = {
   getFavoriteCalendars: (page = 0, size = 10) =>
     AxiosInstance.get("/calendar/favorites", { params: { page, size } }),
 
-  // 캘린더 축제 필터 조회 - 로그인 필요
+  // 캘린더 축제 필터 조회 - 공개 API, 로그인 사용자는 찜 여부 포함
   getFilteredCalendars: ({
     year,
     month,
@@ -302,7 +278,7 @@ const AxiosApi = {
     page = 0,
     size = 10,
   }) =>
-    AxiosInstance.get("/calendar", {
+    optionalAuthApi.get("/calendar", {
       params: {
         year,
         month,
@@ -399,7 +375,7 @@ const AxiosApi = {
 
   // 주변 추천 축제 조회
   getNearbyFestivalRecommendations: (ldongRegnCd, ldongSignguCd) =>
-    AxiosInstance.get("/main/nearby", {
+    publicApi.get("/main/nearby", {
       params: { ldongRegnCd, ldongSignguCd },
     }),
 

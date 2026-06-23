@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -270,8 +270,6 @@ function Calendar() {
       },
     },
   });
-
-  const draftFilterCount = draftThemes.length;
 
   return (
     <S.Page>

@@ -5,14 +5,6 @@ const KAKAO_MESSAGE_SOURCE = "festapick-kakao";
 const KAKAO_STORAGE_KEY = "festapick:kakao-auth-result";
 const processedKakaoCodes = new Set();
 
-const moveOpener = (path) => {
-  if (!window.opener || window.opener.closed) {
-    return;
-  }
-
-  window.opener.location.href = `${window.location.origin}${path}`;
-};
-
 const deliverToParent = (type, payload = {}) => {
   const message = {
     source: KAKAO_MESSAGE_SOURCE,
