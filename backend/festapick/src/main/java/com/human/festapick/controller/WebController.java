@@ -1,4 +1,4 @@
-package com.human.jwtboard.controller;
+package com.human.festapick.controller;
 
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.stereotype.Controller;

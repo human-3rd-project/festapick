@@ -63,6 +63,7 @@ public class SecurityConfig {
                                 "/manifest.json", "/robots.txt").permitAll()
 
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/oauth/kakao/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/chat/**").permitAll()
@@ -71,6 +72,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .anyRequest().authenticated()
+
+                        .requestMatchers("/detail/**").permitAll()
                 )
 
                 // JwtFilter를 필터 체인에 등록

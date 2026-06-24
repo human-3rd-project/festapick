@@ -288,7 +288,7 @@ function Header() {
     }
 
     if (notification.referenceId) {
-      navigate(`/festivals/${notification.referenceId}`);
+      navigate(`/detail/${notification.referenceId}`);
       closeMenus();
     }
   };

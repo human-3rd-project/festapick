@@ -3,7 +3,14 @@ import Common from "../utils/Common";
 const CHAT_SOCKET_PATH = "/ws/chat";
 const DEFAULT_MESSAGE_TYPE = "CHAT";
 
-const getWebSocketBaseUrl = () => Common.HM_DOMAIN.replace(/^http/, "ws");
+const getWebSocketBaseUrl = () => {
+  const baseUri = document.baseURI;
+
+  const url = new URL(baseUri);
+  const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+
+  return `${protocol}//${url.host}`;
+};
 
 const createChatSocketUrl = (chatRoomId) => {
   const token = Common.getAccessToken();

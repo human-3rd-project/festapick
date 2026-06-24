@@ -51,7 +51,7 @@ tasks.named('test') {
 // ============================================================
 // React + Spring Boot 통합 빌드 설정
 // ============================================================
-def reactDir = "D:\\dev\\festapick\\frontend\\festa-pick"
+def reactDir = "$projectDir/src/main/react"
 
 sourceSets {
 	main {

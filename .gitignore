@@ -4,18 +4,18 @@
 doc/
 
 # ===== React 관련 =====
-src/main/react/node_modules
-src/main/react/.env
-src/main/react/.env.local
-src/main/react/.env.development.local
-src/main/react/.env.test.local
-src/main/react/.env.production.local
-src/main/react/coverage
-src/main/react/build
-src/main/react/.DS_Store
-src/main/react/npm-debug.log*
-src/main/react/yarn-debug.log*
-src/main/react/yarn-error.log*
+/frontend/festa-pick/node_modules/
+/frontend/festa-pick/.env
+/frontend/festa-pick/build/
+/backend/festapick/node_modules/
+/backend/festapick/src/main/react/node_modules/
+/backend/festapick/src/main/react/.env
+/backend/festapick/src/main/react/coverage/
+/backend/festapick/src/main/react/build/
+/backend/festapick/src/main/react/.DS_Store
+/backend/festapick/src/main/react/npm-debug.log*
+/backend/festapick/src/main/react/yarn-debug.log*
+/backend/festapick/src/main/react/yarn-error.log*
 
-# Spring Boot에 복사된 React 빌드 결과물
-src/main/resources/static/static
+# Spring Boot에 복사되는 React 빌드 결과물
+/backend/festapick/src/main/resources/static/

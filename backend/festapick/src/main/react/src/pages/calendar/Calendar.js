@@ -259,7 +259,7 @@ function Calendar() {
   };
 
   const getFestivalLink = (festival) => ({
-    to: `/festivals/${festival.id}`,
+    to: `/detail/${festival.id}`,
     state: {
       festival: {
         ...festival,
