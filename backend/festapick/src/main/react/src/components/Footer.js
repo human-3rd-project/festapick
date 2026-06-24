@@ -17,7 +17,7 @@ const footerLinks = [
   { label: "서비스 소개", path: "/" },
   { label: "축제 탐색", path: "/search" },
   { label: "후원", path: "/donation" },
-  { label: "캘린더", path: "/calendar" },
+  { label: "캘린더", path: "/festival-calendar" },
   { label: "AI 추천", path: "/ai" },
 ];
 

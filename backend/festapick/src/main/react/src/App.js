@@ -49,7 +49,7 @@ function App() {
       <Route path="/" element={<MainPage />} />
       <Route path="/search" element={<FestaSearch />} />
       <Route path="/nearby" element={<FestaSearch />} />
-      <Route path="/calendar" element={<Calendar />} />
+      <Route path="/festival-calendar" element={<Calendar />} />
       <Route path="/ai" element={<AiRecommendPage />} />
       <Route path="/ai-recommend" element={<AiRecommendPage />} />
       <Route path="/detail/:festivalId" element={<FestaDetail />} />

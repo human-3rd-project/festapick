@@ -67,13 +67,20 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/chat/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/search", "/nearby", "/festival-calendar", "/ai", "/ai-recommend",
+                                "/detail/**",
+                                "/donation", "/donation/success", "/donation/fail",
+                                "/login", "/signup", "/find-id", "/find-password", "/reset-password", "/social-login",
+                                "/mypage", "/mypage/**",
+                                "/admin", "/admin/members", "/admin/reviews", "/admin/festivals", "/admin/donations"
+                        ).permitAll()
 
                         // ✅ 추가: OPTIONS preflight 요청 전체 허용
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .anyRequest().authenticated()
 
-                        .requestMatchers("/detail/**").permitAll()
                 )
 
                 // JwtFilter를 필터 체인에 등록

@@ -401,8 +401,8 @@ function Header() {
 
           <NavLink
             as={RouterNavLink}
-            to="/calendar"
-            $active={isActivePath("/calendar")}
+            to="/festival-calendar"
+            $active={isActivePath("/festival-calendar")}
           >
             캘린더
           </NavLink>
