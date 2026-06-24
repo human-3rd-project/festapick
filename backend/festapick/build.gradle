@@ -47,3 +47,30 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+def frontendDir = "$projectDir/src/main/react"
+def yarnCommand = "yarn"
+
+tasks.register("installReact", Exec) {
+	workingDir frontendDir
+	commandLine yarnCommand, "install", "--frozen-lockfile"
+}
+
+tasks.register("buildReact", Exec) {
+	dependsOn "installReact"
+	workingDir frontendDir
+	commandLine yarnCommand, "build"
+}
+
+tasks.register("copyReactBuild", Copy) {
+	dependsOn "buildReact"
+	doFirst {
+		delete "$projectDir/src/main/resources/static"
+	}
+	from "$frontendDir/build"
+	into "$projectDir/src/main/resources/static"
+}
+
+processResources {
+	dependsOn "copyReactBuild"
+}

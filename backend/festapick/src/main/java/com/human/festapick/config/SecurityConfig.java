@@ -16,11 +16,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-// 🔴 이 3가지 CORS 관련 임포트를 정확하게 일치시켜야 합니다.
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;          // .reactive 지움
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;   // 정상 임포트 확인
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -38,9 +33,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CORS: React(3000포트) 허용
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
                 // CSRF: JWT 방식이므로 비활성화
                 .csrf(csrf -> csrf.disable())
 
@@ -55,13 +47,65 @@ public class SecurityConfig {
 
                 // URL 별 권한 설정 (위에서 아래 순서로 첫 번째 매칭 적용)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/static/**",
+                                "/favicon.ico",
+                                "/manifest.json",
+                                "/asset-manifest.json",
+                                "/robots.txt"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/search",
+                                "/nearby",
+                                "/calendar",
+                                "/ai",
+                                "/ai-recommend",
+                                "/donation/**",
+                                "/mypage/**",
+                                "/admin",
+                                "/admin/members",
+                                "/admin/reviews",
+                                "/admin/festivals",
+                                "/admin/donations",
+                                "/login",
+                                "/signup",
+                                "/find-id",
+                                "/find-password",
+                                "/reset-password",
+                                "/social-login",
+                                "/oauth/kakao/callback",
+                                "/detail/**"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.HEAD,
+                                "/search",
+                                "/nearby",
+                                "/calendar",
+                                "/ai",
+                                "/ai-recommend",
+                                "/donation/**",
+                                "/mypage/**",
+                                "/admin",
+                                "/admin/members",
+                                "/admin/reviews",
+                                "/admin/festivals",
+                                "/admin/donations",
+                                "/login",
+                                "/signup",
+                                "/find-id",
+                                "/find-password",
+                                "/reset-password",
+                                "/social-login",
+                                "/oauth/kakao/callback",
+                                "/detail/**"
+                        ).permitAll()
                         .requestMatchers("/auth/**", "/ws/chat", "/chat/rooms/*/messages", "/festivals/*/favorites/count", "/donations/statistics").permitAll()                            // 로그인/회원가입 허용
                         .requestMatchers("/festivals/*/likes/count", "/festivals/*/reviews", "/festivals/*/reviews/count").permitAll()  // Swagger 허용
                         .requestMatchers("/ai/question", "/ai/field-summary/**", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes", "/calendar").permitAll()
-                        .requestMatchers("/festivals/**", "/main/**").permitAll()
-                        .requestMatchers(HttpMethod.POST,   "/admin/**").hasRole("ADMIN") // 재고 등록
-                        .requestMatchers(HttpMethod.PUT,    "/admin/**").hasRole("ADMIN") // 재고 수정
-                        .requestMatchers(HttpMethod.DELETE, "/admin/**").hasRole("ADMIN") // 재고 삭제
+                        .requestMatchers(HttpMethod.GET, "/festivals/**", "/main/**", "/detail/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()                                      // 나머지는 인증 필요
                 )
 
@@ -69,18 +113,5 @@ public class SecurityConfig {
                 .with(new JwtSecurityConfig(tokenProvider), Customizer.withDefaults());
 
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("https://c835-116-36-205-25.ngrok-free.app");
-        config.addAllowedHeader("*");                      // Authorization 헤더 포함 전체 허용
-        config.addAllowedMethod("*");                      // GET/POST/PUT/DELETE/OPTIONS 전체 허용
-        config.setAllowCredentials(true);                  // 자격증명(쿠키, Authorization) 허용
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
     }
 }
