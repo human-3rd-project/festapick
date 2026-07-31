@@ -24,4 +24,4 @@ yarn-error.log*
 
 # 무시
 .env
-src/app.js
+src/App.js
