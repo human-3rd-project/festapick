@@ -91,10 +91,21 @@ public class AccountService {
 
         passwordResetTokenRepository.save(resetToken);
 
-        String resetUrl =
-                frontendUrl + "/reset-password?token=" + token;
+        String resetUrl = buildPasswordResetUrl(token);
 
         emailSenderService.sendPasswordResetEmail(user.getEmail(), resetUrl);
+    }
+
+    private String buildPasswordResetUrl(String token) {
+        if (frontendUrl == null || frontendUrl.isBlank()) {
+            throw new CustomException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "프런트엔드 주소가 설정되지 않았습니다."
+            );
+        }
+
+        String normalizedFrontendUrl = frontendUrl.trim().replaceAll("/+$", "");
+        return normalizedFrontendUrl + "/reset-password?token=" + token;
     }
 
     /**

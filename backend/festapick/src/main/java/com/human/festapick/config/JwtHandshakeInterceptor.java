@@ -1,6 +1,6 @@
 package com.human.festapick.config;
 
-import com.human.festapick.security.TokenProvider;
+import com.human.festapick.service.WebSocketTicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
@@ -19,7 +19,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     public static final String AUTHENTICATION_ATTRIBUTE = "authentication";
 
-    private final TokenProvider tokenProvider;
+    private final WebSocketTicketService webSocketTicketService;
 
     @Override
     public boolean beforeHandshake(
@@ -28,17 +28,18 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             WebSocketHandler wsHandler,
             Map<String, Object> attributes
     ) {
-        String token = UriComponentsBuilder.fromUri(request.getURI())
+        String ticket = UriComponentsBuilder.fromUri(request.getURI())
                 .build()
                 .getQueryParams()
-                .getFirst("token");
+                .getFirst("ticket");
 
-        if (token == null || token.isBlank() || !tokenProvider.validateToken(token)) {
+        Authentication authentication = webSocketTicketService.consume(ticket).orElse(null);
+
+        if (authentication == null) {
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return false;
         }
 
-        Authentication authentication = tokenProvider.getAuthentication(token);
         attributes.put(AUTHENTICATION_ATTRIBUTE, authentication);
         return true;
     }

@@ -45,10 +45,12 @@ public class DonationController {
 
     @PostMapping("/{donationId}/payments")
     public ResponseEntity<ApiResponse<DonationPaymentResDto>> requestPayment(
+            @AuthenticationPrincipal CustomUserDetail userDetail,
             @PathVariable Long donationId,
             @RequestParam(required = false) String orderId
     ) {
         DonationPayments payment = donationService.requestPayment(
+                getUserId(userDetail),
                 donationId,
                 requireOrderId(orderId)
         );
@@ -60,19 +62,25 @@ public class DonationController {
 
     @PostMapping("/payments/confirm")
     public ResponseEntity<ApiResponse<DonationPaymentResDto>> confirmPayment(
+            @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody(required = false) PaymentConfirmReqDto request
     ) {
-        DonationPayments payment = donationService.confirmPayment(requirePaymentConfirmRequest(request));
+        DonationPayments payment = donationService.confirmPayment(
+                getUserId(userDetail),
+                requirePaymentConfirmRequest(request)
+        );
 
         return ResponseEntity.ok(ApiResponse.ok("결제가 승인되었습니다.", DonationPaymentResDto.from(payment)));
     }
 
     @PostMapping("/payments/failure")
     public ResponseEntity<ApiResponse<DonationPaymentResDto>> savePaymentFailure(
+            @AuthenticationPrincipal CustomUserDetail userDetail,
             @RequestParam(required = false) String orderId,
             @RequestParam(required = false) String failReason
     ) {
         DonationPayments payment = donationService.savePaymentFailure(
+                getUserId(userDetail),
                 requireOrderId(orderId),
                 failReason
         );
@@ -82,18 +90,26 @@ public class DonationController {
 
     @GetMapping("/payments/success")
     public ResponseEntity<ApiResponse<DonationManageResDto>> getPaymentSuccessInfo(
+            @AuthenticationPrincipal CustomUserDetail userDetail,
             @RequestParam(required = false) String orderId
     ) {
-        DonationManageResDto paymentInfo = donationService.getPaymentSuccessInfo(requireOrderId(orderId));
+        DonationManageResDto paymentInfo = donationService.getPaymentSuccessInfo(
+                getUserId(userDetail),
+                requireOrderId(orderId)
+        );
 
         return ResponseEntity.ok(ApiResponse.ok(paymentInfo));
     }
 
     @GetMapping("/payments/failure")
     public ResponseEntity<ApiResponse<DonationPaymentResDto>> getPaymentFailureInfo(
+            @AuthenticationPrincipal CustomUserDetail userDetail,
             @RequestParam(required = false) String orderId
     ) {
-        DonationPayments payment = donationService.getPaymentFailureInfo(requireOrderId(orderId));
+        DonationPayments payment = donationService.getPaymentFailureInfo(
+                getUserId(userDetail),
+                requireOrderId(orderId)
+        );
 
         return ResponseEntity.ok(ApiResponse.ok(DonationPaymentResDto.from(payment)));
     }

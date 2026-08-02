@@ -11,8 +11,8 @@ import java.util.Optional;
 
 @Repository
 public interface DonationPaymentRepository extends JpaRepository<DonationPayments, Long> {
-    // 주문번호로 결제 정보 조회
-    Optional<DonationPayments> findByOrderId(String orderId);
+    // 로그인 사용자가 소유한 주문번호로 결제 정보 조회
+    Optional<DonationPayments> findByOrderIdAndDonations_Users_UserId(String orderId, Long userId);
 
     // 결제키로 결제 정보 조회
     Optional<DonationPayments> findByPaymentKey(String paymentKey);

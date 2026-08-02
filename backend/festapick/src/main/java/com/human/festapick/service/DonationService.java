@@ -77,14 +77,18 @@ public class DonationService {
     }
 
     @Transactional
-    public DonationPayments requestPayment(Long donationId, String orderId) {
+    public DonationPayments requestPayment(
+            Long userId,
+            Long donationId,
+            String orderId
+    ) {
         validateOrderId(orderId);
+        Donations donation = getOwnedDonation(userId, donationId);
 
         if (donationPaymentRepository.existsByOrderId(orderId)) {
             throw new CustomException(HttpStatus.CONFLICT, "이미 사용된 주문번호입니다.");
         }
 
-        Donations donation = getDonation(donationId);
         DonationPayments payment = DonationPayments.builder()
                 .donations(donation)
                 .orderId(orderId)
@@ -95,8 +99,8 @@ public class DonationService {
     }
 
     @Transactional
-    public DonationPayments confirmPayment(PaymentConfirmReqDto request) {
-        DonationPayments payment = validatePayment(request);
+    public DonationPayments confirmPayment(Long userId, PaymentConfirmReqDto request) {
+        DonationPayments payment = validatePayment(userId, request);
 
         if (payment.getPaymentStatus() == PaymentStatus.DONE) {
             if (Objects.equals(payment.getPaymentKey(), request.getPaymentKey())) {
@@ -122,20 +126,20 @@ public class DonationService {
         return payment;
     }
 
-    public DonationPayments verifyPayment(PaymentConfirmReqDto request) {
-        return validatePayment(request);
+    public DonationPayments verifyPayment(Long userId, PaymentConfirmReqDto request) {
+        return validatePayment(userId, request);
     }
 
     @Transactional
-    public DonationPayments savePaymentFailure(String orderId, String failReason) {
-        DonationPayments payment = getPaymentByOrderId(orderId);
+    public DonationPayments savePaymentFailure(Long userId, String orderId, String failReason) {
+        DonationPayments payment = getOwnedPayment(userId, orderId);
         payment.fail(failReason == null || failReason.isBlank() ? "결제 실패" : failReason);
         payment.getDonations().fail();
         return payment;
     }
 
-    public DonationManageResDto getPaymentSuccessInfo(String orderId) {
-        DonationPayments payment = getPaymentByOrderId(orderId);
+    public DonationManageResDto getPaymentSuccessInfo(Long userId, String orderId) {
+        DonationPayments payment = getOwnedPayment(userId, orderId);
 
         if (payment.getPaymentStatus() != PaymentStatus.DONE) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "성공한 결제 내역이 아닙니다.");
@@ -144,8 +148,8 @@ public class DonationService {
         return toDonationManageResDto(payment);
     }
 
-    public DonationPayments getPaymentFailureInfo(String orderId) {
-        DonationPayments payment = getPaymentByOrderId(orderId);
+    public DonationPayments getPaymentFailureInfo(Long userId, String orderId) {
+        DonationPayments payment = getOwnedPayment(userId, orderId);
 
         if (payment.getPaymentStatus() != PaymentStatus.FAILED) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "실패한 결제 내역이 아닙니다.");
@@ -220,12 +224,12 @@ public class DonationService {
                 .ifPresent(DonationPayments::cancel);
     }
 
-    private DonationPayments validatePayment(PaymentConfirmReqDto request) {
+    private DonationPayments validatePayment(Long userId, PaymentConfirmReqDto request) {
         if (request == null) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "결제 승인 요청 정보가 없습니다.");
         }
 
-        DonationPayments payment = getPaymentByOrderId(request.getOrderId());
+        DonationPayments payment = getOwnedPayment(userId, request.getOrderId());
 
         if (!Objects.equals(payment.getAmount(), request.getAmount())) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "결제 금액이 일치하지 않습니다.");
@@ -421,8 +425,13 @@ public class DonationService {
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "후원 내역을 찾을 수 없습니다."));
     }
 
-    private DonationPayments getPaymentByOrderId(String orderId) {
-        return donationPaymentRepository.findByOrderId(orderId)
+    private Donations getOwnedDonation(Long userId, Long donationId) {
+        return donationRepository.findByDonationIdAndUsers_UserId(donationId, userId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "후원 내역을 찾을 수 없습니다."));
+    }
+
+    private DonationPayments getOwnedPayment(Long userId, String orderId) {
+        return donationPaymentRepository.findByOrderIdAndDonations_Users_UserId(orderId, userId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "결제 내역을 찾을 수 없습니다."));
     }
 

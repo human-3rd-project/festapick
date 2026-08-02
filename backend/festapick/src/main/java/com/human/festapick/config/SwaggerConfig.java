@@ -16,8 +16,10 @@ public class SwaggerConfig {
         String securitySchemeName = "BearerAuth";
         return new OpenAPI()
                 .info(new Info()
-                        .title("JwtBoard API")
-                        .description("JWT 인증 기반 게시판 REST API")
+                        .title("FESTAPICK API")
+                        .description(
+                                "전국 축제 검색, AI 추천, 캘린더, 실시간 채팅, 리뷰 및 후원 결제를 제공하는 REST API"
+                        )
                         .version("v1.0"))
                 .addSecurityItem(new SecurityRequirement()
                         .addList(securitySchemeName))

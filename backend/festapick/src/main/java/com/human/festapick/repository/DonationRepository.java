@@ -10,11 +10,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface DonationRepository extends JpaRepository<Donations, Long> {
 
     // 내 후원 내역 조회
     Page<Donations> findByUsers_UserId(Long userId, Pageable pageable);
+
+    // 로그인 사용자가 소유한 후원 단건 조회
+    Optional<Donations> findByDonationIdAndUsers_UserId(Long donationId, Long userId);
 
     // 총 후원금 통계
     @Query("select coalesce(sum(d.amount), 0) from Donations d where d.donationStatus = :status")

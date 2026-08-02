@@ -103,7 +103,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/auth/**", "/ws/chat", "/chat/rooms/*/messages", "/festivals/*/favorites/count", "/donations/statistics").permitAll()                            // 로그인/회원가입 허용
                         .requestMatchers("/festivals/*/likes/count", "/festivals/*/reviews", "/festivals/*/reviews/count").permitAll()  // Swagger 허용
-                        .requestMatchers("/ai/question", "/ai/field-summary/**", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes", "/calendar").permitAll()
+                        .requestMatchers("/ai/field-summary/**", "/calendar/monthly",  "/calendar/filters/regions", "/calendar/filters/themes", "/calendar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/festivals/**", "/main/**", "/detail/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()                                      // 나머지는 인증 필요

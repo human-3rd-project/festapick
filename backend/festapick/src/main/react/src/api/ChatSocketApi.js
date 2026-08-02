@@ -1,4 +1,5 @@
 import Common from "../utils/Common";
+import AxiosInstance from "./AxiosInstance";
 
 const CHAT_SOCKET_PATH = "/ws/chat";
 const DEFAULT_MESSAGE_TYPE = "CHAT";
@@ -12,11 +13,21 @@ const getWebSocketBaseUrl = () => {
   return `${protocol}//${window.location.host}`;
 };
 
-const createChatSocketUrl = (chatRoomId) => {
-  const token = Common.getAccessToken();
+const requestWebSocketTicket = async () => {
+  const response = await AxiosInstance.post("/ws/ticket");
+  const ticket = response?.data?.data;
+
+  if (!ticket) {
+    throw new Error("WebSocket ticket was not issued.");
+  }
+
+  return ticket;
+};
+
+const createChatSocketUrl = (chatRoomId, ticket) => {
   const params = new URLSearchParams({
     chatRoomId: String(chatRoomId),
-    token: token ?? "",
+    ticket,
   });
 
   return `${getWebSocketBaseUrl()}${CHAT_SOCKET_PATH}?${params.toString()}`;
@@ -45,10 +56,27 @@ export const connectChatSocket = ({
   let socket;
   let opened = false;
   let closedByClient = false;
-  let retriedAfterRefresh = false;
+  let retriedAfterFailure = false;
 
-  const openSocket = () => {
-    socket = new WebSocket(createChatSocketUrl(chatRoomId));
+  const openSocket = async () => {
+    try {
+      const ticket = await requestWebSocketTicket();
+
+      if (closedByClient) {
+        return;
+      }
+
+      socket = new WebSocket(createChatSocketUrl(chatRoomId, ticket));
+    } catch (error) {
+      onError?.(error);
+      onAuthFailure?.(error);
+      onClose?.(error, {
+        authFailed: true,
+        closedByClient,
+        wasOpened: false,
+      });
+      return;
+    }
 
     socket.onopen = (event) => {
       opened = true;
@@ -63,20 +91,13 @@ export const connectChatSocket = ({
       onError?.(event);
     };
 
-    socket.onclose = async (event) => {
+    socket.onclose = (event) => {
       const wasOpened = opened;
 
-      if (!closedByClient && !opened && !retriedAfterRefresh) {
-        retriedAfterRefresh = true;
-
-        const refreshed = await Common.handleUnauthorized();
-
-        if (refreshed) {
-          openSocket();
-          return;
-        }
-
-        onAuthFailure?.(event);
+      if (!closedByClient && !opened && !retriedAfterFailure) {
+        retriedAfterFailure = true;
+        openSocket();
+        return;
       }
 
       onClose?.(event, {
